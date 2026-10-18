@@ -20,7 +20,7 @@ native wrapper      src/core/native/**  +  /modules (local Kotlin Expo Modules, 
 - A **native wrapper** is the only place that imports native modules (`expo-*`, `react-native-device-info`, MMKV, `modules/*`) and the only place that catches their platform errors.
 - UI never imports a native module directly. A feature never imports another feature's internals — shared code moves to `src/design-system`, `src/core` or `src/state`.
 
-One shared polling hook (added with the feature phases) drives live readings such as the CPU graph, and pauses whenever its screen is not focused.
+One shared polling hook (`src/core/hooks/use-polling.ts`) drives every live reading: it ticks on an interval, pauses while its screen is not focused and stops while the app is in the background.
 
 ## `Result<T>` — honesty as a type
 
@@ -43,15 +43,15 @@ Services and native wrappers never throw across layers and never fake a value: a
 
 ## Folder map
 
-| Path                  | Contents                                                                                                                                                                                                             |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/app`             | Expo Router routes only: the `(tabs)` shell, `settings`, dev-only `dev/gallery`. Thin wrappers around feature screens.                                                                                               |
-| `src/features/<name>` | `components/`, `hooks/`, `services/`, `types.ts` — one folder per feature (dashboard, battery, memory, storage, cpu, thermal, display, camera, sensors, network, apps, tools, tips, report).                         |
-| `src/design-system`   | `tokens.ts` (palette, 4 dp spacing, radius, type scale), `theme.tsx` (`ThemeProvider`, `useTheme`), `icon.tsx` (`<Icon>`), `status.ts` + `color.ts` helpers, `components/`, `visuals/` (Skia gauges), `animations/`. |
-| `src/core`            | `result.ts`, `features.ts`, and the cross-cutting areas: `native/`, `permissions/`, `system-settings/`, `storage/`, `ads/`, `utils/`.                                                                                |
-| `src/state`           | Zustand stores (small, local-only settings first).                                                                                                                                                                   |
-| `modules/`            | Local Kotlin Expo Modules (added with the native phases).                                                                                                                                                            |
-| `assets/images`       | App icon, adaptive icon, splash. Only what ships.                                                                                                                                                                    |
+| Path                  | Contents                                                                                                                                                                                                                               |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app`             | Expo Router routes only: the `(tabs)` shell, `settings`, dev-only `dev/gallery`. Thin wrappers around feature screens.                                                                                                                 |
+| `src/features/<name>` | `components/`, `hooks/`, `services/`, `types.ts` — one folder per feature (dashboard, battery, memory, storage, cpu, thermal, display, camera, sensors, network, apps, tools, tips, report).                                           |
+| `src/design-system`   | `tokens.ts` (palette, 4 dp spacing, radius, type scale), `theme.tsx` (`ThemeProvider`, `useTheme`), `icon.tsx` (`<Icon>`), `status.ts` + `color.ts` helpers, `components/`, `visuals/` (Skia gauges), `animations/`.                   |
+| `src/core`            | `result.ts`, `features.ts`, `hooks/use-polling.ts`, and the cross-cutting areas: `native/` (Result-based wrappers over the Kotlin modules), `permissions/`, `system-settings/`, `storage/`, `ads/`, `utils/` (unit-tested formatters). |
+| `src/state`           | Zustand stores (small, local-only settings first).                                                                                                                                                                                     |
+| `modules/`            | Local Kotlin Expo Modules: `device-stats` (memory, storage, uptime, thermal) and `battery-ext` (detailed battery readings + live listener).                                                                                            |
+| `assets/images`       | App icon, adaptive icon, splash. Only what ships.                                                                                                                                                                                      |
 
 ### Theming, motion and feedback (rules for every phase)
 

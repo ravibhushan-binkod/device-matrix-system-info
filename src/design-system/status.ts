@@ -3,6 +3,7 @@ import type { AppColors } from '@/design-system/tokens';
 export type StatusTone = 'good' | 'warning' | 'critical';
 
 export function clamp01(value: number): number {
+  'worklet';
   if (Number.isNaN(value)) return 0;
   return Math.min(1, Math.max(0, value));
 }

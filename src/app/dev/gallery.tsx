@@ -32,8 +32,9 @@ import {
   type CoreBar,
 } from '@/design-system/visuals';
 import { useSettingsStore } from '@/state/settings-store';
+import { NativeProbe } from '@/dev/native-probe';
 
-import { DevSlider } from './dev-slider';
+import { DevSlider } from '@/dev/dev-slider';
 
 const themeModes: { value: ThemeMode; label: string }[] = [
   { value: 'system', label: 'System' },
@@ -396,6 +397,8 @@ export default function DevGalleryScreen() {
         variant="secondary"
         onPress={() => setStaggerKey((key) => key + 1)}
       />
+
+      <NativeProbe />
     </Screen>
   );
 }
