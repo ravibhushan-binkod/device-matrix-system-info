@@ -1,5 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import type { LucideIcon } from 'lucide-react-native';
+import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,13 +13,14 @@ type Props = {
   description: string;
   /** Small footer line, e.g. which phase fills this screen in. */
   note?: string;
+  children?: ReactNode;
 };
 
 /**
  * The shared empty state every not-yet-built screen uses, so the shell feels
  * finished while the feature phases land one by one.
  */
-export function PlaceholderScreen({ icon: Icon, title, description, note }: Props) {
+export function PlaceholderScreen({ icon: Icon, title, description, note, children }: Props) {
   const { colors } = useAppTheme();
 
   return (
@@ -40,6 +42,7 @@ export function PlaceholderScreen({ icon: Icon, title, description, note }: Prop
           <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
           <Text style={[styles.description, { color: colors.textMuted }]}>{description}</Text>
           {note ? <Text style={[styles.note, { color: colors.textMuted }]}>{note}</Text> : null}
+          {children}
         </View>
       </SafeAreaView>
     </View>

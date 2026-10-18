@@ -6,7 +6,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 
-import { useAppTheme } from '@/theme/use-app-theme';
+import { useAppTheme } from '@/design-system/theme';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -47,10 +47,16 @@ export default function RootLayout() {
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
-          headerShown: false,
+          headerStyle: { backgroundColor: colors.background },
+          headerTintColor: colors.text,
+          headerTitleStyle: { fontFamily: 'Inter_600SemiBold' },
           contentStyle: { backgroundColor: colors.background },
         }}
-      />
+      >
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+        <Stack.Screen name="gallery" options={{ title: 'Design Gallery' }} />
+      </Stack>
     </ThemeProvider>
   );
 }
