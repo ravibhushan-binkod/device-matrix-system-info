@@ -43,15 +43,22 @@ Services and native wrappers never throw across layers and never fake a value: a
 
 ## Folder map
 
-| Path                  | Contents                                                                                                                                                                                     |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/app`             | Expo Router routes only: the `(tabs)` shell, `settings`, dev-only `gallery`. Thin wrappers around feature screens.                                                                           |
-| `src/features/<name>` | `components/`, `hooks/`, `services/`, `types.ts` — one folder per feature (dashboard, battery, memory, storage, cpu, thermal, display, camera, sensors, network, apps, tools, tips, report). |
-| `src/design-system`   | `tokens.ts` (colors, spacing, radius), `theme.ts` (`useAppTheme`), `components/`, `animations/`, `icons.ts`.                                                                                 |
-| `src/core`            | `result.ts`, `features.ts`, and the cross-cutting areas: `native/`, `permissions/`, `system-settings/`, `storage/`, `ads/`, `utils/`.                                                        |
-| `src/state`           | Zustand stores (small, local-only settings first).                                                                                                                                           |
-| `modules/`            | Local Kotlin Expo Modules (added with the native phases).                                                                                                                                    |
-| `assets/images`       | App icon, adaptive icon, splash. Only what ships.                                                                                                                                            |
+| Path                  | Contents                                                                                                                                                                                                             |
+| --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app`             | Expo Router routes only: the `(tabs)` shell, `settings`, dev-only `dev/gallery`. Thin wrappers around feature screens.                                                                                               |
+| `src/features/<name>` | `components/`, `hooks/`, `services/`, `types.ts` — one folder per feature (dashboard, battery, memory, storage, cpu, thermal, display, camera, sensors, network, apps, tools, tips, report).                         |
+| `src/design-system`   | `tokens.ts` (palette, 4 dp spacing, radius, type scale), `theme.tsx` (`ThemeProvider`, `useTheme`), `icon.tsx` (`<Icon>`), `status.ts` + `color.ts` helpers, `components/`, `visuals/` (Skia gauges), `animations/`. |
+| `src/core`            | `result.ts`, `features.ts`, and the cross-cutting areas: `native/`, `permissions/`, `system-settings/`, `storage/`, `ads/`, `utils/`.                                                                                |
+| `src/state`           | Zustand stores (small, local-only settings first).                                                                                                                                                                   |
+| `modules/`            | Local Kotlin Expo Modules (added with the native phases).                                                                                                                                                            |
+| `assets/images`       | App icon, adaptive icon, splash. Only what ships.                                                                                                                                                                    |
+
+### Theming, motion and feedback (rules for every phase)
+
+- Screens never hardcode colours or sizes: they use `useTheme().colors` and the tokens. The five text styles (`display`, `title`, `body`, `caption`, `mono`) are the only type scale.
+- `ThemeProvider` (in `src/app/_layout.tsx`) receives `mode` (system/dark/light) and `accent` from `src/state/settings-store.ts`; both persist in MMKV.
+- Every animation checks `useReducedMotion()` and only animates transform/opacity/paths. Press feedback comes from `PressableScale` (scale + haptic); list entrances from `StaggerItem`.
+- Availability wording is fixed: unavailable data renders "Not available on this device" (`EmptyState`).
 
 ## Adding a feature (checklist)
 

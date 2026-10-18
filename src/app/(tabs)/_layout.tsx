@@ -1,19 +1,20 @@
 import { Tabs, useRouter } from 'expo-router';
 
 import { HeaderIconButton } from '@/design-system/components';
-import {
-  AppsIcon,
-  HardwareIcon,
-  HomeIcon,
-  NetworkIcon,
-  SettingsIcon,
-  ToolsIcon,
-} from '@/design-system/icons';
-import { useAppTheme } from '@/design-system/theme';
+import { Icon, type IconName } from '@/design-system/icon';
+import { useTheme } from '@/design-system/theme';
+
+const tabs: { name: string; title: string; icon: IconName }[] = [
+  { name: 'index', title: 'Home', icon: 'home' },
+  { name: 'hardware', title: 'Hardware', icon: 'cpu' },
+  { name: 'network', title: 'Network', icon: 'wifi' },
+  { name: 'apps', title: 'Apps', icon: 'apps' },
+  { name: 'tools', title: 'Tools', icon: 'tools' },
+];
 
 export default function TabsLayout() {
   const router = useRouter();
-  const { colors } = useAppTheme();
+  const { colors } = useTheme();
 
   return (
     <Tabs
@@ -23,53 +24,29 @@ export default function TabsLayout() {
         headerTitleStyle: { fontFamily: 'Inter_600SemiBold' },
         headerRight: () => (
           <HeaderIconButton
-            icon={SettingsIcon}
+            name="settings"
             label="Settings"
             onPress={() => router.push('/settings')}
           />
         ),
         sceneStyle: { backgroundColor: colors.background },
+        animation: 'fade',
         tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
         tabBarActiveTintColor: colors.accent,
-        tabBarInactiveTintColor: colors.textMuted,
-        tabBarLabelStyle: { fontFamily: 'Inter_400Regular', fontSize: 11 },
+        tabBarInactiveTintColor: colors.muted,
+        tabBarLabelStyle: { fontFamily: 'Inter_400Regular', fontSize: 12 },
       }}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color, size }) => <HomeIcon color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="hardware"
-        options={{
-          title: 'Hardware',
-          tabBarIcon: ({ color, size }) => <HardwareIcon color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="network"
-        options={{
-          title: 'Network',
-          tabBarIcon: ({ color, size }) => <NetworkIcon color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="apps"
-        options={{
-          title: 'Apps',
-          tabBarIcon: ({ color, size }) => <AppsIcon color={color} size={size} />,
-        }}
-      />
-      <Tabs.Screen
-        name="tools"
-        options={{
-          title: 'Tools',
-          tabBarIcon: ({ color, size }) => <ToolsIcon color={color} size={size} />,
-        }}
-      />
+      {tabs.map((tab) => (
+        <Tabs.Screen
+          key={tab.name}
+          name={tab.name}
+          options={{
+            title: tab.title,
+            tabBarIcon: ({ color }) => <Icon name={tab.icon} size={24} color={color as string} />,
+          }}
+        />
+      ))}
     </Tabs>
   );
 }

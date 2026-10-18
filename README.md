@@ -49,14 +49,14 @@ npm start                # later runs: start Metro for the installed development
 ```
 src/app             Expo Router routes only (thin, file-based)
 src/features/<x>    one folder per feature: components/, hooks/, services/, types.ts
-src/design-system   tokens, theme hook, shared components, animations, icons
+src/design-system   tokens, ThemeProvider + useTheme, <Icon>, components, Skia visuals, animations
 src/core            Result<T>, feature flags, native, permissions, system-settings, storage, ads, utils
 src/state           Zustand stores
 modules/            local Kotlin Expo Modules (added with the native phases)
 assets/images       app icon, adaptive icon and splash assets
 ```
 
-Routes: five bottom tabs (Home, Hardware, Network, Apps, Tools), `settings` behind the gear icon in the header, and a dev-only `/gallery` route (redirects home in production builds).
+Routes: five bottom tabs (Home, Hardware, Network, Apps, Tools), `settings` behind the gear icon in the header, and a dev-only `/dev/gallery` route (redirects home in production builds).
 
 ## Status
 
@@ -65,6 +65,8 @@ Routes: five bottom tabs (Home, Hardware, Network, Apps, Tools), `settings` behi
 **Phase 2 — config & dependencies**: `app.config.ts` (minSdk 26, compile/target 36, R8 + resource shrinking, arm64-only APKs), planned libraries installed, placeholder icon and splash, branded home screen.
 
 **Phase 3 — structure & tooling**: tab shell with settings + dev gallery routes, feature-folder skeleton (14 features), design system, core sub-areas, state folder, `build:release` script, `.env.example`, `ARCHITECTURE.md`.
+
+**Phase 4 — design system**: dark/light palettes with a 4 dp grid and the Inter/JetBrains Mono type scale, `ThemeProvider` + `useTheme` with a persisted theme mode and accent colour, one `<Icon>` component over lucide, the shared component set (Screen, AppBar, glass Card, StatRow with copy, Chip, Button, Skeleton shimmer, banners, AdSlot, EmptyState), seven animated Skia visuals (Ring, BatteryGauge, StorageBar, MemoryDonut, CoreBars, ThermalGauge, LiveGraph) that respect reduced motion, and the dev gallery with live sliders.
 
 The system information sections land phase by phase.
 
