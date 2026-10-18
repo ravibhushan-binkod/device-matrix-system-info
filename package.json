@@ -6,6 +6,7 @@
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
+    "build:release": "expo run:android --variant release --no-bundler",
     "lint": "expo lint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
