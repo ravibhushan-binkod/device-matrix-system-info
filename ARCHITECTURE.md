@@ -20,7 +20,7 @@ native wrapper      src/core/native/**  +  /modules (local Kotlin Expo Modules, 
 - A **native wrapper** is the only place that imports native modules (`expo-*`, `react-native-device-info`, MMKV, `modules/*`) and the only place that catches their platform errors.
 - UI never imports a native module directly. A feature never imports another feature's internals — shared code moves to `src/design-system`, `src/core` or `src/state`.
 
-One shared polling hook (`src/core/hooks/use-polling.ts`) drives every live reading: it ticks on an interval, pauses while its screen is not focused and stops while the app is in the background.
+One shared polling hook (`src/core/hooks/use-polling.ts`) drives every live reading: it ticks on an interval, pauses while its screen is not focused and stops while the app is in the background. Native event streams follow the same rule through their hooks (`useSensorStream` subscribes only while the sensor detail screen is focused and unregisters the listener on exit).
 
 ## `Result<T>` — honesty as a type
 
@@ -45,12 +45,12 @@ Services and native wrappers never throw across layers and never fake a value: a
 
 | Path                  | Contents                                                                                                                                                                                                                                                             |
 | --------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/app`             | Expo Router routes only: the `(tabs)` shell, `settings`, `battery`, dev-only `dev/gallery`. Thin wrappers around feature screens.                                                                                                                                    |
+| `src/app`             | Expo Router routes only: the `(tabs)` shell, `settings`, `battery`, the hardware detail routes (`device`, `cpu`, `thermal`, `memory`, `storage`, `display`, `camera`, `sensors`, `sensors/[type]`), dev-only `dev/gallery`. Thin wrappers around feature screens.   |
 | `src/features/<name>` | `components/`, `hooks/`, `services/`, `types.ts` — one folder per feature (dashboard, battery, memory, storage, cpu, thermal, display, camera, sensors, network, apps, tools, tips, report).                                                                         |
 | `src/design-system`   | `tokens.ts` (palette, 4 dp spacing, radius, type scale), `theme.tsx` (`ThemeProvider`, `useTheme`), `icon.tsx` (`<Icon>`), `status.ts` + `color.ts` helpers, `components/`, `visuals/` (Skia gauges), `animations/`.                                                 |
 | `src/core`            | `result.ts`, `features.ts`, `hooks/` (shared polling + system-settings launcher), and the cross-cutting areas: `native/` (Result-based wrappers over the Kotlin modules), `permissions/`, `system-settings/`, `storage/`, `ads/`, `utils/` (unit-tested formatters). |
 | `src/state`           | Zustand stores (small, local-only settings first).                                                                                                                                                                                                                   |
-| `modules/`            | Local Kotlin Expo Modules: `device-stats` (memory, storage, uptime, thermal) and `battery-ext` (detailed battery readings + live listener).                                                                                                                          |
+| `modules/`            | Local Kotlin Expo Modules: `device-stats` (memory, storage, uptime, thermal, OS/kernel info), `battery-ext` (detailed battery readings + live listener), `hardware-ext` (CPU cores/frequencies, GPU identity, display panel/modes/brightness, camera characteristics — all read-only, no permissions) and `sensor-ext` (full sensor list + one live stream). |
 | `assets/images`       | App icon, adaptive icon, splash. Only what ships.                                                                                                                                                                                                                    |
 
 ### Theming, motion and feedback (rules for every phase)

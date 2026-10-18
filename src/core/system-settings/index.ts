@@ -2,7 +2,8 @@ import * as IntentLauncher from 'expo-intent-launcher';
 
 import { ok, unavailable, type Result } from '@/core/result';
 
-export type SystemSettingsTarget = 'storage' | 'battery-saver' | 'battery-usage' | 'wifi' | 'alarm';
+export type SystemSettingsTarget =
+  'storage' | 'storage-manager' | 'display' | 'battery-saver' | 'battery-usage' | 'wifi' | 'alarm';
 
 type TargetConfig = {
   /** System activities to try in order (normal Android intents only). */
@@ -15,6 +16,19 @@ const TARGETS: Record<SystemSettingsTarget, TargetConfig> = {
   storage: {
     actions: ['android.settings.INTERNAL_STORAGE_SETTINGS', 'android.settings.SETTINGS'],
     unavailableReason: 'No app on this device can open the storage settings.',
+  },
+  'storage-manager': {
+    // The system storage manager with its "free up space" / cached-data dialog.
+    actions: [
+      'android.os.storage.action.MANAGE_STORAGE',
+      'android.settings.INTERNAL_STORAGE_SETTINGS',
+      'android.settings.SETTINGS',
+    ],
+    unavailableReason: 'No app on this device can open the storage manager.',
+  },
+  display: {
+    actions: ['android.settings.DISPLAY_SETTINGS', 'android.settings.SETTINGS'],
+    unavailableReason: 'No app on this device can open the display settings.',
   },
   'battery-saver': {
     actions: ['android.settings.BATTERY_SAVER_SETTINGS', 'android.settings.SETTINGS'],

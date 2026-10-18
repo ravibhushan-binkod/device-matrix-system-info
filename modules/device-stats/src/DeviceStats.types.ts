@@ -31,3 +31,8 @@ export type NativeThermalStatus = {
   headroom: number | null;
   headroomForecastSeconds: number;
 };
+
+export type NativeOsInfo = {
+  kernel: string | null;
+  developerOptions: boolean | null;
+};

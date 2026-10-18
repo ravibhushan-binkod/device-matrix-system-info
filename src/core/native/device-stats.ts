@@ -46,6 +46,13 @@ export type ThermalStatus = {
   headroomForecastSeconds: number;
 };
 
+export type OsInfo = {
+  /** `System.getProperty("os.version")`; `null` when unavailable. */
+  kernel: string | null;
+  /** `Settings.Global.DEVELOPMENT_SETTINGS_ENABLED`; `null` when the OS blocks the read. */
+  developerOptions: boolean | null;
+};
+
 let cached: NativeDeviceStatsModule | null | undefined;
 
 function getModule(): NativeDeviceStatsModule | null {
@@ -145,5 +152,20 @@ export function getThermalStatus(): Result<ThermalStatus> {
     });
   } catch {
     return unavailable('Reading the thermal status failed.');
+  }
+}
+
+export function getOsInfo(): Result<OsInfo> {
+  const module = getModule();
+  if (!module) return unavailable('The DeviceStats native module is not in this build.');
+  try {
+    const raw = module.getOsInfo();
+    if (!raw) return unavailable('Android did not return the OS details.');
+    if (raw.kernel == null && raw.developerOptions == null) {
+      return unavailable('Android did not expose the OS details.');
+    }
+    return ok({ kernel: raw.kernel, developerOptions: raw.developerOptions });
+  } catch {
+    return unavailable('Reading the OS details failed.');
   }
 }

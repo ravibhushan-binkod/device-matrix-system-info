@@ -48,6 +48,15 @@ function Navigator() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings' }} />
         <Stack.Screen name="battery" options={{ title: 'Battery' }} />
+        <Stack.Screen name="device" options={{ title: 'Device & OS' }} />
+        <Stack.Screen name="cpu" options={{ title: 'CPU & GPU' }} />
+        <Stack.Screen name="thermal" options={{ title: 'Thermal' }} />
+        <Stack.Screen name="memory" options={{ title: 'Memory' }} />
+        <Stack.Screen name="storage" options={{ title: 'Storage' }} />
+        <Stack.Screen name="display" options={{ title: 'Display' }} />
+        <Stack.Screen name="camera" options={{ title: 'Camera' }} />
+        <Stack.Screen name="sensors" options={{ title: 'Sensors' }} />
+        <Stack.Screen name="sensors/[type]" options={{ title: 'Sensor' }} />
         <Stack.Screen name="dev/gallery" options={{ title: 'Dev Gallery' }} />
       </Stack>
     </NavigationThemeProvider>

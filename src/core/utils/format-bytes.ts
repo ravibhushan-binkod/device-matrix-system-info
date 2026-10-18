@@ -31,3 +31,34 @@ export function formatBytes(bytes: number, options: FormatBytesOptions = {}): st
   const text = bytesToGigabytes(bytes, style).toFixed(digits);
   return withUnit ? `${text} ${UNITS[style]}` : text;
 }
+
+const SIZE_UNITS: Record<ByteStyle, readonly string[]> = {
+  binary: ['B', 'KiB', 'MiB', 'GiB', 'TiB'],
+  decimal: ['B', 'KB', 'MB', 'GB', 'TB'],
+};
+
+export type FormatByteSizeOptions = {
+  /** `decimal` (1000 steps, default) or `binary` (1024 steps). */
+  style?: ByteStyle;
+  /** Fraction digits from KB/MB/GB upwards (default 1; bytes are whole). */
+  digits?: number;
+};
+
+/** Auto-scaled byte count, e.g. `12_400_000` → "12.4 MB" and `3.9e9` → "3.9 GB". */
+export function formatByteSize(bytes: number, options: FormatByteSizeOptions = {}): string {
+  const { style = 'decimal', digits = 1 } = options;
+  if (!Number.isFinite(bytes)) return '—';
+
+  const base = style === 'binary' ? 1024 : 1000;
+  const units = SIZE_UNITS[style];
+  const sign = bytes < 0 ? '-' : '';
+  let value = Math.abs(bytes);
+  let unitIndex = 0;
+  while (value >= base && unitIndex < units.length - 1) {
+    value /= base;
+    unitIndex += 1;
+  }
+
+  const text = unitIndex === 0 ? `${Math.round(value)}` : value.toFixed(digits);
+  return `${sign}${text} ${units[unitIndex]}`;
+}

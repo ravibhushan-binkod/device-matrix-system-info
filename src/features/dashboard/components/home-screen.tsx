@@ -62,8 +62,8 @@ export function HomeScreen() {
               memory={summary.memory}
               storage={summary.storage}
               battery={summary.battery}
-              onOpenMemory={() => router.navigate('/hardware')}
-              onOpenStorage={() => router.navigate('/hardware')}
+              onOpenMemory={() => router.push('/memory')}
+              onOpenStorage={() => router.push('/storage')}
               onOpenBattery={() => router.push('/battery')}
             />
           </View>

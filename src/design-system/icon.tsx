@@ -17,13 +17,17 @@ import {
   MonitorSmartphone,
   Moon,
   Palette,
+  Pause,
+  Play,
   Radar,
+  Search,
   Settings,
   Sun,
   Thermometer,
   TriangleAlert,
   Wifi,
   Wrench,
+  X,
   Zap,
 } from 'lucide-react-native';
 
@@ -48,6 +52,9 @@ export const iconMap = {
   memory: MemoryStick,
   moon: Moon,
   palette: Palette,
+  pause: Pause,
+  play: Play,
+  search: Search,
   sensors: Radar,
   settings: Settings,
   storage: HardDrive,
@@ -56,6 +63,7 @@ export const iconMap = {
   tips: Lightbulb,
   tools: Wrench,
   wifi: Wifi,
+  x: X,
   zap: Zap,
 } as const;
 

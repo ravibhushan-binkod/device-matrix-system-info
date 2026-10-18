@@ -13,3 +13,17 @@ export function formatUptime(milliseconds: number): string {
   if (totalMinutes > 0) return `${totalMinutes}m`;
   return '<1m';
 }
+
+/** Android reports "never" for screen timeouts as a very large millisecond value. */
+const NEVER_TIMEOUT_MS = 2_147_000_000;
+
+/** Screen-timeout style duration: "30 s", "10 min", "1 min 30 s" or "Never". */
+export function formatTimeout(milliseconds: number): string {
+  if (!Number.isFinite(milliseconds) || milliseconds <= 0) return '—';
+  if (milliseconds >= NEVER_TIMEOUT_MS) return 'Never';
+  const totalSeconds = Math.round(milliseconds / 1000);
+  if (totalSeconds < 60) return `${totalSeconds} s`;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return seconds === 0 ? `${minutes} min` : `${minutes} min ${seconds} s`;
+}

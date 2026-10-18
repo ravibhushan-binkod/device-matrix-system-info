@@ -9,6 +9,7 @@ import android.os.StatFs
 import android.os.SystemClock
 import android.os.storage.StorageManager
 import android.os.storage.StorageVolume
+import android.provider.Settings
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
@@ -31,6 +32,41 @@ class DeviceStatsModule : Module() {
     Function("getThermalStatus") {
       thermalStatus()
     }
+
+    Function("getOsInfo") {
+      osInfo()
+    }
+  }
+
+  /** Kernel version and developer-options state — the OS values Build itself does not expose. */
+  private fun osInfo(): Map<String, Any?> {
+    val kernel = try {
+      System.getProperty("os.version")?.takeIf { it.isNotBlank() }
+    } catch (_: Exception) {
+      null
+    }
+
+    val developerOptions = try {
+      val context = appContext.reactContext
+      if (context == null) {
+        null
+      } else {
+        val value = Settings.Global.getInt(
+          context.contentResolver,
+          Settings.Global.DEVELOPMENT_SETTINGS_ENABLED,
+          -1
+        )
+        if (value == -1) null else value != 0
+      }
+    } catch (_: Exception) {
+      // Some vendors restrict reading this global setting; report it as unavailable.
+      null
+    }
+
+    return mapOf(
+      "kernel" to kernel,
+      "developerOptions" to developerOptions
+    )
   }
 
   private fun memoryInfo(): Map<String, Any?>? {
