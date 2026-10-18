@@ -1,4 +1,5 @@
 import {
+  AlarmClock,
   Battery,
   Bluetooth,
   Camera,
@@ -30,6 +31,7 @@ import { useTheme } from '@/design-system/theme';
 
 /** Central icon map — only the names listed here ship in the bundle. */
 export const iconMap = {
+  alarm: AlarmClock,
   alert: TriangleAlert,
   apps: LayoutGrid,
   battery: Battery,

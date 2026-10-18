@@ -47,6 +47,7 @@ function Navigator() {
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+        <Stack.Screen name="battery" options={{ title: 'Battery' }} />
         <Stack.Screen name="dev/gallery" options={{ title: 'Dev Gallery' }} />
       </Stack>
     </NavigationThemeProvider>
