@@ -3,7 +3,18 @@ import * as IntentLauncher from 'expo-intent-launcher';
 import { ok, unavailable, type Result } from '@/core/result';
 
 export type SystemSettingsTarget =
-  'storage' | 'storage-manager' | 'display' | 'battery-saver' | 'battery-usage' | 'wifi' | 'alarm';
+  | 'storage'
+  | 'storage-manager'
+  | 'display'
+  | 'battery-saver'
+  | 'battery-usage'
+  | 'wifi'
+  | 'internet-panel'
+  | 'bluetooth'
+  | 'mobile-data'
+  | 'nfc'
+  | 'airplane'
+  | 'alarm';
 
 type TargetConfig = {
   /** System activities to try in order (normal Android intents only). */
@@ -41,6 +52,44 @@ const TARGETS: Record<SystemSettingsTarget, TargetConfig> = {
   wifi: {
     actions: ['android.settings.WIFI_SETTINGS', 'android.settings.SETTINGS'],
     unavailableReason: 'No app on this device can open the Wi-Fi settings.',
+  },
+  'internet-panel': {
+    // The Android 10+ quick panel that can actually switch Wi-Fi, with the
+    // Wi-Fi settings screen as the fallback on older or stripped-down builds.
+    actions: [
+      'android.settings.panel.action.INTERNET_CONNECTIVITY',
+      'android.settings.WIFI_SETTINGS',
+      'android.settings.SETTINGS',
+    ],
+    unavailableReason: 'No app on this device can open the internet panel.',
+  },
+  bluetooth: {
+    actions: ['android.settings.BLUETOOTH_SETTINGS', 'android.settings.SETTINGS'],
+    unavailableReason: 'No app on this device can open the Bluetooth settings.',
+  },
+  'mobile-data': {
+    actions: [
+      'android.settings.DATA_USAGE_SETTINGS',
+      'android.settings.WIRELESS_SETTINGS',
+      'android.settings.SETTINGS',
+    ],
+    unavailableReason: 'No app on this device can open the mobile data settings.',
+  },
+  nfc: {
+    actions: [
+      'android.settings.NFC_SETTINGS',
+      'android.settings.WIRELESS_SETTINGS',
+      'android.settings.SETTINGS',
+    ],
+    unavailableReason: 'No app on this device can open the NFC settings.',
+  },
+  airplane: {
+    actions: [
+      'android.settings.AIRPLANE_MODE_SETTINGS',
+      'android.settings.WIRELESS_SETTINGS',
+      'android.settings.SETTINGS',
+    ],
+    unavailableReason: 'No app on this device can open the airplane mode settings.',
   },
   alarm: {
     actions: ['android.intent.action.SET_ALARM', 'android.intent.action.SHOW_ALARMS'],

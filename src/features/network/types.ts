@@ -1,5 +1,7 @@
 /**
- * Types for the network feature. Introduced with its phase; readings use the
- * shared `Result<T>` model from `@/core/result`.
+ * Types for the network feature. Readings use the shared `Result<T>` model
+ * from `@/core/result`.
  */
-export {};
+
+/** The two permission-gated reads on the network screen. */
+export type NetworkPermissionKind = 'wifi-name' | 'bluetooth';

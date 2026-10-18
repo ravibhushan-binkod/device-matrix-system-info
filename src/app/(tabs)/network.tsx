@@ -1,11 +1,5 @@
-import { PlaceholderScreen } from '@/design-system/components';
+import { NetworkScreen } from '@/features/network/components/network-screen';
 
-export default function NetworkScreen() {
-  return (
-    <PlaceholderScreen
-      icon="wifi"
-      title="Network"
-      description="Wi-Fi and mobile network details, with the right system screen opened whenever a change needs Android itself."
-    />
-  );
+export default function NetworkRoute() {
+  return <NetworkScreen />;
 }
