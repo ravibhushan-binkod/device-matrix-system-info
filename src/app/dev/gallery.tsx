@@ -122,7 +122,7 @@ export default function DevGalleryScreen() {
             <Chip
               key={name}
               label={name.charAt(0).toUpperCase() + name.slice(1)}
-              dotColor={accents[name]}
+              dotColor={accents[name][scheme]}
               selected={accent === name}
               onPress={() => setAccent(name)}
             />

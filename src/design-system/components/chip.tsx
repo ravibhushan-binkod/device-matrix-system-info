@@ -30,7 +30,7 @@ export function Chip({ label, selected = false, dotColor, icon, onPress }: Props
   const chipStyle = [
     styles.chip,
     {
-      backgroundColor: selected ? colors.primary : colors.surface2,
+      backgroundColor: selected ? colors.primarySolid : colors.surface2,
       borderColor: colors.border,
       borderWidth: selected ? 0 : 1,
     },
@@ -42,6 +42,7 @@ export function Chip({ label, selected = false, dotColor, icon, onPress }: Props
         onPress={onPress}
         accessibilityRole="button"
         accessibilityState={{ selected }}
+        hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
         style={chipStyle}
       >
         {body}

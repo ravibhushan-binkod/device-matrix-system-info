@@ -15,7 +15,7 @@ const themeModes: { value: ThemeMode; label: string }[] = [
 const accentNames: AccentName[] = ['cyan', 'blue', 'violet', 'green'];
 
 export default function SettingsScreen() {
-  const { colors } = useTheme();
+  const { colors, scheme } = useTheme();
   const themeMode = useSettingsStore((state) => state.themeMode);
   const accent = useSettingsStore((state) => state.accent);
   const setThemeMode = useSettingsStore((state) => state.setThemeMode);
@@ -42,7 +42,7 @@ export default function SettingsScreen() {
             <Chip
               key={name}
               label={name.charAt(0).toUpperCase() + name.slice(1)}
-              dotColor={accents[name]}
+              dotColor={accents[name][scheme]}
               selected={accent === name}
               onPress={() => setAccent(name)}
             />
