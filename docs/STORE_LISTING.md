@@ -57,7 +57,13 @@ test — appear in headings and body copy.
 
 The form must match the shipped build. Answer it in two steps:
 
-### Step 1 — while no ad SDK is bundled (release 1.0.0 as built today)
+### Step 1 — internal test builds (Google demo ad units)
+
+`react-native-google-mobile-ads` is bundled as of Phase 13B. While the live
+`EXPO_PUBLIC_ADMOB_*` IDs are unset, every build stays on Google's demo units
+and shows "Test Ad" creatives — such a build is for internal testing only and
+must not be uploaded to Play. Demo ads collect no user data, so the "No
+collection" answers below only apply to those internal builds:
 
 | Question                                                               | Answer                           |
 | ---------------------------------------------------------------------- | -------------------------------- |
@@ -70,21 +76,60 @@ All readings (device, battery, storage, apps) are read on-device and never
 leave it. There is no account, no analytics SDK, no crash reporter and no
 cloud storage.
 
-### Step 2 — required before shipping the AdMob integration
+### Step 2 — required before the first store upload with live ad units
 
-When `react-native-google-mobile-ads` is added, the Google Mobile Ads SDK
-collects data for advertising. Declare:
+Once the live AdMob IDs are set, the Google Mobile Ads SDK collects data for
+advertising. Declare:
 
-| Data type                              | Collected | Shared | Purposes                            | Notes                                                            |
-| -------------------------------------- | --------- | ------ | ----------------------------------- | ---------------------------------------------------------------- |
-| Device or other IDs                    | Yes       | Yes    | Advertising or marketing            | Advertising ID (the `AD_ID` permission is declared for this)     |
-| Location → Approximate location        | Yes       | Yes    | Advertising or marketing            | Only as permitted by Google's current AdMob Data safety guidance |
-| App info and performance → Diagnostics | Yes       | Yes    | Advertising or marketing, Analytics | The SDK's own diagnostics, as described in the AdMob guidance    |
+| Data type                              | Collected | Shared | Purposes                            | Notes                                                                                          |
+| -------------------------------------- | --------- | ------ | ----------------------------------- | ---------------------------------------------------------------------------------------------- |
+| Device or other IDs                    | Yes       | Yes    | Advertising or marketing            | Advertising ID — the `com.google.android.gms.permission.AD_ID` permission is declared for this |
+| Location → Approximate location        | Yes       | Yes    | Advertising or marketing            | Only as permitted by Google's current AdMob Data safety guidance                               |
+| App info and performance → Diagnostics | Yes       | Yes    | Advertising or marketing, Analytics | The SDK's own diagnostics, as described in the AdMob guidance                                  |
 
 These answers must be re-checked against Google's current AdMob Data safety
 table at submission time — Google updates it as the SDK changes. Also add the
 privacy-policy URL (the app has no account system, so no "account deletion"
 flow is required).
+
+## Privacy policy (text to host)
+
+Publish this at a stable URL (for example
+`https://<your-domain>/device-matrix/privacy`), link it from the Play Console
+listing, and replace `<contact>` and the date before publishing.
+
+> **Device Matrix: System Info — Privacy Policy**
+>
+> Last updated: <date>
+>
+> Device Matrix reads information about your device — model, OS, CPU, memory,
+> storage, battery, thermal, display, camera and sensor capabilities, network
+> and installed apps — and shows it on your phone. That information never
+> leaves your device: the app has no account, no backend, no cloud storage and
+> no analytics or crash-reporting service.
+>
+> **Advertising.** The app shows ads served by Google AdMob. To serve ads,
+> Google's Mobile Ads SDK may access your device's advertising ID and basic
+> device and app information, and may collect diagnostics and approximate
+> location as described in Google's own policies. Where required by law (for
+> example in the EEA and the UK), the app asks for your consent through
+> Google's consent form before any ad is requested; you can change or withdraw
+> that choice at any time from the app's Settings. How Google uses data:
+> https://policies.google.com/technologies/partner-sites and
+> https://policies.google.com/privacy. You can reset or delete your Android
+> advertising ID in Settings → Privacy → Ads.
+>
+> **Permissions.** Internet and network state are used for ads. Location is
+> only requested when you open Wi-Fi details (Android hides the network name),
+> Bluetooth state when you open the Bluetooth card, and Usage Access only when
+> you enable the Apps tab's usage insights. The app never asks for contacts,
+> SMS, camera, microphone or overlay permissions.
+>
+> **Data you create.** Theme settings and your ads consent choice are stored
+> only on your phone. Clearing the app's data or uninstalling the app removes
+> them.
+>
+> Questions: <contact>.
 
 ## Assets checklist
 

@@ -84,15 +84,15 @@ export function HomeScreen() {
       </StaggerItem>
 
       <StaggerItem index={2}>
-        <AdSlot />
-      </StaggerItem>
-
-      <StaggerItem index={3}>
         <View style={styles.actions}>
           <SectionHeader title="Quick actions" />
           <QuickActions onAction={openSettings} />
           {notice ? <Text style={[styles.notice, { color: colors.muted }]}>{notice}</Text> : null}
         </View>
+      </StaggerItem>
+
+      <StaggerItem index={3}>
+        <AdSlot placement="home-end" />
       </StaggerItem>
     </Screen>
   );

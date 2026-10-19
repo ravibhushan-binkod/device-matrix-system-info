@@ -34,7 +34,7 @@ export function DeviceScreen() {
         <>
           {info.sections.map((section, index) => (
             <Fragment key={section.key}>
-              {index === 2 ? <AdSlot /> : null}
+              {index === 2 ? <AdSlot placement="device-sections" /> : null}
               <SectionCard section={section} />
             </Fragment>
           ))}

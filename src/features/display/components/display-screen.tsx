@@ -128,7 +128,7 @@ function DisplayDetails({ colors, info, onOpenSettings, notice }: DetailsProps) 
         </View>
       </Card>
 
-      <AdSlot />
+      <AdSlot placement="display-mid" />
 
       <Card>
         <View style={styles.cardBody}>

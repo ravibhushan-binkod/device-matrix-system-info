@@ -1,6 +1,14 @@
 import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 
-import { Card, Chip, EmptyState, Screen, Skeleton, StatRow } from '@/design-system/components';
+import {
+  AdSlot,
+  Card,
+  Chip,
+  EmptyState,
+  Screen,
+  Skeleton,
+  StatRow,
+} from '@/design-system/components';
 import type { StatusTone } from '@/design-system/status';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography, type AppColors } from '@/design-system/tokens';
@@ -71,6 +79,8 @@ export function ThermalScreen() {
               </Text>
             </View>
           </Card>
+
+          <AdSlot placement="thermal-mid" />
 
           <Card>
             <View style={styles.cardBody}>

@@ -216,7 +216,7 @@ export default function DevGalleryScreen() {
           onDismiss={() => setTipVisible(false)}
         />
       ) : null}
-      <AdSlot />
+      <AdSlot placement="gallery" />
       <Card>
         <EmptyState
           icon="sensors"

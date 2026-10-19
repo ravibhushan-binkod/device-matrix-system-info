@@ -18,6 +18,7 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { ThemeProvider, useTheme } from '@/design-system/theme';
+import { useAdsBootstrap } from '@/core/ads/hooks/use-ads-bootstrap';
 import { useSettingsStore } from '@/state/settings-store';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -85,6 +86,9 @@ export default function RootLayout() {
     Inter_700Bold,
     JetBrainsMono_400Regular,
   });
+
+  // Consent first, then request configuration and SDK init (see src/core/ads).
+  useAdsBootstrap();
 
   useEffect(() => {
     if (fontsLoaded || fontError) {

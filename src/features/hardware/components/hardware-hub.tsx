@@ -1,7 +1,8 @@
 import { useRouter, type Href } from 'expo-router';
+import { Fragment } from 'react';
 import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 
-import { Card, Screen, Skeleton } from '@/design-system/components';
+import { AdSlot, Card, Screen, Skeleton } from '@/design-system/components';
 import { Icon, type IconName } from '@/design-system/icon';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
@@ -56,8 +57,11 @@ export function HardwareHub() {
     >
       {entries ? (
         <View style={styles.grid}>
-          {entries.map((entry) => (
-            <HubCard key={entry.key} entry={entry} onPress={() => router.push(ROUTES[entry.key])} />
+          {entries.map((entry, index) => (
+            <Fragment key={entry.key}>
+              <HubCard entry={entry} onPress={() => router.push(ROUTES[entry.key])} />
+              {index === 5 ? <AdSlot placement="hub-grid" style={styles.gridAd} /> : null}
+            </Fragment>
           ))}
         </View>
       ) : (
@@ -103,6 +107,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.md,
+  },
+  gridAd: {
+    width: '100%',
+    marginVertical: spacing.xs,
   },
   card: {
     width: '48%',

@@ -121,7 +121,7 @@ export function AppsScreen() {
         notice={notice}
       />
 
-      <AdSlot />
+      <AdSlot placement="apps-header" />
 
       <SectionHeader
         title="Installed apps"
@@ -165,16 +165,19 @@ export function AppsScreen() {
       <FlatList
         data={visible}
         keyExtractor={(item) => item.packageName}
-        renderItem={({ item }) => (
-          <AppRow
-            app={item}
-            onPress={() =>
-              router.push({
-                pathname: '/apps/[package]',
-                params: { package: item.packageName },
-              })
-            }
-          />
+        renderItem={({ item, index }) => (
+          <>
+            <AppRow
+              app={item}
+              onPress={() =>
+                router.push({
+                  pathname: '/apps/[package]',
+                  params: { package: item.packageName },
+                })
+              }
+            />
+            {index === 8 ? <AdSlot placement="apps-list" style={styles.listAd} /> : null}
+          </>
         )}
         ListHeaderComponent={header}
         ListEmptyComponent={empty}
@@ -255,5 +258,8 @@ const styles = StyleSheet.create({
   },
   separator: {
     height: StyleSheet.hairlineWidth,
+  },
+  listAd: {
+    marginVertical: spacing.md,
   },
 });

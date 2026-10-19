@@ -80,7 +80,7 @@ export function StorageScreen() {
             </View>
           </Card>
 
-          <AdSlot />
+          <AdSlot placement="storage-top" />
 
           <Card>
             <View style={styles.cardBody}>

@@ -182,7 +182,7 @@ export function NetworkScreen() {
             </View>
           </Card>
 
-          <AdSlot />
+          <AdSlot placement="network-connection" />
 
           <Card>
             <View style={styles.cardBody}>
@@ -306,6 +306,8 @@ export function NetworkScreen() {
               ) : null}
             </View>
           </Card>
+
+          <AdSlot placement="network-end" />
         </>
       )}
 

@@ -1,6 +1,15 @@
+import { Fragment } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, Chip, EmptyState, Screen, Skeleton, StatRow } from '@/design-system/components';
+import {
+  AdSlot,
+  Card,
+  Chip,
+  EmptyState,
+  Screen,
+  Skeleton,
+  StatRow,
+} from '@/design-system/components';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
 import { useCamera } from '@/features/camera/hooks/use-camera';
@@ -23,29 +32,32 @@ export function CameraScreen() {
       {cameras === null ? (
         <CameraSkeleton />
       ) : entries && entries.length > 0 ? (
-        entries.map((entry) => (
-          <Card key={entry.key}>
-            <View style={styles.cardBody}>
-              <Text style={[styles.cardTitle, { color: colors.text }]}>{entry.title}</Text>
-              {entry.chips.length > 0 ? (
-                <View style={styles.chips}>
-                  {entry.chips.map((chip) => (
-                    <Chip key={chip} label={chip} />
+        entries.map((entry, index) => (
+          <Fragment key={entry.key}>
+            <Card>
+              <View style={styles.cardBody}>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>{entry.title}</Text>
+                {entry.chips.length > 0 ? (
+                  <View style={styles.chips}>
+                    {entry.chips.map((chip) => (
+                      <Chip key={chip} label={chip} />
+                    ))}
+                  </View>
+                ) : null}
+                <View style={styles.specs}>
+                  {entry.specs.map((spec) => (
+                    <StatRow
+                      key={spec.key}
+                      label={spec.label}
+                      value={spec.value ?? NOT_AVAILABLE}
+                      copyable={spec.value != null && spec.key === 'id'}
+                    />
                   ))}
                 </View>
-              ) : null}
-              <View style={styles.specs}>
-                {entry.specs.map((spec) => (
-                  <StatRow
-                    key={spec.key}
-                    label={spec.label}
-                    value={spec.value ?? NOT_AVAILABLE}
-                    copyable={spec.value != null && spec.key === 'id'}
-                  />
-                ))}
               </View>
-            </View>
-          </Card>
+            </Card>
+            {index === 0 ? <AdSlot placement="camera-lens" /> : null}
+          </Fragment>
         ))
       ) : (
         <EmptyState

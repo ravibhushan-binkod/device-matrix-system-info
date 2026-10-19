@@ -18,4 +18,12 @@ describe('features', () => {
     expect(isEnabled(features.localHistory)).toBe(false);
     expect(isEnabled(features.pdfReport)).toBe(false);
   });
+
+  it('keeps interstitials off until they are reviewed', () => {
+    expect(isEnabled(features.interstitialAds)).toBe(false);
+  });
+
+  it('enables the ads developer tools', () => {
+    expect(isEnabled(features.adDebugTools)).toBe(true);
+  });
 });

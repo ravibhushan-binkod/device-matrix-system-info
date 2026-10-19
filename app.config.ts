@@ -24,7 +24,10 @@ const config: ExpoConfig = {
       'android.permission.ACCESS_NETWORK_STATE',
       'android.permission.ACCESS_WIFI_STATE',
       'android.permission.INTERNET',
-      'android.permission.AD_ID',
+      // The advertising-ID permission the Google Mobile Ads SDK actually uses
+      // (`android.permission.AD_ID` is not a permission Android defines).
+      // Only the ads SDK reads it; nothing else in the app touches it.
+      'com.google.android.gms.permission.AD_ID',
       'android.permission.SET_ALARM',
       'android.permission.VIBRATE',
       'android.permission.NFC',
@@ -51,6 +54,13 @@ const config: ExpoConfig = {
       // touches shared storage, so they must not appear.
       'android.permission.READ_EXTERNAL_STORAGE',
       'android.permission.WRITE_EXTERNAL_STORAGE',
+      // Injected by the ads dependency chain, not needed by this app:
+      // WAKE_LOCK comes from the react-native-google-mobile-ads manifest and
+      // FOREGROUND_SERVICE from the androidx.work the Google Mobile Ads SDK
+      // bundles. Banner ads need neither, and the app runs no foreground
+      // service. Re-allow these only if a future video ad format needs them.
+      'android.permission.WAKE_LOCK',
+      'android.permission.FOREGROUND_SERVICE',
     ],
   },
   plugins: [
@@ -66,6 +76,19 @@ const config: ExpoConfig = {
     ],
     'expo-font',
     'expo-sharing',
+    [
+      'react-native-google-mobile-ads',
+      {
+        // Live ID from the environment; Google's official sample app ID from
+        // the AdMob quick-start docs (`ca-app-pub-3940256099942544~3347511713`,
+        // same value as src/core/ads/config.ts) otherwise, so the native SDK
+        // can never crash at launch from a missing app ID.
+        androidAppId:
+          process.env.EXPO_PUBLIC_ADMOB_ANDROID_APP_ID ?? 'ca-app-pub-3940256099942544~3347511713',
+        // EEA best practice: don't measure or preload until consent is done.
+        delayAppMeasurementInit: true,
+      },
+    ],
     [
       'expo-build-properties',
       {
@@ -85,12 +108,14 @@ const config: ExpoConfig = {
     reactCompiler: true,
   },
   extra: {
-    // Production AdMob IDs come from the environment (docs/RELEASE.md) so no
-    // live unit ID is committed. Null until the ads SDK phase lands; the ads
-    // code will fall back to Google's test IDs in development.
+    // AdMob IDs as seen at build time. The runtime reads the same
+    // EXPO_PUBLIC_ADMOB_* variables directly (Metro inlines them into the
+    // bundle) — see src/core/ads/config.ts. No live ID is ever committed.
     admob: {
       androidAppId: process.env.EXPO_PUBLIC_ADMOB_ANDROID_APP_ID ?? null,
       bannerUnitId: process.env.EXPO_PUBLIC_ADMOB_BANNER_UNIT_ID ?? null,
+      interstitialUnitId: process.env.EXPO_PUBLIC_ADMOB_INTERSTITIAL_UNIT_ID ?? null,
+      nativeUnitId: process.env.EXPO_PUBLIC_ADMOB_NATIVE_UNIT_ID ?? null,
     },
   },
 };

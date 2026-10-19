@@ -69,34 +69,77 @@ cd android
 Output: `android/app/build/outputs/apk/release/app-release.apk`
 (signed with the debug key unless the upload properties above are set).
 
-## AdMob IDs via environment
+## Ads (Google AdMob + UMP consent)
 
-The ads **SDK is not bundled yet** — release 1.0.0 ships without it and the
-reserved `AdSlot` placements render nothing. Production IDs are already plumbed
-through the environment so no live ID is ever committed:
+`react-native-google-mobile-ads` **17.3.1** (bundles Google Mobile Ads SDK
+25.5.0 and the UMP consent SDK) is integrated. Nothing is requested before UMP
+reports `canRequestAds`.
+
+**Which IDs a build uses** (`src/core/ads/config.ts`):
+
+- Development builds always use Google's demo units (`TestIds`), even when live
+  IDs are set.
+- Release builds use live units only when **all** unit variables are set. One
+  missing value keeps the whole build on demo units — never a mix.
+- Without `EXPO_PUBLIC_ADMOB_ANDROID_APP_ID` the plugin falls back to Google's
+  sample app ID from the AdMob quick-start docs
+  (`ca-app-pub-3940256099942544~3347511713`), so the native SDK can never crash
+  at launch from a missing ID.
 
 ```powershell
 $env:EXPO_PUBLIC_ADMOB_ANDROID_APP_ID="ca-app-pub-<publisher>~<app>"
 $env:EXPO_PUBLIC_ADMOB_BANNER_UNIT_ID="ca-app-pub-<publisher>/<banner>"
+$env:EXPO_PUBLIC_ADMOB_INTERSTITIAL_UNIT_ID="ca-app-pub-<publisher>/<interstitial>"
+$env:EXPO_PUBLIC_ADMOB_NATIVE_UNIT_ID="ca-app-pub-<publisher>/<native>"
+npm run build:release
 ```
 
-`app.config.ts` exposes them under `extra.admob` (null when unset). When the
-ads phase lands:
+`npm run build:release` prints a loud **"THIS RELEASE BUILD WILL SHIP GOOGLE
+TEST ADS"** warning that lists every missing variable
+(`scripts/check-admob-env.mjs`). The build continues on purpose — it is a
+pre-flight warning, not a gate.
 
-1. Install `react-native-google-mobile-ads` (ask first — new dependency) and add
-   the plugin with the app ID:
-   ```ts
-   [
-     'react-native-google-mobile-ads',
-     { androidAppId: process.env.EXPO_PUBLIC_ADMOB_ANDROID_APP_ID },
-   ];
-   ```
-2. Read the unit IDs from `expo-constants` (`extra.admob`) in `src/core/ads`
-   with Google's test IDs as the development default.
-3. Keep the UMP consent flow: no ad requests before the consent decision.
+**Consent and startup order** (`src/core/ads/consent.ts`):
 
-Google test IDs stay in development; only `EXPO_PUBLIC_*` values set in the
-release shell end up in the store build.
+1. `AdsConsent.gatherConsent()` — requests consent info and shows the Google
+   form when required.
+2. If `canRequestAds` is false: status `blocked`, banners render nothing.
+3. `mobileAds().setRequestConfiguration(...)` — `maxAdContentRating: PG`,
+   `tagForChildDirectedTreatment: false`, `tagForUnderAgeOfConsent: false`,
+   `testDeviceIdentifiers`.
+4. `mobileAds().initialize()` → status `ready`; banners mount.
+
+UMP or SDK failures (e.g. offline) leave ads off; the app itself never depends
+on them.
+
+**Test devices.** Emulators are treated as test devices automatically. For a
+real phone: connect it, launch the app so it requests one ad, then read the
+hashed ID the SDK prints:
+
+```powershell
+adb logcat -d | Select-String "setTestDeviceIds"
+```
+
+Put the ID in `EXPO_PUBLIC_ADMOB_TEST_DEVICE_IDS` (comma-separated for several)
+and rebuild. Registered test devices always receive demo creatives ("Test Ad")
+and never count as invalid traffic.
+
+**Settings → Developer** (gated by `features.adDebugTools`): _Reset consent_,
+_Ad Inspector_ (Google's in-app inspector; test devices only) and _Force EEA
+consent test_ (sets the UMP debug geography to EEA, resets consent state and
+runs the flow again). While the form is unanswered no ad request is made; after
+_Do not consent_, UMP still reports that non-personalized ads may be served, so
+the SDK keeps loading banners without personalization. The forced geography is
+stored in MMKV (`ads.debugGeography`) until _Reset consent_ turns it off.
+
+**Placement rules.** Banners sit between information sections only: max 2 per
+screen, at least a screen-height apart, 16 dp clear space from buttons, and
+never on splash, permission sheets, Settings, full-screen tests or live graphs.
+Current placements: Home (1), Hardware hub mid-grid (1), Network (2), Apps
+(header + after item 9), Sensors (after items 9 and 18), and one each on Device,
+CPU, Memory, Storage, Battery, Thermal, Display and Camera. App detail, Report,
+the Tips check-up, Tools, Settings and sensor live graphs carry none.
+Interstitials are built but gated behind `features.interstitialAds = 'off'`.
 
 ## app-ads.txt
 
@@ -126,14 +169,32 @@ Get-Content app\build\intermediates\merged_manifest\release\processReleaseMainMa
   Select-String "uses-permission"
 ```
 
-Verified against the 1.0.0 release APK (`aapt2 dump permissions app-release.apk`):
-exactly the allow-list, nothing else.
+Verified against the current release APK (`aapt2 dump permissions
+app-release.apk`) and the merged manifest:
 
-`ACCESS_FINE_LOCATION, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE, AD_ID,
+`ACCESS_FINE_LOCATION, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE,
 BLUETOOTH_CONNECT, INTERNET, NFC, PACKAGE_USAGE_STATS, SET_ALARM, VIBRATE`
 
-The first two after `NFC` are runtime/optional and only requested when the
-matching feature is used.
+`ACCESS_FINE_LOCATION` and `BLUETOOTH_CONNECT` are runtime/optional and only
+requested when the matching feature is used.
+
+The AdMob integration adds exactly four permissions, all framework level and
+with no user prompt:
+
+- `com.google.android.gms.permission.AD_ID` — the advertising-ID permission the
+  Google Mobile Ads SDK uses (`android.permission.AD_ID` is not a permission
+  Android defines, so the manifest declares the real name).
+- `ACCESS_ADSERVICES_AD_ID`, `ACCESS_ADSERVICES_ATTRIBUTION` and
+  `ACCESS_ADSERVICES_TOPICS` — the SDK's Privacy Sandbox declarations (normal
+  protection level). Keeping them preserves the SDK's default data handling; to
+  opt out of Privacy Sandbox entirely, add them to `blockedPermissions`.
+
+Two permissions injected by the ads dependency chain are **blocked** because
+this app never uses them: `android.permission.WAKE_LOCK` (declared by the
+`react-native-google-mobile-ads` manifest and the Play measurement library) and
+`android.permission.FOREGROUND_SERVICE` (from the `androidx.work` runtime that
+`play-services-ads` bundles). Banner ads need neither and the app runs no
+foreground service. Re-allow them only if a future video ad format needs them.
 
 Two further entries are framework/service level and never shown to the user:
 `com.binkod.devicematrix.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` (React
@@ -186,11 +247,35 @@ unused font is `MaterialSymbols_400Regular` (0.9 MB), pulled in by
 Emulator builds need `-PreactNativeArchitectures=x86_64` (the AVD is x86_64; the
 Play AAB keeps arm64-v8a and armeabi-v7a).
 
+### 13B — AdMob integration (same 1.0.0 version, October 2026)
+
+Bundling the Google Mobile Ads SDK 25.5.0 + UMP grows the shipping artifacts:
+
+| Artifact                         | Before  | With ads | Delta            |
+| -------------------------------- | ------- | -------- | ---------------- |
+| `.aab`                           | 59.5 MB | 63.8 MB  | +4.3 MB          |
+| universal arm64 APK              | 47.8 MB | 50.9 MB  | +3.1 MB (+6.6 %) |
+| per-device download, arm64-v8a   | 21.8 MB | 24.4 MB  | +2.6 MB (+12 %)  |
+| per-device download, armeabi-v7a | 20.1 MB | 21.6 MB  | +1.5 MB          |
+
+New per-device ranges, same `bundletool get-size total --dimensions=ABI`
+command: arm64-v8a 24,352,218 – 24,479,884 bytes, armeabi-v7a 22,667,980 –
+22,795,646 bytes. Emulator x86_64 APK: 51.9 MB.
+
+R8 already strips the SDK's unused classes; what remains is a few
+`play-services-*` dexes (ads, measurement, ads-identifier) plus the UMP
+messaging layer. Verified on the x86_64 API 36 emulator: "Test Ad" banners on
+Home, the hardware hub and CPU detail; no ad requests while the forced-EEA
+consent form is unanswered; offline failure collapses the banner and the retry
+loads it 60 s after connectivity returns.
+
 ## Release checklist
 
 1. `npm run typecheck && npm run lint && npm test`
 2. Bump `android.versionCode` (and `version` when needed)
-3. Set the AdMob env vars if shipping ads; check consent flow
+3. Set every AdMob env var (or accept the loud test-ads warning printed by
+   `npm run build:release`); check the consent flow and that a banner shows
+   "Test Ad"
 4. `npx expo prebuild --platform android --clean`
 5. `.\gradlew :app:bundleRelease` → `app-release.aab`
 6. Verify signing (`jarsigner -verify`) and permissions (merged manifest)

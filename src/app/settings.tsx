@@ -1,9 +1,13 @@
 import { Link } from 'expo-router';
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, Chip, Screen, SectionHeader } from '@/design-system/components';
+import { forceEeaConsentTest, openAdInspector, resetConsent } from '@/core/ads/consent';
+import { features, isEnabled } from '@/core/features';
+import { Button, Card, Chip, Screen, SectionHeader } from '@/design-system/components';
 import { useTheme, type ThemeMode } from '@/design-system/theme';
 import { accents, spacing, typography, type AccentName } from '@/design-system/tokens';
+import { useAdsStore, type AdsStatus } from '@/state/ads-store';
 import { useSettingsStore } from '@/state/settings-store';
 
 const themeModes: { value: ThemeMode; label: string }[] = [
@@ -14,12 +18,38 @@ const themeModes: { value: ThemeMode; label: string }[] = [
 
 const accentNames: AccentName[] = ['cyan', 'blue', 'violet', 'green'];
 
+const adsStatusLabels: Record<AdsStatus, string> = {
+  idle: 'idle',
+  running: 'starting…',
+  ready: 'ready — banners can load',
+  blocked: 'no consent — banners stay hidden',
+  error: 'unavailable — banners stay hidden',
+  disabled: 'disabled',
+};
+
 export default function SettingsScreen() {
   const { colors, scheme } = useTheme();
   const themeMode = useSettingsStore((state) => state.themeMode);
   const accent = useSettingsStore((state) => state.accent);
   const setThemeMode = useSettingsStore((state) => state.setThemeMode);
   const setAccent = useSettingsStore((state) => state.setAccent);
+
+  const adsStatus = useAdsStore((state) => state.status);
+  const [adsNotice, setAdsNotice] = useState<string | null>(null);
+  const [adsBusy, setAdsBusy] = useState(false);
+
+  const runAdsAction = async (action: () => Promise<void>, done: string) => {
+    setAdsBusy(true);
+    setAdsNotice(null);
+    try {
+      await action();
+      setAdsNotice(done);
+    } catch (error) {
+      setAdsNotice(error instanceof Error ? error.message : String(error));
+    } finally {
+      setAdsBusy(false);
+    }
+  };
 
   return (
     <Screen scroll contentStyle={{ paddingBottom: spacing.xxl }}>
@@ -57,6 +87,54 @@ export default function SettingsScreen() {
         </Text>
       </Card>
 
+      {isEnabled(features.adDebugTools) ? (
+        <>
+          <SectionHeader title="Developer" />
+          <Card>
+            <Text style={[typography.body, { color: colors.muted }]}>
+              Ads: {adsStatusLabels[adsStatus]}. Test ads only — never tap live ads during
+              development.
+            </Text>
+            <View style={styles.actions}>
+              <Button
+                title="Reset consent"
+                icon="settings"
+                variant="secondary"
+                disabled={adsBusy}
+                onPress={() =>
+                  void runAdsAction(
+                    resetConsent,
+                    'Consent reset. The next ad request asks for consent again.',
+                  )
+                }
+              />
+              <Button
+                title="Ad Inspector"
+                icon="search"
+                variant="secondary"
+                disabled={adsBusy}
+                onPress={() => void runAdsAction(openAdInspector, 'Ad Inspector opened.')}
+              />
+              <Button
+                title="Force EEA consent test"
+                icon="info"
+                variant="secondary"
+                disabled={adsBusy}
+                onPress={() =>
+                  void runAdsAction(
+                    forceEeaConsentTest,
+                    'EEA test geography enabled — the consent form appears for test devices.',
+                  )
+                }
+              />
+            </View>
+            {adsNotice ? (
+              <Text style={[styles.notice, { color: colors.muted }]}>{adsNotice}</Text>
+            ) : null}
+          </Card>
+        </>
+      ) : null}
+
       {__DEV__ ? (
         <Link href="/dev/gallery" style={[styles.devLink, { color: colors.accent }]}>
           Open design gallery
@@ -81,6 +159,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
+  },
+  actions: {
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+  },
+  notice: {
+    ...typography.caption,
+    marginTop: spacing.sm,
   },
   devLink: {
     ...typography.body,

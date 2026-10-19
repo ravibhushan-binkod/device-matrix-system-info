@@ -35,6 +35,11 @@ export const features = {
   pdfReport: 'v2',
   /** Cross-cutting. */
   ads: 'v1',
+  /** Full-screen interstitials — built, but kept off until reviewed. */
+  interstitialAds: 'off',
+  /** Developer ad tools in Settings (reset consent, Ad Inspector, EEA test).
+   * Flip to 'off' to hide them from users. */
+  adDebugTools: 'v1',
 } as const satisfies Record<string, unknown>;
 
 export function isEnabled(flag: FeatureAvailability): boolean {

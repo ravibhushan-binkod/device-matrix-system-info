@@ -1,6 +1,6 @@
 import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 
-import { Card, Screen, Skeleton, StatRow } from '@/design-system/components';
+import { AdSlot, Card, Screen, Skeleton, StatRow } from '@/design-system/components';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
 import { CoreBars } from '@/design-system/visuals';
@@ -57,6 +57,8 @@ export function CpuScreen() {
               />
             </View>
           </Card>
+
+          <AdSlot placement="cpu-mid" />
 
           <Card>
             <View style={styles.cardBody}>

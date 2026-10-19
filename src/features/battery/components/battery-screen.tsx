@@ -1,7 +1,7 @@
 import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import type { BatteryReading } from '@/core/native';
-import { Button, Card, Chip, EmptyState, Screen } from '@/design-system/components';
+import { AdSlot, Button, Card, Chip, EmptyState, Screen } from '@/design-system/components';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
 import { BatteryGauge, LiveGraph } from '@/design-system/visuals';
@@ -111,6 +111,8 @@ function BatteryDetails({ reading, samples, isPolling, onOpenSaver }: DetailsPro
           {saverChip}
         </View>
       </Card>
+
+      <AdSlot placement="battery-mid" />
 
       {stats.length > 0 ? (
         <Card>

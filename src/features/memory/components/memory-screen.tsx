@@ -1,6 +1,14 @@
 import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 
-import { Card, Chip, EmptyState, Screen, Skeleton, StatRow } from '@/design-system/components';
+import {
+  AdSlot,
+  Card,
+  Chip,
+  EmptyState,
+  Screen,
+  Skeleton,
+  StatRow,
+} from '@/design-system/components';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
 import { LiveGraph, MemoryDonut } from '@/design-system/visuals';
@@ -46,6 +54,8 @@ export function MemoryScreen() {
               </Text>
             </View>
           </Card>
+
+          <AdSlot placement="memory-mid" />
 
           <Card>
             <View style={styles.cardBody}>
