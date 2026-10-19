@@ -1,5 +1,10 @@
-import { Inter_400Regular, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
-import { JetBrainsMono_400Regular } from '@expo-google-fonts/jetbrains-mono';
+// Import only the weights the app uses. The package root re-exports every
+// weight and italic style (18 files for Inter alone), and Metro bundles each
+// one it can see — importing the root would ship ~7.5 MB of unused fonts.
+import { Inter_400Regular } from '@expo-google-fonts/inter/400Regular';
+import { Inter_600SemiBold } from '@expo-google-fonts/inter/600SemiBold';
+import { Inter_700Bold } from '@expo-google-fonts/inter/700Bold';
+import { JetBrainsMono_400Regular } from '@expo-google-fonts/jetbrains-mono/400Regular';
 import { useFonts } from 'expo-font';
 import {
   DarkTheme,

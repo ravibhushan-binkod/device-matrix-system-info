@@ -46,6 +46,11 @@ const config: ExpoConfig = {
       'android.permission.WRITE_CONTACTS',
       'android.permission.READ_SMS',
       'android.permission.SEND_SMS',
+      // Legacy storage permissions the expo-file-system plugin adds for
+      // Android 12 and below. The app stores everything in MMKV and never
+      // touches shared storage, so they must not appear.
+      'android.permission.READ_EXTERNAL_STORAGE',
+      'android.permission.WRITE_EXTERNAL_STORAGE',
     ],
   },
   plugins: [
