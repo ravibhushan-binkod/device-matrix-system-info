@@ -71,6 +71,7 @@ function Navigator() {
         <Stack.Screen name="touch-test" options={{ title: 'Touch test', headerShown: false }} />
         <Stack.Screen name="screen-test" options={{ title: 'Screen test', headerShown: false }} />
         <Stack.Screen name="dev/gallery" options={{ title: 'Dev Gallery' }} />
+        <Stack.Screen name="dev/support-matrix" options={{ title: 'Support matrix' }} />
       </Stack>
     </NavigationThemeProvider>
   );

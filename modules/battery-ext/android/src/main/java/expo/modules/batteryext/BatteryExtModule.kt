@@ -123,6 +123,7 @@ class BatteryExtModule : Module() {
     val batteryManager = context.getSystemService(Context.BATTERY_SERVICE) as? BatteryManager
     val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
 
+    // Android 14+ puts the cycle count in the sticky broadcast itself.
     val cycleCount = intent.getIntExtra(BatteryManager.EXTRA_CYCLE_COUNT, -1).takeIf { it > 0 }
 
     return mapOf(

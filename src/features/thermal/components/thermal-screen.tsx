@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import {
@@ -5,7 +6,9 @@ import {
   Card,
   Chip,
   EmptyState,
+  InfoSheet,
   Screen,
+  SectionHeader,
   Skeleton,
   StatRow,
 } from '@/design-system/components';
@@ -18,16 +21,26 @@ import { useThermal } from '@/features/thermal/hooks/use-thermal';
 
 const NOT_AVAILABLE = 'Not available on this device';
 
+const HEAT_SHEET = {
+  title: 'Heat: what this means',
+  paragraphs: [
+    '"Thermal load" turns Android’s own thermal headroom into a percentage: 0 % is cool, and 100 % means the system says it has no headroom left and starts slowing down or dimming. It is a status signal, not a temperature.',
+    'The zone list comes from /sys/class/thermal — battery, skin and chip sensors each have their own zone. Many brands block apps from reading them, so only the zones this device allows are shown.',
+    'Batteries are comfortable between roughly 15 °C and 40 °C. Above about 45 °C Android limits charging and performance, and long-term battery health suffers — that is when heat stops being "just a reading".',
+  ],
+};
+
 function toneColor(tone: StatusTone, colors: AppColors): string {
   if (tone === 'critical') return colors.critical;
   if (tone === 'warning') return colors.warning;
   return colors.good;
 }
 
-/** Thermal: a headroom-based load gauge, the status chip and the battery temperature. */
+/** Thermal: a headroom-based load gauge, readable zones and the battery temperature. */
 export function ThermalScreen() {
   const { colors } = useTheme();
   const { info, refreshing, refresh } = useThermal();
+  const [sheetVisible, setSheetVisible] = useState(false);
 
   const result = info;
 
@@ -49,66 +62,105 @@ export function ThermalScreen() {
         <ThermalSkeleton />
       ) : result.status === 'ok' ? (
         <>
-          <Card>
-            <View style={styles.cardBody}>
-              <View style={styles.cardHead}>
-                <Text style={[styles.sectionTitle, { color: colors.muted }]}>Thermal load</Text>
-                <Chip
-                  label={result.value.statusLabel ?? 'Status unknown'}
-                  dotColor={toneColor(result.value.tone, colors)}
-                />
-              </View>
-              {result.value.loadPercent != null ? (
-                <View style={styles.gaugeWrap}>
-                  <ThermalGauge
-                    value={result.value.loadPercent}
-                    min={0}
-                    max={100}
-                    unit="%"
-                    size={240}
+          <View style={styles.group}>
+            <SectionHeader title="Thermal load" onInfo={() => setSheetVisible(true)} />
+            <Card>
+              <View style={styles.cardBody}>
+                <View style={styles.cardHead}>
+                  <Text style={[styles.sectionTitle, { color: colors.muted }]}>Headroom load</Text>
+                  <Chip
+                    label={result.value.statusLabel ?? 'Status unknown'}
+                    dotColor={toneColor(result.value.tone, colors)}
                   />
                 </View>
-              ) : (
-                <Text style={[styles.unavailableTitle, { color: colors.text }]}>
-                  {NOT_AVAILABLE}
+                {result.value.loadPercent != null ? (
+                  <View style={styles.gaugeWrap}>
+                    <ThermalGauge
+                      value={result.value.loadPercent}
+                      min={0}
+                      max={100}
+                      unit="%"
+                      size={240}
+                    />
+                  </View>
+                ) : (
+                  <Text style={[styles.unavailableTitle, { color: colors.text }]}>
+                    {NOT_AVAILABLE}
+                  </Text>
+                )}
+                <Text style={[styles.caption, { color: colors.muted }]}>
+                  Derived from Android&apos;s thermal headroom — 0 % is cool, 100 % means the system
+                  reports no headroom left.
                 </Text>
-              )}
-              <Text style={[styles.caption, { color: colors.muted }]}>
-                Derived from Android&apos;s thermal headroom — 0 % is cool, 100 % means the system
-                reports no headroom left.
-              </Text>
-            </View>
-          </Card>
+              </View>
+            </Card>
+          </View>
 
           <AdSlot placement="thermal-mid" />
 
-          <Card>
-            <View style={styles.cardBody}>
-              <StatRow
-                label="Status"
-                value={result.value.statusLabel ?? NOT_AVAILABLE}
-                copyable={false}
-              />
-              <StatRow
-                label="Headroom"
-                value={
-                  result.value.headroomPercent == null
-                    ? NOT_AVAILABLE
-                    : `${result.value.headroomPercent}%`
-                }
-                copyable={false}
-              />
-              <StatRow
-                label="Battery temperature"
-                value={
-                  result.value.batteryTemperatureC == null
-                    ? NOT_AVAILABLE
-                    : formatTemperature(result.value.batteryTemperatureC, 'C', 1)
-                }
-                copyable={false}
-              />
-            </View>
-          </Card>
+          <View style={styles.group}>
+            <SectionHeader title="Readable zones" onInfo={() => setSheetVisible(true)} />
+            <Card>
+              <View style={styles.cardBody}>
+                {result.value.zones.length > 0 ? (
+                  <>
+                    {result.value.zones.map((zone) => (
+                      <StatRow
+                        key={zone.key}
+                        label={zone.name}
+                        value={zone.temperature ?? NOT_AVAILABLE}
+                        copyable={zone.temperature != null}
+                      />
+                    ))}
+                    <Text style={[styles.caption, { color: colors.muted }]}>
+                      Read from /sys/class/thermal — only the zones this device lets apps read.
+                    </Text>
+                  </>
+                ) : (
+                  <View style={styles.unavailable}>
+                    <Text style={[styles.unavailableTitle, { color: colors.text }]}>
+                      {NOT_AVAILABLE}
+                    </Text>
+                    <Text style={[styles.caption, { color: colors.muted }]}>
+                      {result.value.zonesNote ??
+                        'This device does not let apps read any thermal zone.'}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </Card>
+          </View>
+
+          <View style={styles.group}>
+            <SectionHeader title="Details" />
+            <Card>
+              <View style={styles.cardBody}>
+                <StatRow
+                  label="Status"
+                  value={result.value.statusLabel ?? NOT_AVAILABLE}
+                  copyable={false}
+                />
+                <StatRow
+                  label="Headroom"
+                  value={
+                    result.value.headroomPercent == null
+                      ? NOT_AVAILABLE
+                      : `${result.value.headroomPercent}%`
+                  }
+                  copyable={false}
+                />
+                <StatRow
+                  label="Battery temperature"
+                  value={
+                    result.value.batteryTemperatureC == null
+                      ? NOT_AVAILABLE
+                      : formatTemperature(result.value.batteryTemperatureC, 'C', 1)
+                  }
+                  copyable={false}
+                />
+              </View>
+            </Card>
+          </View>
         </>
       ) : (
         <EmptyState
@@ -121,6 +173,13 @@ export function ThermalScreen() {
           }
         />
       )}
+
+      <InfoSheet
+        visible={sheetVisible}
+        title={HEAT_SHEET.title}
+        paragraphs={[...HEAT_SHEET.paragraphs]}
+        onClose={() => setSheetVisible(false)}
+      />
     </Screen>
   );
 }
@@ -152,6 +211,9 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     paddingBottom: spacing.xxl,
   },
+  group: {
+    gap: spacing.sm,
+  },
   cardBody: {
     gap: spacing.sm,
   },
@@ -173,6 +235,10 @@ const styles = StyleSheet.create({
   },
   caption: {
     ...typography.caption,
+  },
+  unavailable: {
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
   },
   unavailableTitle: {
     ...typography.body,

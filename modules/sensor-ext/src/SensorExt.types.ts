@@ -12,6 +12,11 @@ export type NativeSensorDescriptor = {
   powerMa: number;
   /** Shortest sampling delay in µs; 0 for one-shot sensors. */
   minDelayUs: number;
+  /** Longest sampling delay in µs (Android 8+); `null` when hidden. */
+  maxDelayUs: number | null;
+  /** Hardware FIFO capacity in events; `null` when hidden. */
+  fifoMaxEventCount: number | null;
+  fifoReservedEventCount: number | null;
   isWakeUp: boolean;
   reportingMode: string | null;
 };

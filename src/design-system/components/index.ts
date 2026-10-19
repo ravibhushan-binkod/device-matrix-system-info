@@ -5,6 +5,7 @@ export { Card } from './card';
 export { Chip } from './chip';
 export { EmptyState } from './empty-state';
 export { HeaderIconButton } from './header-icon-button';
+export { InfoSheet } from './info-sheet';
 export { OpenSettingsDialog } from './open-settings-dialog';
 export { PermissionBanner } from './permission-banner';
 export { PermissionRationaleSheet } from './permission-rationale-sheet';

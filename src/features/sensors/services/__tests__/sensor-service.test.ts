@@ -1,8 +1,11 @@
 import type { SensorDescriptor } from '@/core/native';
 import {
+  fifoLabel,
   filterSensorRows,
+  formatSensorPower,
   formatSensorValue,
   reportingModeLabel,
+  samplingRateLabel,
   sensorDetailValues,
   sensorFrequencyHz,
   sensorLabel,
@@ -25,6 +28,9 @@ function sensor(overrides: Partial<SensorDescriptor> = {}): SensorDescriptor {
     resolution: 0.002,
     powerMa: 0.15,
     minDelayUs: 5000,
+    maxDelayUs: 200_000,
+    fifoMaxEventCount: 3000,
+    fifoReservedEventCount: 1500,
     isWakeUp: false,
     reportingMode: 'continuous',
     ...overrides,
@@ -133,6 +139,47 @@ describe('sensorFrequencyHz', () => {
 
   it('returns null for one-shot sensors', () => {
     expect(sensorFrequencyHz(0)).toBeNull();
+  });
+});
+
+describe('samplingRateLabel', () => {
+  it('spans the slowest to the fastest rate', () => {
+    expect(samplingRateLabel(5000, 200_000)).toBe('5 – 200 Hz');
+  });
+
+  it('collapses an equal range and keeps single bounds honest', () => {
+    expect(samplingRateLabel(5000, 5000)).toBe('200 Hz');
+    expect(samplingRateLabel(5000, null)).toBe('up to 200 Hz');
+    expect(samplingRateLabel(0, 200_000)).toBe('from 5 Hz');
+  });
+
+  it('returns null for one-shot sensors without any rate', () => {
+    expect(samplingRateLabel(0, null)).toBeNull();
+    expect(samplingRateLabel(0, 0)).toBeNull();
+  });
+});
+
+describe('fifoLabel', () => {
+  it('shows the depth and the reserved events', () => {
+    expect(fifoLabel(3000, 1500)).toBe('3000 events · 1500 reserved');
+  });
+
+  it('falls back to whichever side is reported', () => {
+    expect(fifoLabel(3000, null)).toBe('3000 events');
+    expect(fifoLabel(null, 1500)).toBe('1500 reserved');
+  });
+
+  it('returns null when the device hides the FIFO', () => {
+    expect(fifoLabel(null, null)).toBeNull();
+    expect(fifoLabel(0, 0)).toBeNull();
+  });
+});
+
+describe('formatSensorPower', () => {
+  it('formats the power draw', () => {
+    expect(formatSensorPower(0.15)).toBe('0.15 mA');
+    expect(formatSensorPower(1.5)).toBe('1.5 mA');
+    expect(formatSensorPower(0)).toBeNull();
   });
 });
 

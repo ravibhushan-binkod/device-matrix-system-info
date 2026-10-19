@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import type { DisplayInfo } from '@/core/native';
@@ -9,7 +10,9 @@ import {
   Card,
   Chip,
   EmptyState,
+  InfoSheet,
   Screen,
+  SectionHeader,
   Skeleton,
   StatRow,
 } from '@/design-system/components';
@@ -21,19 +24,31 @@ import {
   brightnessModeLabel,
   brightnessPercent,
   buildModeRows,
+  cutoutLabel,
   diagonalInches,
   formatInches,
   formatRefreshRate,
   formatResolution,
   hdrLabel,
+  wideGamutLabel,
 } from '@/features/display/services/display-service';
 
 const NOT_AVAILABLE = 'Not available on this device';
+
+const DISPLAY_SHEET = {
+  title: 'Display: what this means',
+  paragraphs: [
+    '"Physical size" is computed from the panel\'s pixel count and the pixels-per-inch the display driver reports (xdpi/ydpi) — it is a diagonal estimate, and some drivers round those numbers.',
+    "Refresh modes come from Android's supported-mode list; the current rate is what the display is running at right now. HDR types are the capabilities the panel advertises.",
+    '"Wide color gamut" means the panel covers more than sRGB. The cutout row lists the safe-area insets Android reports around the camera hole.',
+  ],
+};
 
 /** Display: panel details, refresh modes, HDR, brightness and the settings shortcut. */
 export function DisplayScreen() {
   const { colors } = useTheme();
   const { info, refreshing, refresh, notice, openSettings } = useDisplay();
+  const [sheetVisible, setSheetVisible] = useState(false);
 
   return (
     <Screen
@@ -56,6 +71,7 @@ export function DisplayScreen() {
           colors={colors}
           info={info.value}
           onOpenSettings={openSettings}
+          onOpenInfo={() => setSheetVisible(true)}
           notice={notice}
         />
       ) : (
@@ -67,6 +83,13 @@ export function DisplayScreen() {
           }
         />
       )}
+
+      <InfoSheet
+        visible={sheetVisible}
+        title={DISPLAY_SHEET.title}
+        paragraphs={[...DISPLAY_SHEET.paragraphs]}
+        onClose={() => setSheetVisible(false)}
+      />
     </Screen>
   );
 }
@@ -75,91 +98,104 @@ type DetailsProps = {
   colors: AppColors;
   info: DisplayInfo;
   onOpenSettings: (target: SystemSettingsTarget) => void;
+  onOpenInfo: () => void;
   notice: string | null;
 };
 
-function DisplayDetails({ colors, info, onOpenSettings, notice }: DetailsProps) {
+function DisplayDetails({ colors, info, onOpenSettings, onOpenInfo, notice }: DetailsProps) {
   const resolution = formatResolution(info.widthPx, info.heightPx);
   const size = formatInches(diagonalInches(info.widthPx, info.heightPx, info.xdpi, info.ydpi));
-  const modes = buildModeRows(info);
+  const modes = buildModeRows(info, info.supportedModes.length);
   const hdr = hdrLabel(info.isHdr, info.hdrTypes);
+  const wideGamut = wideGamutLabel(info.isWideColorGamut);
+  const cutout = cutoutLabel(info.cutout);
   const brightness = brightnessPercent(info.brightness);
   const brightnessMode = brightnessModeLabel(info.brightnessMode);
   const timeout = info.screenTimeoutMs == null ? null : formatTimeout(info.screenTimeoutMs);
 
   return (
-    <>
-      <Card>
-        <View style={styles.cardBody}>
-          <Text style={[styles.sectionTitle, { color: colors.muted }]}>Panel</Text>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>
-            {resolution ?? NOT_AVAILABLE}
-          </Text>
-          <StatRow label="Size" value={size ?? NOT_AVAILABLE} copyable={false} />
-          <StatRow
-            label="Density"
-            value={`${info.densityDpi} dpi · ${info.density.toFixed(2)}×`}
-            copyable={false}
-          />
-        </View>
-      </Card>
+    <View style={styles.sections}>
+      <View style={styles.group}>
+        <SectionHeader title="Panel" onInfo={onOpenInfo} />
+        <Card>
+          <View style={styles.cardBody}>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>
+              {resolution ?? NOT_AVAILABLE}
+            </Text>
+            <StatRow label="Size" value={size ?? NOT_AVAILABLE} copyable={false} />
+            <StatRow
+              label="Density"
+              value={`${info.densityDpi} dpi · ${info.density.toFixed(2)}×`}
+              copyable={false}
+            />
+            <StatRow label="Color" value={wideGamut ?? NOT_AVAILABLE} copyable={false} />
+            <StatRow label="Cutout" value={cutout ?? NOT_AVAILABLE} copyable={false} />
+          </View>
+        </Card>
+      </View>
 
-      <Card>
-        <View style={styles.cardBody}>
-          <Text style={[styles.sectionTitle, { color: colors.muted }]}>Refresh rate</Text>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>
-            {formatRefreshRate(info.refreshRateHz) ?? NOT_AVAILABLE}
-          </Text>
-          {modes.rows.length > 0 ? (
-            <View style={styles.modeList}>
-              <Text style={[styles.caption, { color: colors.muted }]}>Supported modes</Text>
-              {modes.rows.map((mode) => (
-                <Text key={mode.key} style={[styles.modeRow, { color: colors.text }]}>
-                  {mode.label}
-                </Text>
-              ))}
-              {modes.hiddenCount > 0 ? (
-                <Text style={[styles.caption, { color: colors.muted }]}>
-                  +{modes.hiddenCount} more
-                </Text>
-              ) : null}
-            </View>
-          ) : null}
-        </View>
-      </Card>
+      <View style={styles.group}>
+        <SectionHeader title="Refresh rate" onInfo={onOpenInfo} />
+        <Card>
+          <View style={styles.cardBody}>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>
+              {formatRefreshRate(info.refreshRateHz) ?? NOT_AVAILABLE}
+            </Text>
+            {modes.rows.length > 0 ? (
+              <View style={styles.modeList}>
+                <Text style={[styles.caption, { color: colors.muted }]}>Supported modes</Text>
+                {modes.rows.map((mode) => (
+                  <Text key={mode.key} style={[styles.modeRow, { color: colors.text }]}>
+                    {mode.label}
+                  </Text>
+                ))}
+                {modes.hiddenCount > 0 ? (
+                  <Text style={[styles.caption, { color: colors.muted }]}>
+                    +{modes.hiddenCount} more
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
+          </View>
+        </Card>
+      </View>
 
       <AdSlot placement="display-mid" />
 
-      <Card>
-        <View style={styles.cardBody}>
-          <Text style={[styles.sectionTitle, { color: colors.muted }]}>HDR</Text>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>{hdr ?? NOT_AVAILABLE}</Text>
-          {info.hdrTypes.length > 1 ? (
-            <View style={styles.chips}>
-              {info.hdrTypes.map((type) => (
-                <Chip key={type} label={type} />
-              ))}
-            </View>
-          ) : null}
-        </View>
-      </Card>
+      <View style={styles.group}>
+        <SectionHeader title="HDR" onInfo={onOpenInfo} />
+        <Card>
+          <View style={styles.cardBody}>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>{hdr ?? NOT_AVAILABLE}</Text>
+            {info.hdrTypes.length > 1 ? (
+              <View style={styles.chips}>
+                {info.hdrTypes.map((type) => (
+                  <Chip key={type} label={type} />
+                ))}
+              </View>
+            ) : null}
+          </View>
+        </Card>
+      </View>
 
-      <Card>
-        <View style={styles.cardBody}>
-          <Text style={[styles.sectionTitle, { color: colors.muted }]}>Brightness & timeout</Text>
-          <StatRow
-            label="Brightness"
-            value={brightness == null ? NOT_AVAILABLE : `${brightness}%`}
-            copyable={false}
-          />
-          <StatRow
-            label="Brightness mode"
-            value={brightnessMode ?? NOT_AVAILABLE}
-            copyable={false}
-          />
-          <StatRow label="Screen timeout" value={timeout ?? NOT_AVAILABLE} copyable={false} />
-        </View>
-      </Card>
+      <View style={styles.group}>
+        <SectionHeader title="Brightness & timeout" onInfo={onOpenInfo} />
+        <Card>
+          <View style={styles.cardBody}>
+            <StatRow
+              label="Brightness"
+              value={brightness == null ? NOT_AVAILABLE : `${brightness}%`}
+              copyable={false}
+            />
+            <StatRow
+              label="Brightness mode"
+              value={brightnessMode ?? NOT_AVAILABLE}
+              copyable={false}
+            />
+            <StatRow label="Screen timeout" value={timeout ?? NOT_AVAILABLE} copyable={false} />
+          </View>
+        </Card>
+      </View>
 
       <View style={styles.actions}>
         <Button
@@ -170,7 +206,7 @@ function DisplayDetails({ colors, info, onOpenSettings, notice }: DetailsProps) 
         />
         {notice ? <Text style={[styles.caption, { color: colors.muted }]}>{notice}</Text> : null}
       </View>
-    </>
+    </View>
   );
 }
 
@@ -195,17 +231,17 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     paddingBottom: spacing.xxl,
   },
+  sections: {
+    gap: spacing.lg,
+  },
+  group: {
+    gap: spacing.sm,
+  },
   cardBody: {
     gap: spacing.sm,
   },
   cardTitle: {
     ...typography.title,
-  },
-  sectionTitle: {
-    ...typography.caption,
-    fontFamily: 'Inter_600SemiBold',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
   },
   caption: {
     ...typography.caption,

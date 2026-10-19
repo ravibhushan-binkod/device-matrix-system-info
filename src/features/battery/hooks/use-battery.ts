@@ -5,6 +5,8 @@ import { usePolling } from '@/core/hooks/use-polling';
 import { useSystemSettings } from '@/core/hooks/use-system-settings';
 import { getBatteryInfo, subscribeToBattery, type BatteryReading } from '@/core/native';
 import { ok, type Result } from '@/core/result';
+import { powerWatts } from '@/features/battery/services/battery-stats';
+import type { BatteryGraphSample } from '@/features/battery/types';
 
 /** Android broadcasts battery changes; a 2 s poll keeps the graph steady. */
 const POLL_MS = 2_000;
@@ -21,17 +23,22 @@ const GRAPH_POINTS = 45;
  */
 export function useBattery() {
   const [reading, setReading] = useState<Result<BatteryReading> | null>(null);
-  const [samples, setSamples] = useState<number[]>([]);
+  const [samples, setSamples] = useState<BatteryGraphSample[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const focused = useScreenFocused();
   const { notice, open } = useSystemSettings();
 
   const sample = useCallback((result: Result<BatteryReading>) => {
     setReading(result);
-    if (result.status === 'ok' && result.value.currentNowUa != null) {
-      const milliamps = Math.round(result.value.currentNowUa / 1000);
-      setSamples((previous) => [...previous, milliamps].slice(-GRAPH_POINTS));
-    }
+    if (result.status !== 'ok') return;
+    const { currentNowUa, voltageMv, temperatureC } = result.value;
+    const next: BatteryGraphSample = {
+      currentMa: currentNowUa != null ? Math.round(currentNowUa / 1000) : null,
+      watts: powerWatts(currentNowUa, voltageMv),
+      temperatureC,
+    };
+    if (next.currentMa == null && next.watts == null && next.temperatureC == null) return;
+    setSamples((previous) => [...previous, next].slice(-GRAPH_POINTS));
   }, []);
 
   const { isPolling } = usePolling(() => sample(getBatteryInfo()), { intervalMs: POLL_MS });

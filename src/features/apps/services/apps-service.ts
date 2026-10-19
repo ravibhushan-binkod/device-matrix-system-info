@@ -167,12 +167,12 @@ export function mergeUsageRanking(apps: InstalledApp[], usage: AppUsageTotal[]):
   );
 }
 
-/** Apps ranked by total size on disk (app + data + cache), cache included. */
+/** Apps ranked by size on disk (app + data — Android's data bytes include the cache). */
 export function mergeStorageRanking(apps: InstalledApp[], storage: AppStorageStats[]): RankedApp[] {
   return rankApps(
     apps,
     storage,
-    (entry) => entry.appBytes + entry.dataBytes + entry.cacheBytes,
+    (entry) => entry.appBytes + entry.dataBytes,
     (entry, app, value, share) => ({
       packageName: app.packageName,
       label: app.label,

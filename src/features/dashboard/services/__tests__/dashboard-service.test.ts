@@ -56,10 +56,18 @@ beforeEach(() => {
   );
   uptimeMock.mockReturnValue(ok({ uptimeMillis: 15 * DAY + 14 * HOUR + 26 * MINUTE }));
   memoryMock.mockReturnValue(
-    ok({ totalBytes: 8_000, availableBytes: 3_000, thresholdBytes: 100, lowMemory: false }),
+    ok({
+      totalBytes: 8_000,
+      availableBytes: 3_000,
+      thresholdBytes: 100,
+      lowMemory: false,
+      swapTotalBytes: null,
+      swapFreeBytes: null,
+      swapCachedBytes: null,
+    }),
   );
   storageMock.mockReturnValue(
-    ok({ internal: { totalBytes: 200_000, freeBytes: 50_000 }, volumes: [] }),
+    ok({ internal: { totalBytes: 200_000, freeBytes: 50_000, fsType: 'f2fs' }, volumes: [] }),
   );
   batteryMock.mockReturnValue(ok(reading()));
 });

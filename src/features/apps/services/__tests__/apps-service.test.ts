@@ -170,7 +170,7 @@ describe('rankings', () => {
     expect(ranked[0]?.packageName).toBe('com.example.app8');
   });
 
-  it('ranks total size with the cache included', () => {
+  it('ranks app + data size (the cache is already part of data)', () => {
     const ranked = mergeStorageRanking(apps, [
       { packageName: 'com.whatsapp', appBytes: 200, dataBytes: 300, cacheBytes: 500 },
       { packageName: 'com.android.files', appBytes: 100, dataBytes: 0, cacheBytes: 0 },
@@ -178,9 +178,9 @@ describe('rankings', () => {
       { packageName: 'android', appBytes: 9_999, dataBytes: 0, cacheBytes: 0 },
     ]);
     expect(ranked.map((row) => row.packageName)).toEqual(['com.whatsapp', 'com.android.files']);
-    expect(ranked[0]?.totalBytes).toBe(1_000);
+    expect(ranked[0]?.totalBytes).toBe(500);
     expect(ranked[0]?.cacheBytes).toBe(500);
-    expect(ranked[1]?.share).toBeCloseTo(0.1);
+    expect(ranked[1]?.share).toBeCloseTo(0.2, 3);
   });
 });
 

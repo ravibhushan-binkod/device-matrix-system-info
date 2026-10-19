@@ -136,9 +136,14 @@ export default function SettingsScreen() {
       ) : null}
 
       {__DEV__ ? (
-        <Link href="/dev/gallery" style={[styles.devLink, { color: colors.accent }]}>
-          Open design gallery
-        </Link>
+        <View style={styles.devLinks}>
+          <Link href="/dev/gallery" style={[styles.devLink, { color: colors.accent }]}>
+            Open design gallery
+          </Link>
+          <Link href="/dev/support-matrix" style={[styles.devLink, { color: colors.accent }]}>
+            Open support matrix
+          </Link>
+        </View>
       ) : null}
     </Screen>
   );
@@ -168,9 +173,12 @@ const styles = StyleSheet.create({
     ...typography.caption,
     marginTop: spacing.sm,
   },
+  devLinks: {
+    gap: spacing.sm,
+    marginTop: spacing.xl,
+  },
   devLink: {
     ...typography.body,
-    marginTop: spacing.xl,
     textDecorationLine: 'underline',
   },
 });

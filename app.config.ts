@@ -66,6 +66,9 @@ const config: ExpoConfig = {
   plugins: [
     'expo-router',
     './plugins/with-release-signing',
+    // Makes the installed Play services version readable on Android 11+
+    // (a `<queries>` entry, not a permission — see the plugin file).
+    './plugins/with-gms-queries',
     [
       'expo-splash-screen',
       {
