@@ -52,4 +52,4 @@ example
 # local expo modules: native build outputs
 modules/*/android/build/
 modules/*/android/.cxx/
-modules/*/.gradle/
+modules/*/android/.gradle/
