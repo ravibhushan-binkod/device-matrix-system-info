@@ -23,6 +23,9 @@ export const features = {
     apps: 'v1',
     tips: 'v1',
   },
+  /** The Apps tab's usage insights (screen time, app sizes) — needs Usage
+   * Access, which the user grants in system settings. */
+  usageInsights: 'v1',
   /** Planned for V2. */
   speedTest: 'v2',
   nearbyWifi: 'v2',

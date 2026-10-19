@@ -7,6 +7,10 @@ describe('features', () => {
     }
   });
 
+  it('enables the Apps usage insights', () => {
+    expect(isEnabled(features.usageInsights)).toBe(true);
+  });
+
   it('keeps V2 features disabled for V1', () => {
     expect(isEnabled(features.speedTest)).toBe(false);
     expect(isEnabled(features.nearbyWifi)).toBe(false);

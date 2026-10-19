@@ -1,4 +1,5 @@
 export * from './app-cache';
+export * from './apps-ext';
 export * from './battery-ext';
 export * from './device-info';
 export * from './device-stats';

@@ -17,7 +17,8 @@ export type SystemSettingsTarget =
   | 'alarm'
   | 'show-alarms'
   | 'developer-options'
-  | 'system-update';
+  | 'system-update'
+  | 'usage-access';
 
 type TargetConfig = {
   /** System activities to try in order (normal Android intents only). */
@@ -113,6 +114,12 @@ const TARGETS: Record<SystemSettingsTarget, TargetConfig> = {
       'android.settings.SETTINGS',
     ],
     unavailableReason: 'No app on this device can open the system update screen.',
+  },
+  'usage-access': {
+    // Settings > Special access > Usage access, where the user grants the
+    // Apps tab's usage insights permission.
+    actions: ['android.settings.USAGE_ACCESS_SETTINGS', 'android.settings.SETTINGS'],
+    unavailableReason: 'No app on this device can open the Usage access settings.',
   },
 };
 
