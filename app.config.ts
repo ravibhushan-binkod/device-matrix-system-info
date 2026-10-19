@@ -50,6 +50,7 @@ const config: ExpoConfig = {
   },
   plugins: [
     'expo-router',
+    './plugins/with-release-signing',
     [
       'expo-splash-screen',
       {
@@ -67,7 +68,7 @@ const config: ExpoConfig = {
           compileSdkVersion: 36,
           targetSdkVersion: 36,
           minSdkVersion: 26,
-          buildArchs: ['arm64-v8a'],
+          buildArchs: ['arm64-v8a', 'armeabi-v7a'],
           enableMinifyInReleaseBuilds: true,
           enableShrinkResourcesInReleaseBuilds: true,
         },
@@ -77,6 +78,15 @@ const config: ExpoConfig = {
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
+  },
+  extra: {
+    // Production AdMob IDs come from the environment (docs/RELEASE.md) so no
+    // live unit ID is committed. Null until the ads SDK phase lands; the ads
+    // code will fall back to Google's test IDs in development.
+    admob: {
+      androidAppId: process.env.EXPO_PUBLIC_ADMOB_ANDROID_APP_ID ?? null,
+      bannerUnitId: process.env.EXPO_PUBLIC_ADMOB_BANNER_UNIT_ID ?? null,
+    },
   },
 };
 
