@@ -36,7 +36,7 @@ export function MemoryScreen() {
         <>
           <Card>
             <View style={styles.donutBody}>
-              <MemoryDonut value={stats.value.usedPercent} label="used" />
+              <MemoryDonut value={stats.value.usedPercent} label="used" accessibilityLabel="Memory used" />
               <Text style={[styles.caption, { color: colors.muted }]}>
                 {formatByteSize(stats.value.availableBytes)} available
               </Text>
@@ -74,7 +74,11 @@ export function MemoryScreen() {
                   {paused ? 'Paused' : isPolling ? 'Live · updates every 3 s' : 'Paused'}
                 </Text>
               </View>
-              <LiveGraph data={samples} paused={paused || !isPolling} />
+              <LiveGraph
+                data={samples}
+                paused={paused || !isPolling}
+                accessibilityLabel="Available RAM graph, megabytes"
+              />
             </View>
           </Card>
         </>

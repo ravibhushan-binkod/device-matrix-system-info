@@ -24,6 +24,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { withAlpha } from '@/design-system/color';
+import { useScreenFocused } from '@/design-system/hooks/use-screen-focused';
 import { Icon } from '@/design-system/icon';
 import { clamp01 } from '@/design-system/status';
 import { useTheme } from '@/design-system/theme';
@@ -35,6 +36,8 @@ type Props = {
   charging?: boolean;
   width?: number;
   height?: number;
+  /** Spoken label for TalkBack. */
+  accessibilityLabel?: string;
 };
 
 const WALL = 3;
@@ -43,10 +46,18 @@ const PAD = 7;
 /**
  * Battery shape with a liquid wave fill, percentage and a charging pulse.
  * Colour follows the level (critical → warning → good as the battery fills).
+ * The wave and pulse loops stop while the screen is not focused.
  */
-export function BatteryGauge({ value, charging = false, width = 220, height = 96 }: Props) {
+export function BatteryGauge({
+  value,
+  charging = false,
+  width = 220,
+  height = 96,
+  accessibilityLabel,
+}: Props) {
   const { colors } = useTheme();
   const reduced = useReducedMotion();
+  const focused = useScreenFocused();
   const ratio = clamp01(value / 100);
   const tint = ratio < 0.15 ? colors.critical : ratio < 0.3 ? colors.warning : colors.good;
 
@@ -68,9 +79,12 @@ export function BatteryGauge({ value, charging = false, width = 220, height = 96
   }, [level, ratio, reduced]);
 
   useEffect(() => {
-    if (reduced) return;
+    if (reduced || !focused) {
+      wave.value = 0;
+      return;
+    }
     wave.value = withRepeat(withTiming(1, { duration: 3200, easing: Easing.linear }), -1, false);
-  }, [wave, reduced]);
+  }, [focused, reduced, wave]);
 
   const [display, setDisplay] = useState(reduced ? Math.round(value) : 0);
 
@@ -111,7 +125,7 @@ export function BatteryGauge({ value, charging = false, width = 220, height = 96
   const pulse = useSharedValue(0);
 
   useEffect(() => {
-    if (!charging || reduced) {
+    if (!charging || reduced || !focused) {
       pulse.value = 0;
       return;
     }
@@ -120,7 +134,7 @@ export function BatteryGauge({ value, charging = false, width = 220, height = 96
       -1,
       false,
     );
-  }, [charging, pulse, reduced]);
+  }, [charging, focused, pulse, reduced]);
 
   const pulseStyle = useAnimatedStyle(() => ({
     opacity: 0.45 * (1 - pulse.value),
@@ -128,7 +142,15 @@ export function BatteryGauge({ value, charging = false, width = 220, height = 96
   }));
 
   return (
-    <View style={{ width, height }}>
+    <View
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={accessibilityLabel ?? 'Battery'}
+      accessibilityValue={{
+        text: `${Math.round(value)} percent${charging ? ', charging' : ''}`,
+      }}
+      style={{ width, height }}
+    >
       <Canvas style={{ width, height }}>
         <Group clip={innerClip}>
           <Path path={liquidPath}>

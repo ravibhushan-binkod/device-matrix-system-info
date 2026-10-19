@@ -14,6 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { withAlpha } from '@/design-system/color';
+import { useScreenFocused } from '@/design-system/hooks/use-screen-focused';
 import { clamp01 } from '@/design-system/status';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
@@ -24,12 +25,22 @@ type Props = {
   label?: string;
   size?: number;
   thickness?: number;
+  /** Spoken label for TalkBack; defaults to `label`. */
+  accessibilityLabel?: string;
 };
 
 /** Usage donut with a gentle "breathing" loop and a count-up centre number. */
-export function MemoryDonut({ value, max = 100, label, size = 168, thickness = 16 }: Props) {
+export function MemoryDonut({
+  value,
+  max = 100,
+  label,
+  size = 168,
+  thickness = 16,
+  accessibilityLabel,
+}: Props) {
   const { colors } = useTheme();
   const reduced = useReducedMotion();
+  const focused = useScreenFocused();
   const ratio = clamp01(max === 0 ? 0 : value / max);
 
   const progress = useSharedValue(reduced ? ratio : 0);
@@ -42,7 +53,7 @@ export function MemoryDonut({ value, max = 100, label, size = 168, thickness = 1
   }, [progress, ratio, reduced]);
 
   useEffect(() => {
-    if (reduced) {
+    if (reduced || !focused) {
       breath.value = 1;
       return;
     }
@@ -51,7 +62,7 @@ export function MemoryDonut({ value, max = 100, label, size = 168, thickness = 1
       -1,
       true,
     );
-  }, [breath, reduced]);
+  }, [breath, focused, reduced]);
 
   const [display, setDisplay] = useState(reduced ? Math.round(value) : 0);
 
@@ -89,7 +100,15 @@ export function MemoryDonut({ value, max = 100, label, size = 168, thickness = 1
   }));
 
   return (
-    <View style={[styles.root, { width: size, height: size }]}>
+    <View
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={accessibilityLabel ?? label ?? 'Gauge'}
+      accessibilityValue={{
+        text: max === 100 ? `${Math.round(value)} percent` : `${Math.round(value)} of ${max}`,
+      }}
+      style={[styles.root, { width: size, height: size }]}
+    >
       <Animated.View style={breathStyle}>
         <Canvas style={{ width: size, height: size }}>
           <Path

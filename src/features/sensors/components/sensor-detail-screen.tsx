@@ -112,7 +112,11 @@ export function SensorDetailScreen({ type }: { type: number | null }) {
                 <Text style={[styles.graphValue, { color: colors.text }]}>
                   {latest == null ? '—' : formatSensorValue(latest)}
                 </Text>
-                <LiveGraph data={samples} paused={!streaming} />
+                <LiveGraph
+                  data={samples}
+                  paused={!streaming}
+                  accessibilityLabel="Sensor magnitude graph"
+                />
               </View>
             </Card>
           )}

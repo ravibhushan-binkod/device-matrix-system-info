@@ -22,6 +22,8 @@ type Props = {
   height?: number;
   paused?: boolean;
   color?: string;
+  /** Spoken noun for TalkBack; defaults to "Live graph". */
+  accessibilityLabel?: string;
 };
 
 type Point = { x: number; y: number };
@@ -80,7 +82,15 @@ function tipPoint(points: Point[], upto: number): Point {
 }
 
 /** Smooth line graph that draws itself as data arrives; `paused` freezes it. */
-export function LiveGraph({ data, min, max, height = 120, paused = false, color }: Props) {
+export function LiveGraph({
+  data,
+  min,
+  max,
+  height = 120,
+  paused = false,
+  color,
+  accessibilityLabel = 'Live graph',
+}: Props) {
   const { colors } = useTheme();
   const reduced = useReducedMotion();
   const [width, setWidth] = useState(0);
@@ -146,8 +156,20 @@ export function LiveGraph({ data, min, max, height = 120, paused = false, color 
     [points, reveal],
   );
 
+  const round = (value: number) => Math.round(value * 10) / 10;
+  const latest = data.length > 0 ? (data[data.length - 1] ?? null) : null;
+  const spoken =
+    latest == null
+      ? `${accessibilityLabel}: no samples yet`
+      : `${accessibilityLabel}: latest ${round(latest)}, lowest ${round(Math.min(...data))}, highest ${round(Math.max(...data))}${paused ? ', paused' : ''}`;
+
   return (
-    <View onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width)}>
+    <View
+      accessible
+      accessibilityRole="image"
+      accessibilityLabel={spoken}
+      onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width)}
+    >
       <View style={[styles.canvasWrap, { height, opacity: paused ? 0.55 : 1 }]}>
         {width > 0 ? (
           <Canvas style={{ width, height }}>

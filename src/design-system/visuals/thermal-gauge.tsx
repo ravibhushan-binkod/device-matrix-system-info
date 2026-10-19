@@ -21,6 +21,8 @@ type Props = {
   size?: number;
   thickness?: number;
   unit?: string;
+  /** Spoken label for TalkBack. */
+  accessibilityLabel?: string;
 };
 
 /**
@@ -34,6 +36,7 @@ export function ThermalGauge({
   size = 200,
   thickness = 14,
   unit = '°C',
+  accessibilityLabel,
 }: Props) {
   const { colors } = useTheme();
   const reduced = useReducedMotion();
@@ -87,7 +90,16 @@ export function ThermalGauge({
   });
 
   return (
-    <View style={{ width: size }}>
+    <View
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={accessibilityLabel ?? 'Temperature'}
+      accessibilityValue={{
+        text:
+          unit === '°C' ? `${Math.round(value)} degrees Celsius` : `${Math.round(value)} ${unit}`,
+      }}
+      style={{ width: size }}
+    >
       <View>
         <Canvas style={{ width: size, height: canvasHeight }}>
           <Path

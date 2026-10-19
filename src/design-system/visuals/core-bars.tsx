@@ -25,6 +25,8 @@ type Props = {
   height?: number;
   barWidth?: number;
   color?: string;
+  /** Spoken label for TalkBack; the summary lists the value range. */
+  accessibilityLabel?: string;
 };
 
 type BarProps = {
@@ -59,13 +61,26 @@ function Bar({ ratio, height, barWidth, color, reduced }: BarProps) {
 }
 
 /** Per-core vertical bars; each bar springs to its frequency ratio. */
-export function CoreBars({ bars, max = 100, height = 88, barWidth = 16, color }: Props) {
+export function CoreBars({
+  bars,
+  max = 100,
+  height = 88,
+  barWidth = 16,
+  color,
+  accessibilityLabel = 'Cores',
+}: Props) {
   const { colors } = useTheme();
   const reduced = useReducedMotion();
   const tint = color ?? colors.accent;
 
+  const values = bars.map((bar) => bar.value);
+  const spoken =
+    values.length === 0
+      ? `${accessibilityLabel}: no data`
+      : `${accessibilityLabel}: ${bars.length} cores, ${Math.round(Math.min(...values))} to ${Math.round(Math.max(...values))} of ${Math.round(max)}`;
+
   return (
-    <View style={styles.root}>
+    <View accessible accessibilityRole="image" accessibilityLabel={spoken} style={styles.root}>
       <View style={styles.row}>
         {bars.map((bar, index) => (
           <View key={`${bar.label}-${index}`} style={styles.column}>

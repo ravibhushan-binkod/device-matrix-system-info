@@ -131,7 +131,12 @@ function BatteryDetails({ reading, samples, isPolling, onOpenSaver }: DetailsPro
             <Text style={[styles.cellLabel, { color: colors.muted }]}>Live current (mA)</Text>
             <Text style={[styles.cellValue, { color: colors.text }]}>{lastSample} mA</Text>
           </View>
-          <LiveGraph data={samples} paused={!isPolling} height={120} />
+          <LiveGraph
+            data={samples}
+            paused={!isPolling}
+            height={120}
+            accessibilityLabel="Live current graph, milliamps"
+          />
         </Card>
       ) : null}
     </View>

@@ -17,6 +17,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { useTheme } from '@/design-system/theme';
+import { useScreenFocused } from '@/design-system/hooks/use-screen-focused';
 
 type Props = {
   width?: number | `${number}%`;
@@ -31,18 +32,19 @@ const STRIPE_WIDTH = 140;
 export function Skeleton({ width = '100%', height = 16, round = false, style }: Props) {
   const { scheme, colors } = useTheme();
   const reduced = useReducedMotion();
+  const focused = useScreenFocused();
   const [trackWidth, setTrackWidth] = useState(0);
   const progress = useSharedValue(0);
 
   useEffect(() => {
-    if (reduced || trackWidth === 0) return;
+    if (reduced || !focused || trackWidth === 0) return;
     progress.value = 0;
     progress.value = withRepeat(
       withTiming(1, { duration: 1100, easing: Easing.linear }),
       -1,
       false,
     );
-  }, [reduced, progress, trackWidth]);
+  }, [focused, reduced, progress, trackWidth]);
 
   const stripeStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: -STRIPE_WIDTH + progress.value * (trackWidth + STRIPE_WIDTH) }],

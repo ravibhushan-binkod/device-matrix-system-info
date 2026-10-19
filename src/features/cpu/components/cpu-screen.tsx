@@ -130,7 +130,7 @@ function CoreFrequency({ bars, maxMhz }: { bars: CpuFrequencyBar[]; maxMhz: numb
 
   return (
     <View style={styles.coreGroup}>
-      <CoreBars bars={bars} max={maxMhz} />
+      <CoreBars bars={bars} max={maxMhz} accessibilityLabel="CPU core frequency, MHz" />
       <View style={styles.coreValues}>
         {bars.map((bar) => (
           <Text key={bar.label} style={[styles.coreValue, { color: colors.muted }]}>
