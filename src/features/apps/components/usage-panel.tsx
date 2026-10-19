@@ -158,6 +158,7 @@ function StorageCard({
               onPress={onScanStorage}
               accessibilityRole="button"
               accessibilityLabel="Scan app sizes again"
+              hitSlop={{ top: 16, bottom: 16, left: 8, right: 8 }}
             >
               <Text style={[styles.scan, { color: colors.primary }]}>Scan again</Text>
             </PressableScale>

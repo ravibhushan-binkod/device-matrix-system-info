@@ -58,6 +58,7 @@ export function ScreenTestScreen() {
           <PressableScale
             onPress={() => router.back()}
             accessibilityRole="button"
+            accessibilityLabel="Close the screen test"
             style={styles.close}
           >
             <Icon name="x" size={20} color="#FFFFFF" />
@@ -91,8 +92,8 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
   },
   close: {
-    width: 40,
-    height: 40,
+    width: 48,
+    height: 48,
     borderRadius: radius.button,
     alignItems: 'center',
     justifyContent: 'center',

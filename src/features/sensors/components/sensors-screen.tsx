@@ -119,6 +119,7 @@ function SearchField({
           onPress={() => onChangeText('')}
           accessibilityRole="button"
           accessibilityLabel="Clear search"
+          hitSlop={14}
         >
           <Icon name="x" size={20} color={colors.muted} />
         </PressableScale>
@@ -130,7 +131,7 @@ function SearchField({
 function SensorsSkeleton() {
   return (
     <View style={styles.content}>
-      <Skeleton height={44} />
+      <Skeleton height={48} />
       <Card>
         <View style={styles.skeletonRows}>
           {[0, 1, 2, 3, 4].map((row) => (
@@ -151,13 +152,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    height: 44,
+    height: 48,
     paddingHorizontal: spacing.md,
     borderRadius: radius.button,
     borderWidth: StyleSheet.hairlineWidth,
   },
   searchInput: {
     flex: 1,
+    alignSelf: 'stretch',
+    textAlignVertical: 'center',
     fontFamily: 'Inter_400Regular',
     fontSize: 14,
     padding: 0,

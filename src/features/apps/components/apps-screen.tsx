@@ -74,6 +74,7 @@ export function AppsScreen() {
             onPress={() => setQuery('')}
             accessibilityRole="button"
             accessibilityLabel="Clear search"
+            hitSlop={16}
           >
             <Icon name="x" size={16} color={colors.muted} />
           </PressableScale>
@@ -214,7 +215,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    height: 44,
+    height: 48,
     borderRadius: radius.button,
     borderWidth: 1,
     paddingHorizontal: spacing.md,
@@ -222,6 +223,8 @@ const styles = StyleSheet.create({
   searchInput: {
     ...typography.body,
     flex: 1,
+    alignSelf: 'stretch',
+    textAlignVertical: 'center',
     padding: 0,
   },
   controls: {

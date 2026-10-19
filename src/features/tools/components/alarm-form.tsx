@@ -185,8 +185,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   stepButton: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     borderRadius: radius.button,
     alignItems: 'center',
     justifyContent: 'center',
@@ -202,6 +202,8 @@ const styles = StyleSheet.create({
   },
   input: {
     ...typography.body,
+    minHeight: 48,
+    textAlignVertical: 'center',
     borderRadius: radius.button,
     borderWidth: 1,
     paddingHorizontal: spacing.md,

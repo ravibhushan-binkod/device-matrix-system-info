@@ -59,7 +59,12 @@ export function TipCard({
         {hint ? <Text style={[styles.hint, { color }]}>{hint}</Text> : null}
       </View>
       {onDismiss ? (
-        <PressableScale onPress={onDismiss} accessibilityRole="button" style={styles.dismiss}>
+        <PressableScale
+          onPress={onDismiss}
+          accessibilityRole="button"
+          hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+          style={styles.dismiss}
+        >
           <Text style={[styles.dismissLabel, { color }]}>Got it</Text>
         </PressableScale>
       ) : null}

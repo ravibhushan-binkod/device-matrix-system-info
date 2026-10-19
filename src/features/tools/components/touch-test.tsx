@@ -56,6 +56,7 @@ export function TouchTestScreen() {
         <PressableScale
           onPress={() => router.back()}
           accessibilityRole="button"
+          accessibilityLabel="Close the touch test"
           style={[styles.iconButton, { backgroundColor: colors.surface2 }]}
         >
           <Icon name="x" size={20} color={colors.text} />
@@ -114,8 +115,8 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   iconButton: {
-    width: 40,
-    height: 40,
+    width: 48,
+    height: 48,
     borderRadius: radius.button,
     alignItems: 'center',
     justifyContent: 'center',
