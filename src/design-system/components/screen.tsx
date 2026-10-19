@@ -1,0 +1,78 @@
+import {
+  ScrollView,
+  StyleSheet,
+  View,
+  type RefreshControlProps,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
+import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
+import type { ReactElement, ReactNode } from 'react';
+
+import { useTheme } from '@/design-system/theme';
+import { spacing } from '@/design-system/tokens';
+
+type Props = {
+  children: ReactNode;
+  /** Wrap the content in a ScrollView. */
+  scroll?: boolean;
+  /** Horizontal padding on the 4 dp grid (default 16). */
+  padded?: boolean;
+  /** Include the top safe-area edge (for screens without a navigation header). */
+  edgeTop?: boolean;
+  /** Fixed element above the scroll area (e.g. an in-screen app bar). */
+  header?: ReactNode;
+  /** Pull-to-refresh control, passed to the ScrollView. */
+  refreshControl?: ReactElement<RefreshControlProps>;
+  style?: StyleProp<ViewStyle>;
+  contentStyle?: StyleProp<ViewStyle>;
+};
+
+/** Standard screen container: themed background, safe area and optional scroll. */
+export function Screen({
+  children,
+  scroll = false,
+  padded = true,
+  edgeTop = false,
+  header,
+  refreshControl,
+  style,
+  contentStyle,
+}: Props) {
+  const { colors } = useTheme();
+  const padding = padded ? styles.padded : null;
+  const edges: Edge[] = edgeTop ? ['top', 'left', 'right', 'bottom'] : ['left', 'right', 'bottom'];
+
+  return (
+    <SafeAreaView
+      edges={edges}
+      style={[styles.root, { backgroundColor: colors.background }, style]}
+    >
+      {header}
+      {scroll ? (
+        <ScrollView
+          style={styles.flex}
+          contentContainerStyle={[padding, contentStyle]}
+          refreshControl={refreshControl}
+          showsVerticalScrollIndicator={false}
+        >
+          {children}
+        </ScrollView>
+      ) : (
+        <View style={[styles.flex, padding, contentStyle]}>{children}</View>
+      )}
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+  flex: {
+    flex: 1,
+  },
+  padded: {
+    paddingHorizontal: spacing.lg,
+  },
+});

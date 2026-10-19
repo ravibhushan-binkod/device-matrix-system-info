@@ -9,6 +9,7 @@ describe('features', () => {
 
   it('keeps V2 features disabled for V1', () => {
     expect(isEnabled(features.speedTest)).toBe(false);
+    expect(isEnabled(features.nearbyWifi)).toBe(false);
     expect(isEnabled(features.nfcTools)).toBe(false);
     expect(isEnabled(features.localHistory)).toBe(false);
   });

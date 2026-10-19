@@ -28,6 +28,9 @@ const config: ExpoConfig = {
       'android.permission.SET_ALARM',
       'android.permission.VIBRATE',
       'android.permission.NFC',
+      // Runtime/optional — only requested when the matching feature is used.
+      'android.permission.ACCESS_FINE_LOCATION', // Wi-Fi network name (SSID)
+      'android.permission.BLUETOOTH_CONNECT', // Bluetooth state on Android 12+
     ],
     blockedPermissions: [
       'android.permission.QUERY_ALL_PACKAGES',

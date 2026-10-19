@@ -25,6 +25,7 @@ export const features = {
   },
   /** Planned for V2. */
   speedTest: 'v2',
+  nearbyWifi: 'v2',
   nfcTools: 'v2',
   localHistory: 'v2',
   /** Cross-cutting. */

@@ -1,5 +1,14 @@
-/**
- * Types for the camera feature. Introduced with its phase; readings use the
- * shared `Result<T>` model from `@/core/result`.
- */
-export {};
+export type CameraSpec = {
+  key: string;
+  label: string;
+  value: string | null;
+};
+
+export type CameraEntry = {
+  key: string;
+  /** e.g. "Back camera" or "Back camera 2" when a facing has several. */
+  title: string;
+  /** Short chips: megapixels, aperture, focal length. */
+  chips: string[];
+  specs: CameraSpec[];
+};
