@@ -1,11 +1,5 @@
-import { PlaceholderScreen } from '@/design-system/components';
+import { AppsScreen } from '@/features/apps/components/apps-screen';
 
-export default function AppsScreen() {
-  return (
-    <PlaceholderScreen
-      icon="apps"
-      title="Apps"
-      description="Installed app lists and their honest metadata arrive with the apps phase."
-    />
-  );
+export default function AppsRoute() {
+  return <AppsScreen />;
 }
