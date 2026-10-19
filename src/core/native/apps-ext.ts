@@ -115,7 +115,9 @@ export async function getUsageTotals(days: number): Promise<Result<AppUsageTotal
   if (!module) return unavailable(MISSING_INDEX);
   try {
     const raw: NativeAppUsageTotal[] = await module.getUsageTotals(days);
-    return ok(raw.map((entry) => ({ packageName: entry.packageName, totalTimeMs: entry.totalTimeMs ?? 0 })));
+    return ok(
+      raw.map((entry) => ({ packageName: entry.packageName, totalTimeMs: entry.totalTimeMs ?? 0 })),
+    );
   } catch {
     return unavailable('Android did not return the usage figures.');
   }

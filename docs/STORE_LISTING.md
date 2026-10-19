@@ -59,12 +59,12 @@ The form must match the shipped build. Answer it in two steps:
 
 ### Step 1 — while no ad SDK is bundled (release 1.0.0 as built today)
 
-| Question                                                    | Answer                                |
-| ----------------------------------------------------------- | ------------------------------------- |
-| Does your app collect or share any of the required user data types? | **No**                        |
-| Is all of the user data collected by your app encrypted in transit? | N/A (nothing collected)       |
-| Do you provide a way for users to request that their data is deleted? | N/A (no account, no stored data) |
-| Has your app been independently validated against a security standard? | No                          |
+| Question                                                               | Answer                           |
+| ---------------------------------------------------------------------- | -------------------------------- |
+| Does your app collect or share any of the required user data types?    | **No**                           |
+| Is all of the user data collected by your app encrypted in transit?    | N/A (nothing collected)          |
+| Do you provide a way for users to request that their data is deleted?  | N/A (no account, no stored data) |
+| Has your app been independently validated against a security standard? | No                               |
 
 All readings (device, battery, storage, apps) are read on-device and never
 leave it. There is no account, no analytics SDK, no crash reporter and no
@@ -75,11 +75,11 @@ cloud storage.
 When `react-native-google-mobile-ads` is added, the Google Mobile Ads SDK
 collects data for advertising. Declare:
 
-| Data type                          | Collected | Shared | Purposes                              | Notes                                                                 |
-| ---------------------------------- | --------- | ------ | ------------------------------------- | --------------------------------------------------------------------- |
-| Device or other IDs                | Yes       | Yes    | Advertising or marketing              | Advertising ID (the `AD_ID` permission is declared for this)          |
-| Location → Approximate location    | Yes       | Yes    | Advertising or marketing              | Only as permitted by Google's current AdMob Data safety guidance      |
-| App info and performance → Diagnostics | Yes   | Yes    | Advertising or marketing, Analytics   | The SDK's own diagnostics, as described in the AdMob guidance          |
+| Data type                              | Collected | Shared | Purposes                            | Notes                                                            |
+| -------------------------------------- | --------- | ------ | ----------------------------------- | ---------------------------------------------------------------- |
+| Device or other IDs                    | Yes       | Yes    | Advertising or marketing            | Advertising ID (the `AD_ID` permission is declared for this)     |
+| Location → Approximate location        | Yes       | Yes    | Advertising or marketing            | Only as permitted by Google's current AdMob Data safety guidance |
+| App info and performance → Diagnostics | Yes       | Yes    | Advertising or marketing, Analytics | The SDK's own diagnostics, as described in the AdMob guidance    |
 
 These answers must be re-checked against Google's current AdMob Data safety
 table at submission time — Google updates it as the SDK changes. Also add the

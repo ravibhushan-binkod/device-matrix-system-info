@@ -31,7 +31,9 @@ export function AppDetailScreen({ packageName }: { packageName: string }) {
         <Stack.Screen options={{ title: 'App details' }} />
         <EmptyState
           icon="apps"
-          title={app.status === 'unavailable' ? 'Not available on this device' : 'Permission needed'}
+          title={
+            app.status === 'unavailable' ? 'Not available on this device' : 'Permission needed'
+          }
           message={app.status === 'unavailable' ? app.reason : undefined}
         />
       </Screen>

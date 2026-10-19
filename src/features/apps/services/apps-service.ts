@@ -64,9 +64,7 @@ export type AppSelection = {
 export function appMatchesQuery(app: InstalledApp, query: string): boolean {
   const needle = query.trim().toLowerCase();
   if (needle === '') return true;
-  return (
-    app.label.toLowerCase().includes(needle) || app.packageName.toLowerCase().includes(needle)
-  );
+  return app.label.toLowerCase().includes(needle) || app.packageName.toLowerCase().includes(needle);
 }
 
 /** Search + filter + sort in one pass; returns a new array. */
@@ -148,9 +146,7 @@ function rankApps<T extends RankedSource>(
   rows.sort((a, b) => b.value - a.value || compareLabels(a.app, b.app));
   const top = rows.slice(0, RANKING_LIMIT);
   const max = top[0]?.value ?? 0;
-  return top.map(({ app, entry, value }) =>
-    toRanked(entry, app, value, max > 0 ? value / max : 0),
-  );
+  return top.map(({ app, entry, value }) => toRanked(entry, app, value, max > 0 ? value / max : 0));
 }
 
 /** Apps ranked by foreground time; packages outside the launcher are ignored. */
