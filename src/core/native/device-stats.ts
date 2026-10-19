@@ -169,3 +169,30 @@ export function getOsInfo(): Result<OsInfo> {
     return unavailable('Reading the OS details failed.');
   }
 }
+
+export type DeveloperSettings = {
+  developerOptions: boolean | null;
+  usbDebugging: boolean | null;
+  /** The largest of the three animation scales; 1 is the Android default. */
+  animationScale: number | null;
+};
+
+/** Settings.Global developer switches for the tips engine (normal reads only). */
+export function getDeveloperSettings(): Result<DeveloperSettings> {
+  const module = getModule();
+  if (!module) return unavailable('The DeviceStats native module is not in this build.');
+  try {
+    const raw = module.getDeveloperSettings();
+    if (!raw) return unavailable('Android did not return the developer settings.');
+    if (raw.developerOptions == null && raw.usbDebugging == null && raw.animationScale == null) {
+      return unavailable('This build does not expose the developer settings.');
+    }
+    return ok({
+      developerOptions: raw.developerOptions,
+      usbDebugging: raw.usbDebugging,
+      animationScale: raw.animationScale,
+    });
+  } catch {
+    return unavailable('Reading the developer settings failed.');
+  }
+}

@@ -1,6 +1,7 @@
 import { NativeModule, requireNativeModule } from 'expo';
 
 import type {
+  NativeDeveloperSettings,
   NativeMemoryInfo,
   NativeOsInfo,
   NativeStorageInfo,
@@ -14,6 +15,7 @@ declare class DeviceStatsModule extends NativeModule<Record<string, never>> {
   getUptime(): NativeUptime | null;
   getThermalStatus(): NativeThermalStatus | null;
   getOsInfo(): NativeOsInfo | null;
+  getDeveloperSettings(): NativeDeveloperSettings | null;
 }
 
 export default requireNativeModule<DeviceStatsModule>('DeviceStats');

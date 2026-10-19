@@ -165,6 +165,14 @@ class NetworkExtModule : Module() {
       null
     }
 
+    // Whether the radio can use 5 GHz at all — the tips engine uses it to tell
+    // "the router is on 2.4 GHz" apart from "this phone only does 2.4 GHz".
+    val fiveGhzSupported = try {
+      manager.is5GHzBandSupported
+    } catch (_: Exception) {
+      null
+    }
+
     // Android redacts the SSID ("<unknown ssid>") without the location
     // permission; link speed, frequency and RSSI stay readable.
     val ssid = info?.ssid
@@ -183,6 +191,7 @@ class NetworkExtModule : Module() {
 
     return mapOf(
       "enabled" to enabled,
+      "fiveGhzSupported" to fiveGhzSupported,
       "connected" to (info != null && info.networkId != -1),
       "ssid" to ssid,
       "linkSpeedMbps" to info?.linkSpeed?.takeIf { it > 0 },

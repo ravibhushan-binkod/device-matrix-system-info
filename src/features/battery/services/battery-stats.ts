@@ -34,6 +34,11 @@ export function batteryStatusLabel(status: BatteryStatus): string {
   return STATUS_LABELS[status];
 }
 
+/** Human label for a health reading ("Good", "Overheat", …); `null` when unknown. */
+export function batteryHealthLabel(health: BatteryHealth): string | null {
+  return HEALTH_LABELS[health];
+}
+
 /** Plug type label ("USB", "Wireless", …); `null` when unknown or unplugged. */
 export function batteryPlugLabel(plugged: BatteryPlug): string | null {
   return plugged === 'none' || plugged === 'unknown' ? null : PLUG_LABELS[plugged];

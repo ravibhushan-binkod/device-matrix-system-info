@@ -32,6 +32,8 @@ export type ConnectivityInfo = {
 
 export type WifiInfo = {
   enabled: boolean | null;
+  /** Whether the radio can use the 5 GHz band at all; `null` when undefined. */
+  fiveGhzSupported: boolean | null;
   connected: boolean;
   /** `null` while Android redacts the name (no location permission, not connected). */
   ssid: string | null;
@@ -118,6 +120,7 @@ export function getWifiInfo(): Result<WifiInfo> {
     if (!raw) return unavailable('Android did not return Wi-Fi information.');
     return ok({
       enabled: raw.enabled,
+      fiveGhzSupported: raw.fiveGhzSupported,
       connected: raw.connected,
       ssid: raw.ssid,
       linkSpeedMbps: raw.linkSpeedMbps,

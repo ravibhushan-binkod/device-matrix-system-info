@@ -36,3 +36,10 @@ export type NativeOsInfo = {
   kernel: string | null;
   developerOptions: boolean | null;
 };
+
+export type NativeDeveloperSettings = {
+  developerOptions: boolean | null;
+  usbDebugging: boolean | null;
+  /** The largest of the three animation scales (1 = normal). */
+  animationScale: number | null;
+};

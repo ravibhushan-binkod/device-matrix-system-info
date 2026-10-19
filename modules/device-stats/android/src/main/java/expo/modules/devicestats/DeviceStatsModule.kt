@@ -36,6 +36,52 @@ class DeviceStatsModule : Module() {
     Function("getOsInfo") {
       osInfo()
     }
+
+    Function("getDeveloperSettings") {
+      developerSettings()
+    }
+  }
+
+  /**
+   * The Settings.Global switches the tips engine reads: developer options,
+   * USB debugging and the animation scale (the largest of the three scales,
+   * which is what "animations are slowed down" comes down to). A read the
+   * build restricts stays `null` — never a guessed value.
+   */
+  private fun developerSettings(): Map<String, Any?> {
+    val resolver = appContext.reactContext?.contentResolver
+    if (resolver == null) {
+      return mapOf("developerOptions" to null, "usbDebugging" to null, "animationScale" to null)
+    }
+
+    fun readFlag(key: String): Boolean? = try {
+      when (Settings.Global.getInt(resolver, key, -1)) {
+        -1 -> null
+        0 -> false
+        else -> true
+      }
+    } catch (_: Exception) {
+      null
+    }
+
+    val animationScale = try {
+      listOf(
+        Settings.Global.ANIMATOR_DURATION_SCALE,
+        Settings.Global.WINDOW_ANIMATION_SCALE,
+        Settings.Global.TRANSITION_ANIMATION_SCALE
+      ).mapNotNull { key ->
+        val value = Settings.Global.getFloat(resolver, key, -1f)
+        if (value.isFinite() && value >= 0f) value.toDouble() else null
+      }.maxOrNull()
+    } catch (_: Exception) {
+      null
+    }
+
+    return mapOf(
+      "developerOptions" to readFlag(Settings.Global.DEVELOPMENT_SETTINGS_ENABLED),
+      "usbDebugging" to readFlag(Settings.Global.ADB_ENABLED),
+      "animationScale" to animationScale
+    )
   }
 
   /** Kernel version and developer-options state — the OS values Build itself does not expose. */

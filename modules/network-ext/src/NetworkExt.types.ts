@@ -17,6 +17,8 @@ export type NativeConnectivityInfo = {
 
 export type NativeWifiInfo = {
   enabled: boolean | null;
+  /** Whether the radio can use the 5 GHz band at all; `null` when undefined. */
+  fiveGhzSupported: boolean | null;
   connected: boolean;
   ssid: string | null;
   linkSpeedMbps: number | null;

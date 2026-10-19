@@ -203,3 +203,57 @@ export function getCameraInfo(): Result<CameraInfo> {
     return unavailable('Reading camera information failed.');
   }
 }
+
+export type TorchInfo = {
+  available: boolean;
+  /** `null` while the system has not reported a state yet — never guessed. */
+  enabled: boolean | null;
+};
+
+/** Torch availability and the state Android last reported (no camera permission). */
+export function getTorchInfo(): Result<TorchInfo> {
+  const module = getModule();
+  if (!module) return unavailable('The HardwareExt native module is not in this build.');
+  try {
+    const raw = module.getTorchInfo();
+    if (!raw) return unavailable('Android did not return the flashlight state.');
+    return ok({ available: raw.available, enabled: raw.enabled });
+  } catch {
+    return unavailable('Reading the flashlight state failed.');
+  }
+}
+
+/** Switches the torch; `unavailable` when Android or the hardware refuses. */
+export function setTorch(enabled: boolean): Result<boolean> {
+  const module = getModule();
+  if (!module) return unavailable('The HardwareExt native module is not in this build.');
+  try {
+    const raw = module.setTorch(enabled);
+    if (!raw || !raw.ok) {
+      return unavailable(
+        raw?.reason === 'unavailable'
+          ? 'This device has no flashlight.'
+          : 'Android blocked the flashlight on this device.',
+      );
+    }
+    return ok(true);
+  } catch {
+    return unavailable('Switching the flashlight failed.');
+  }
+}
+
+export type VibrationInfo = {
+  hasVibrator: boolean;
+};
+
+export function getVibrationInfo(): Result<VibrationInfo> {
+  const module = getModule();
+  if (!module) return unavailable('The HardwareExt native module is not in this build.');
+  try {
+    const raw = module.getVibrationInfo();
+    if (!raw) return unavailable('Android did not return the vibration details.');
+    return ok({ hasVibrator: raw.hasVibrator });
+  } catch {
+    return unavailable('Reading the vibration details failed.');
+  }
+}

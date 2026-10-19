@@ -28,6 +28,8 @@ export const features = {
   nearbyWifi: 'v2',
   nfcTools: 'v2',
   localHistory: 'v2',
+  /** The report's "Save as PDF" export (expo-print) — off in V1. */
+  pdfReport: 'v2',
   /** Cross-cutting. */
   ads: 'v1',
 } as const satisfies Record<string, unknown>;

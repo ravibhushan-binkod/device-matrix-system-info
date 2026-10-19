@@ -14,7 +14,10 @@ export type SystemSettingsTarget =
   | 'mobile-data'
   | 'nfc'
   | 'airplane'
-  | 'alarm';
+  | 'alarm'
+  | 'show-alarms'
+  | 'developer-options'
+  | 'system-update';
 
 type TargetConfig = {
   /** System activities to try in order (normal Android intents only). */
@@ -94,6 +97,22 @@ const TARGETS: Record<SystemSettingsTarget, TargetConfig> = {
   alarm: {
     actions: ['android.intent.action.SET_ALARM', 'android.intent.action.SHOW_ALARMS'],
     unavailableReason: 'No clock app on this device handles alarms.',
+  },
+  'show-alarms': {
+    actions: ['android.intent.action.SHOW_ALARMS'],
+    unavailableReason: 'No clock app on this device shows alarms.',
+  },
+  'developer-options': {
+    actions: ['android.settings.APPLICATION_DEVELOPMENT_SETTINGS', 'android.settings.SETTINGS'],
+    unavailableReason: 'No app on this device can open the developer options.',
+  },
+  'system-update': {
+    actions: [
+      'android.settings.SYSTEM_UPDATE_SETTINGS',
+      'android.settings.DEVICE_INFO_SETTINGS',
+      'android.settings.SETTINGS',
+    ],
+    unavailableReason: 'No app on this device can open the system update screen.',
   },
 };
 

@@ -12,5 +12,6 @@ describe('features', () => {
     expect(isEnabled(features.nearbyWifi)).toBe(false);
     expect(isEnabled(features.nfcTools)).toBe(false);
     expect(isEnabled(features.localHistory)).toBe(false);
+    expect(isEnabled(features.pdfReport)).toBe(false);
   });
 });

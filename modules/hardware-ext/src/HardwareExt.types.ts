@@ -62,3 +62,19 @@ export type NativeCameraDescriptor = {
 export type NativeCameraInfo = {
   cameras: NativeCameraDescriptor[];
 };
+
+export type NativeTorchInfo = {
+  available: boolean;
+  /** `null` while the system has not reported a state yet. */
+  enabled: boolean | null;
+};
+
+export type NativeTorchResult = {
+  ok: boolean;
+  /** 'unavailable' | 'blocked' | 'failed' | null */
+  reason: string | null;
+};
+
+export type NativeVibrationInfo = {
+  hasVibrator: boolean;
+};

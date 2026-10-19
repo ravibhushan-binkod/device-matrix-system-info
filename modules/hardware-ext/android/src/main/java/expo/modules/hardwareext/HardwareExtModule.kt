@@ -10,6 +10,10 @@ import android.opengl.EGL14
 import android.opengl.EGLConfig
 import android.opengl.GLES20
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.provider.Settings
 import android.util.DisplayMetrics
 import android.view.Display
@@ -42,6 +46,126 @@ class HardwareExtModule : Module() {
     Function("getCameraInfo") {
       cameraInfo()
     }
+
+    Function("getTorchInfo") {
+      torchInfo()
+    }
+
+    Function("setTorch") { enabled: Boolean ->
+      setTorch(enabled)
+    }
+
+    Function("getVibrationInfo") {
+      vibrationInfo()
+    }
+
+    OnDestroy {
+      unregisterTorchCallback()
+    }
+  }
+
+  private var torchCallback: CameraManager.TorchCallback? = null
+  private var torchCameraId: String? = null
+
+  /** Last state the system reported through the torch callback; `null` while unknown. */
+  private var torchEnabled: Boolean? = null
+
+  /** The first camera with a flash — the one the torch toggle drives. */
+  private fun flashCameraId(manager: CameraManager): String? = try {
+    manager.cameraIdList.firstOrNull { id ->
+      manager.getCameraCharacteristics(id).get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+    }
+  } catch (_: Exception) {
+    null
+  }
+
+  /**
+   * Torch state and availability. No camera permission is needed for the torch;
+   * the state comes from a TorchCallback (which fires once right after it is
+   * registered) so the app never shows a guessed value.
+   */
+  private fun torchInfo(): Map<String, Any?>? {
+    val context = appContext.reactContext ?: return null
+    val manager = context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager
+      ?: return null
+    val cameraId = flashCameraId(manager)
+    if (cameraId == null) {
+      return mapOf("available" to false, "enabled" to null)
+    }
+    ensureTorchCallback(manager, cameraId)
+    return mapOf("available" to true, "enabled" to torchEnabled)
+  }
+
+  private fun ensureTorchCallback(manager: CameraManager, cameraId: String) {
+    if (torchCallback != null) return
+    torchCameraId = cameraId
+    val callback = object : CameraManager.TorchCallback() {
+      override fun onTorchModeChanged(changedId: String, enabled: Boolean) {
+        if (changedId == torchCameraId) {
+          torchEnabled = enabled
+        }
+      }
+
+      override fun onTorchModeUnavailable(changedId: String) {
+        if (changedId == torchCameraId) {
+          torchEnabled = null
+        }
+      }
+    }
+    try {
+      manager.registerTorchCallback(callback, Handler(Looper.getMainLooper()))
+      torchCallback = callback
+    } catch (_: Exception) {
+      torchCameraId = null
+    }
+  }
+
+  private fun unregisterTorchCallback() {
+    val callback = torchCallback ?: return
+    torchCallback = null
+    val context = appContext.reactContext ?: return
+    val manager = context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager ?: return
+    try {
+      manager.unregisterTorchCallback(callback)
+    } catch (_: Exception) {
+      // The module is going away; Android drops the callback with it.
+    }
+  }
+
+  /** Switches the torch; the wrapper turns a failure into an honest "not available". */
+  private fun setTorch(enabled: Boolean): Map<String, Any?> {
+    val context = appContext.reactContext
+      ?: return mapOf("ok" to false, "reason" to "failed")
+    val manager = context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager
+      ?: return mapOf("ok" to false, "reason" to "failed")
+    val cameraId = torchCameraId ?: flashCameraId(manager)
+      ?: return mapOf("ok" to false, "reason" to "unavailable")
+    ensureTorchCallback(manager, cameraId)
+    return try {
+      manager.setTorchMode(cameraId, enabled)
+      mapOf("ok" to true, "reason" to null)
+    } catch (_: SecurityException) {
+      mapOf("ok" to false, "reason" to "blocked")
+    } catch (_: Exception) {
+      mapOf("ok" to false, "reason" to "failed")
+    }
+  }
+
+  @Suppress("DEPRECATION")
+  private fun vibrationInfo(): Map<String, Any?> {
+    val context = appContext.reactContext ?: return mapOf("hasVibrator" to false)
+    val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+      (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)
+        ?.defaultVibrator
+    } else {
+      context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+    }
+    val hasVibrator = try {
+      vibrator?.hasVibrator() ?: false
+    } catch (_: Exception) {
+      false
+    }
+    return mapOf("hasVibrator" to hasVibrator)
   }
 
   private fun cpuInfo(): Map<String, Any?> {
