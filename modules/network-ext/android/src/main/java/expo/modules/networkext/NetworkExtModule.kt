@@ -76,21 +76,36 @@ class NetworkExtModule : Module() {
     val ipv6 = linkAddresses
       .firstOrNull { it.address is Inet6Address && !it.address.isLinkLocalAddress }
       ?.address?.hostAddress
+    // Some carriers report the unspecified address ("::") as the default
+    // route gateway, so pick the first usable one and prefer IPv4.
     val gateway = link?.routes
-      ?.firstOrNull { route ->
+      ?.asSequence()
+      ?.filter { route ->
         route.gateway != null &&
           (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || route.isDefaultRoute)
       }
-      ?.gateway?.hostAddress
+      ?.mapNotNull { it.gateway?.takeUnless { address -> address.isAnyLocalAddress } }
+      ?.sortedBy { if (it is Inet4Address) 0 else 1 }
+      ?.firstOrNull()
+      ?.hostAddress
+      ?.substringBefore('%')
     val dnsServers = link?.dnsServers
       ?.filter { !it.isLinkLocalAddress }
       ?.mapNotNull { it.hostAddress }
       ?: emptyList()
 
-    val dataSaver = when (readGlobalString(context, "data_saver_mode")) {
-      "enabled" -> true
-      "disabled" -> false
-      else -> null
+    // Data Saver: `getRestrictBackgroundStatus` is the supported API and the
+    // `data_saver_mode` settings key is absent on some builds (it read back
+    // null on the test device, wrongly showing "Not available").
+    val dataSaver = try {
+      when (manager.restrictBackgroundStatus) {
+        ConnectivityManager.RESTRICT_BACKGROUND_STATUS_ENABLED,
+        ConnectivityManager.RESTRICT_BACKGROUND_STATUS_WHITELISTED -> true
+        ConnectivityManager.RESTRICT_BACKGROUND_STATUS_DISABLED -> false
+        else -> null
+      }
+    } catch (_: Exception) {
+      null
     }
 
     val airplaneMode = try {
