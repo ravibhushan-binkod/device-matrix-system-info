@@ -9,7 +9,6 @@ import {
   HeaderIconButton,
   Screen,
   SectionHeader,
-  TipCard,
 } from '@/design-system/components';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
@@ -18,6 +17,7 @@ import { HomeSkeleton } from '@/features/dashboard/components/home-skeleton';
 import { OverviewRings } from '@/features/dashboard/components/overview-rings';
 import { QuickActions } from '@/features/dashboard/components/quick-actions';
 import { useDashboard } from '@/features/dashboard/hooks/use-dashboard';
+import { HomeTipCard } from '@/features/tips/components/home-tip-card';
 
 /** Home dashboard: device identity, live rings, a tip and system shortcuts. */
 export function HomeScreen() {
@@ -35,11 +35,18 @@ export function HomeScreen() {
           subtitle="System info"
           left={<LogoMark />}
           right={
-            <HeaderIconButton
-              name="settings"
-              label="Settings"
-              onPress={() => router.push('/settings')}
-            />
+            <View style={styles.headerActions}>
+              <HeaderIconButton
+                name="report"
+                label="Report"
+                onPress={() => router.push('/report')}
+              />
+              <HeaderIconButton
+                name="settings"
+                label="Settings"
+                onPress={() => router.push('/settings')}
+              />
+            </View>
           }
         />
       }
@@ -73,10 +80,7 @@ export function HomeScreen() {
       </StaggerItem>
 
       <StaggerItem index={1}>
-        <TipCard
-          title="Tip"
-          body="Device care tips are on their way — they arrive in a later update."
-        />
+        <HomeTipCard />
       </StaggerItem>
 
       <StaggerItem index={2}>
@@ -118,6 +122,11 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     paddingTop: spacing.lg,
     paddingBottom: spacing.xxl,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   stack: {
     gap: spacing.lg,

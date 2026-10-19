@@ -57,6 +57,12 @@ function Navigator() {
         <Stack.Screen name="camera" options={{ title: 'Camera' }} />
         <Stack.Screen name="sensors" options={{ title: 'Sensors' }} />
         <Stack.Screen name="sensors/[type]" options={{ title: 'Sensor' }} />
+        <Stack.Screen name="tips" options={{ title: 'Tips' }} />
+        <Stack.Screen name="report" options={{ title: 'Report' }} />
+        <Stack.Screen name="alarm" options={{ title: 'Set alarm' }} />
+        <Stack.Screen name="timer" options={{ title: 'Timer' }} />
+        <Stack.Screen name="touch-test" options={{ title: 'Touch test', headerShown: false }} />
+        <Stack.Screen name="screen-test" options={{ title: 'Screen test', headerShown: false }} />
         <Stack.Screen name="dev/gallery" options={{ title: 'Dev Gallery' }} />
       </Stack>
     </NavigationThemeProvider>
