@@ -17,12 +17,13 @@ import Animated, {
   useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
-  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
 
+import { ChargingParticles } from '@/design-system/animations/charging-particles';
+import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 import { withAlpha } from '@/design-system/color';
 import { useScreenFocused } from '@/design-system/hooks/use-screen-focused';
 import { Icon } from '@/design-system/icon';
@@ -36,6 +37,10 @@ type Props = {
   charging?: boolean;
   width?: number;
   height?: number;
+  /** Smaller centre text and charge icon for a half-width dashboard tile. */
+  compact?: boolean;
+  /** Rising bubbles in the liquid while charging. */
+  particles?: boolean;
   /** Spoken label for TalkBack. */
   accessibilityLabel?: string;
 };
@@ -53,10 +58,12 @@ export function BatteryGauge({
   charging = false,
   width = 220,
   height = 96,
+  compact = false,
+  particles = false,
   accessibilityLabel,
 }: Props) {
   const { colors } = useTheme();
-  const reduced = useReducedMotion();
+  const { animate, loops } = useMotionPreference();
   const focused = useScreenFocused();
   const ratio = clamp01(value / 100);
   const tint = ratio < 0.15 ? colors.critical : ratio < 0.3 ? colors.warning : colors.good;
@@ -67,26 +74,26 @@ export function BatteryGauge({
   const innerW = bodyW - PAD * 2;
   const innerH = height - PAD * 2;
 
-  const level = useSharedValue(reduced ? ratio : 0);
+  const level = useSharedValue(animate ? 0 : ratio);
   const wave = useSharedValue(0);
 
   useEffect(() => {
-    if (reduced) {
+    if (!animate) {
       level.value = ratio;
       return;
     }
     level.value = withTiming(ratio, { duration: 700, easing: Easing.out(Easing.cubic) });
-  }, [level, ratio, reduced]);
+  }, [animate, level, ratio]);
 
   useEffect(() => {
-    if (reduced || !focused) {
+    if (!loops || !focused) {
       wave.value = 0;
       return;
     }
     wave.value = withRepeat(withTiming(1, { duration: 3200, easing: Easing.linear }), -1, false);
-  }, [focused, reduced, wave]);
+  }, [focused, loops, wave]);
 
-  const [display, setDisplay] = useState(reduced ? Math.round(value) : 0);
+  const [display, setDisplay] = useState(animate ? 0 : Math.round(value));
 
   useAnimatedReaction(
     () => Math.round(level.value * 100),
@@ -125,7 +132,7 @@ export function BatteryGauge({
   const pulse = useSharedValue(0);
 
   useEffect(() => {
-    if (!charging || reduced || !focused) {
+    if (!charging || !loops || !focused) {
       pulse.value = 0;
       return;
     }
@@ -134,7 +141,7 @@ export function BatteryGauge({
       -1,
       false,
     );
-  }, [charging, focused, pulse, reduced]);
+  }, [charging, focused, loops, pulse]);
 
   const pulseStyle = useAnimatedStyle(() => ({
     opacity: 0.45 * (1 - pulse.value),
@@ -160,6 +167,17 @@ export function BatteryGauge({
               colors={[withAlpha(tint, 0.65), tint]}
             />
           </Path>
+          {particles && charging && loops && focused ? (
+            <ChargingParticles
+              x={innerX}
+              y={innerY}
+              width={innerW}
+              height={innerH}
+              progress={wave}
+              level={level}
+              color={withAlpha(colors.text, 0.85)}
+            />
+          ) : null}
         </Group>
         <RoundedRect
           x={WALL / 2}
@@ -181,13 +199,19 @@ export function BatteryGauge({
         />
       </Canvas>
       <View style={[styles.center, { width: bodyW }]} pointerEvents="none">
-        <Text style={[styles.value, { color: colors.text }]}>{display}%</Text>
+        <Text style={[compact ? styles.valueCompact : styles.value, { color: colors.text }]}>
+          {display}%
+        </Text>
         {charging ? (
-          <View style={styles.chargeRow}>
+          <View style={compact ? styles.chargeRowCompact : styles.chargeRow}>
             <Animated.View
-              style={[styles.pulse, { backgroundColor: withAlpha(colors.good, 0.3) }, pulseStyle]}
+              style={[
+                compact ? styles.pulseCompact : styles.pulse,
+                { backgroundColor: withAlpha(colors.good, 0.3) },
+                pulseStyle,
+              ]}
             />
-            <Icon name="zap" size={20} color={colors.good} />
+            <Icon name="zap" size={compact ? 16 : 20} color={colors.good} />
           </View>
         ) : null}
       </View>
@@ -210,9 +234,19 @@ const styles = StyleSheet.create({
     ...typography.display,
     fontVariant: ['tabular-nums'],
   },
+  valueCompact: {
+    ...typography.title,
+    fontVariant: ['tabular-nums'],
+  },
   chargeRow: {
     width: 32,
     height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chargeRowCompact: {
+    width: 18,
+    height: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -221,5 +255,11 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
+  },
+  pulseCompact: {
+    position: 'absolute',
+    width: 18,
+    height: 18,
+    borderRadius: 9,
   },
 });

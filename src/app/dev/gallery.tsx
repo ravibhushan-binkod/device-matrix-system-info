@@ -1,8 +1,19 @@
 import { Link, Redirect } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useSharedValue } from 'react-native-reanimated';
 
+import { AuroraBackground } from '@/design-system/animations/aurora-background';
+import { CollapsingHeader } from '@/design-system/animations/collapsing-header';
+import { HeatShimmer } from '@/design-system/animations/heat-shimmer';
+import { LivePulse } from '@/design-system/animations/live-pulse';
+import { useCountUp } from '@/design-system/animations/use-count-up';
+import { PressableScale } from '@/design-system/animations/pressable-scale';
+import { Shimmer } from '@/design-system/animations/shimmer';
 import { StaggerItem } from '@/design-system/animations/stagger';
+import { TabPill } from '@/design-system/animations/tab-pill';
+import { TileTransition } from '@/design-system/animations/tile-transition';
+import type { MotionMode } from '@/design-system/animations/motion';
 import {
   AdSlot,
   AppBar,
@@ -49,6 +60,12 @@ const initialCores: CoreBar[] = Array.from({ length: 8 }, (_, index) => ({
   value: 30 + index * 4,
 }));
 
+const animationModes: { value: MotionMode; label: string }[] = [
+  { value: 'full', label: 'Full' },
+  { value: 'reduced', label: 'Reduced' },
+  { value: 'off', label: 'Off' },
+];
+
 /** Dev-only gallery: every component and visual in the current theme, with live controls. */
 export default function DevGalleryScreen() {
   const { colors, scheme } = useTheme();
@@ -69,6 +86,15 @@ export default function DevGalleryScreen() {
   const [paused, setPaused] = useState(false);
   const [tipVisible, setTipVisible] = useState(true);
   const [staggerKey, setStaggerKey] = useState(0);
+  const [tileKey, setTileKey] = useState(0);
+  const [countValue, setCountValue] = useState(72);
+  const [tabIndex, setTabIndex] = useState(1);
+  const [heatActive, setHeatActive] = useState(true);
+  const [collapsingValue, setCollapsingValue] = useState(0);
+  const collapsingY = useSharedValue(0);
+  const animationMode = useSettingsStore((state) => state.animationMode);
+  const setAnimationMode = useSettingsStore((state) => state.setAnimationMode);
+  const countUp = useCountUp(countValue, { decimals: 0 });
   const tick = useRef(0);
 
   useEffect(() => {
@@ -384,7 +410,7 @@ export default function DevGalleryScreen() {
       </Card>
 
       <SectionHeader title="Motion" />
-      <View key={staggerKey} style={styles.stack}>
+      <View key={`stagger-${staggerKey}`} style={styles.stack}>
         {[0, 1, 2, 3].map((index) => (
           <StaggerItem key={index} index={index}>
             <Card>
@@ -399,6 +425,138 @@ export default function DevGalleryScreen() {
         title="Replay stagger"
         variant="secondary"
         onPress={() => setStaggerKey((key) => key + 1)}
+      />
+
+      <SectionHeader title="Animation system" />
+      <Card contentStyle={styles.stack}>
+        <Text style={[styles.sub, { color: colors.muted }]}>Mode</Text>
+        <View style={styles.wrap}>
+          {animationModes.map((mode) => (
+            <Chip
+              key={mode.value}
+              label={mode.label}
+              selected={animationMode === mode.value}
+              onPress={() => setAnimationMode(mode.value)}
+            />
+          ))}
+        </View>
+        <PressableScale
+          onPress={() => {}}
+          accessibilityRole="button"
+          accessibilityLabel="Press for scale"
+          style={[
+            styles.pressDemo,
+            { borderColor: colors.border, backgroundColor: colors.surface2 },
+          ]}
+        >
+          <Text style={[typography.body, { color: colors.text }]}>Press for scale + haptic</Text>
+        </PressableScale>
+        <View style={styles.rowSpread}>
+          <Text style={[typography.body, { color: colors.muted }]}>Count-up</Text>
+          <Text style={[typography.display, { color: colors.text }]}>{countUp}</Text>
+        </View>
+        <DevSlider
+          label="Count target"
+          value={countValue}
+          min={0}
+          max={100}
+          onChange={setCountValue}
+          format={(value) => `${Math.round(value)}`}
+        />
+      </Card>
+
+      <Card contentStyle={styles.stack}>
+        <Text style={[styles.sub, { color: colors.muted }]}>Shimmer skeleton</Text>
+        <Shimmer height={18} />
+        <Shimmer width="58%" height={18} />
+      </Card>
+
+      <Card contentStyle={styles.stack}>
+        <View style={styles.rowSpread}>
+          <View style={styles.pulseRow}>
+            <LivePulse active color={colors.good} />
+            <Text style={[typography.body, { color: colors.text }]}>Live pulse</Text>
+          </View>
+          <View style={styles.shimmerWrap}>
+            <HeatShimmer width={120} height={28} color={colors.warning} active={heatActive} />
+          </View>
+        </View>
+        <Chip
+          label="Heat shimmer"
+          selected={heatActive}
+          onPress={() => setHeatActive((current) => !current)}
+        />
+      </Card>
+
+      <Card style={styles.auroraCard} contentStyle={styles.auroraBody}>
+        <AuroraBackground intensity={1} />
+        <Text style={[typography.title, { color: colors.text }]}>Aurora background</Text>
+        <Text style={[typography.caption, { color: colors.muted }]}>
+          Skia shader, paused off-screen and under Reduced/Off.
+        </Text>
+      </Card>
+
+      <Card style={styles.headerCard} contentStyle={styles.headerCardBody}>
+        <CollapsingHeader
+          scrollY={collapsingY}
+          title="Collapsing header"
+          subtitle="Fades and shrinks while you scroll"
+          restHeight={96}
+          collapsedHeight={52}
+        />
+        <View style={styles.headerSpacer} />
+      </Card>
+      <DevSlider
+        label="Scroll offset"
+        value={collapsingValue}
+        min={0}
+        max={120}
+        onChange={(value) => {
+          setCollapsingValue(value);
+          collapsingY.set(value);
+        }}
+        format={(value) => `${Math.round(value)} dp`}
+      />
+
+      <Card style={styles.tabCard} contentStyle={styles.tabCardBody}>
+        <View style={styles.tabTrack}>
+          <TabPill
+            index={tabIndex}
+            count={3}
+            itemWidth={96}
+            height={40}
+            top={0}
+            horizontalInset={10}
+          />
+          {[0, 1, 2].map((index) => (
+            <PressableScale
+              key={index}
+              onPress={() => setTabIndex(index)}
+              accessibilityRole="button"
+              accessibilityLabel={`Tab ${index + 1}`}
+              style={styles.tabItem}
+            >
+              <Text style={[typography.caption, { color: colors.text }]}>Tab {index + 1}</Text>
+            </PressableScale>
+          ))}
+        </View>
+      </Card>
+
+      <View key={`tile-${tileKey}`} style={styles.stack}>
+        {[0, 1, 2].map((index) => (
+          <TileTransition key={index} index={index}>
+            <Card>
+              <Text style={[typography.body, { color: colors.text }]}>
+                Layout transition tile {index + 1}
+              </Text>
+            </Card>
+          </TileTransition>
+        ))}
+      </View>
+      <Button
+        title="Replay tile transition"
+        variant="secondary"
+        onPress={() => setTileKey((key) => key + 1)}
       />
 
       <NativeProbe />
@@ -445,5 +603,62 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 8,
     borderWidth: 1,
+  },
+  pressDemo: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+  },
+  rowSpread: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  pulseRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  shimmerWrap: {
+    width: 120,
+    height: 28,
+  },
+  auroraCard: {
+    height: 140,
+  },
+  auroraBody: {
+    height: 108,
+    justifyContent: 'flex-end',
+    gap: spacing.xs,
+  },
+  headerCard: {
+    height: 140,
+  },
+  headerCardBody: {
+    padding: 0,
+  },
+  headerSpacer: {
+    flex: 1,
+  },
+  tabCard: {
+    height: 80,
+  },
+  tabCardBody: {
+    padding: 0,
+    alignItems: 'center',
+  },
+  tabTrack: {
+    width: 288,
+    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  tabItem: {
+    width: 96,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

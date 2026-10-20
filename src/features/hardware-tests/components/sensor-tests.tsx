@@ -4,11 +4,12 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
+
+import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 
 import { Card, Chip } from '@/design-system/components';
 import { withAlpha } from '@/design-system/color';
@@ -84,7 +85,8 @@ export function ProximityTest({ onUnavailable }: Props) {
 export function LightTest({ onUnavailable }: Props) {
   const { colors } = useTheme();
   const { reading, history, error, loading } = useSensorTest('light');
-  const reduced = useReducedMotion();
+  const { animate } = useMotionPreference();
+  const reduced = !animate;
   const level = useSharedValue(0);
   const lux = reading?.values[0] ?? null;
   const ratio = luxToRatio(lux);
@@ -153,7 +155,8 @@ export function LightTest({ onUnavailable }: Props) {
 export function AccelerometerTest({ onUnavailable }: Props) {
   const { colors } = useTheme();
   const { reading, error, loading } = useSensorTest('accelerometer');
-  const reduced = useReducedMotion();
+  const { animate } = useMotionPreference();
+  const reduced = !animate;
   const x = useSharedValue(0);
   const y = useSharedValue(0);
   const values = reading?.values ?? [];

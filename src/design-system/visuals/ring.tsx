@@ -6,12 +6,12 @@ import {
   runOnJS,
   useAnimatedReaction,
   useDerivedValue,
-  useReducedMotion,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
 
 import { durations } from '@/design-system/animations/motion';
+import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 import { withAlpha } from '@/design-system/color';
 import { clamp01, statusColor } from '@/design-system/status';
 import { useTheme } from '@/design-system/theme';
@@ -25,6 +25,8 @@ type Props = {
   thickness?: number;
   /** Overrides the automatic good → warning → critical colour. */
   color?: string;
+  /** Replaces the counted number in the centre (e.g. "—" when unavailable). */
+  displayValue?: string;
   /** Spoken label for TalkBack; defaults to `label`. */
   accessibilityLabel?: string;
 };
@@ -41,18 +43,19 @@ export function Ring({
   size = 168,
   thickness = 14,
   color,
+  displayValue,
   accessibilityLabel,
 }: Props) {
   const { colors } = useTheme();
-  const reduced = useReducedMotion();
+  const { animate } = useMotionPreference();
   const ratio = clamp01(max === 0 ? 0 : value / max);
   const tint = color ?? statusColor(ratio, colors);
 
-  const progress = useSharedValue(reduced ? ratio : 0);
+  const progress = useSharedValue(animate ? 0 : ratio);
   const mounted = useRef(false);
 
   useEffect(() => {
-    if (reduced) {
+    if (!animate) {
       progress.value = ratio;
       return;
     }
@@ -61,9 +64,9 @@ export function Ring({
       easing: Easing.out(Easing.cubic),
     });
     mounted.current = true;
-  }, [progress, ratio, reduced]);
+  }, [animate, progress, ratio]);
 
-  const [display, setDisplay] = useState(reduced ? Math.round(value) : 0);
+  const [display, setDisplay] = useState(animate ? 0 : Math.round(value));
 
   useAnimatedReaction(
     () => Math.round(progress.value * max),
@@ -116,7 +119,7 @@ export function Ring({
         </Path>
       </Canvas>
       <View style={styles.center} pointerEvents="none">
-        <Text style={[styles.value, { color: colors.text }]}>{display}</Text>
+        <Text style={[styles.value, { color: colors.text }]}>{displayValue ?? display}</Text>
         {label ? <Text style={[styles.label, { color: colors.muted }]}>{label}</Text> : null}
       </View>
     </View>

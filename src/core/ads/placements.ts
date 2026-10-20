@@ -9,6 +9,7 @@
  * banner ad unit.
  */
 export type BannerPlacement =
+  | 'home-dashboard'
   | 'home-end'
   | 'hub-grid'
   | 'device-sections'

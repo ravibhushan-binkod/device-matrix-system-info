@@ -1,14 +1,9 @@
 import { Canvas, Circle, LinearGradient, Path, Skia, vec } from '@shopify/react-native-skia';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
-import {
-  Easing,
-  useDerivedValue,
-  useReducedMotion,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import { Easing, useDerivedValue, useSharedValue, withTiming } from 'react-native-reanimated';
 
+import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 import { withAlpha } from '@/design-system/color';
 import { clamp01 } from '@/design-system/status';
 import { useTheme } from '@/design-system/theme';
@@ -92,7 +87,8 @@ export function LiveGraph({
   accessibilityLabel = 'Live graph',
 }: Props) {
   const { colors } = useTheme();
-  const reduced = useReducedMotion();
+  const { animate } = useMotionPreference();
+  const reduced = !animate;
   const [width, setWidth] = useState(0);
   const tint = color ?? colors.accent;
 

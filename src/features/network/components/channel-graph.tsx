@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useReducedMotion,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
+
+import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 
 import { withAlpha } from '@/design-system/color';
 import { useTheme } from '@/design-system/theme';
@@ -96,7 +93,8 @@ type BarProps = {
 };
 
 function Bar({ bar, domainMin, span, width, color }: BarProps) {
-  const reduced = useReducedMotion();
+  const { animate } = useMotionPreference();
+  const reduced = !animate;
   const progress = useSharedValue(0);
 
   useEffect(() => {

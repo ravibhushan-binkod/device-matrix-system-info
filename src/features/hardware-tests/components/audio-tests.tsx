@@ -3,11 +3,12 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+
+import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 
 import { Button, Card, Chip } from '@/design-system/components';
 import { withAlpha } from '@/design-system/color';
@@ -21,7 +22,8 @@ import { audioOutputLabel } from '@/features/hardware-tests/services/test-logic'
 type Props = { onUnavailable: (reason: string | null) => void };
 
 function WaveBar({ active, index, color }: { active: boolean; index: number; color: string }) {
-  const reduced = useReducedMotion();
+  const { animate } = useMotionPreference();
+  const reduced = !animate;
   const level = useSharedValue(0.18);
 
   useEffect(() => {

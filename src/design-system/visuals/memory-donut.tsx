@@ -7,12 +7,12 @@ import Animated, {
   useAnimatedReaction,
   useAnimatedStyle,
   useDerivedValue,
-  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
 
+import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 import { withAlpha } from '@/design-system/color';
 import { useScreenFocused } from '@/design-system/hooks/use-screen-focused';
 import { clamp01 } from '@/design-system/status';
@@ -39,21 +39,21 @@ export function MemoryDonut({
   accessibilityLabel,
 }: Props) {
   const { colors } = useTheme();
-  const reduced = useReducedMotion();
+  const { animate, loops } = useMotionPreference();
   const focused = useScreenFocused();
   const ratio = clamp01(max === 0 ? 0 : value / max);
 
-  const progress = useSharedValue(reduced ? ratio : 0);
+  const progress = useSharedValue(animate ? 0 : ratio);
   const breath = useSharedValue(1);
 
   useEffect(() => {
-    progress.value = reduced
-      ? ratio
-      : withTiming(ratio, { duration: 600, easing: Easing.out(Easing.cubic) });
-  }, [progress, ratio, reduced]);
+    progress.value = animate
+      ? withTiming(ratio, { duration: 600, easing: Easing.out(Easing.cubic) })
+      : ratio;
+  }, [animate, progress, ratio]);
 
   useEffect(() => {
-    if (reduced || !focused) {
+    if (!loops || !focused) {
       breath.value = 1;
       return;
     }
@@ -62,9 +62,9 @@ export function MemoryDonut({
       -1,
       true,
     );
-  }, [breath, focused, reduced]);
+  }, [breath, focused, loops]);
 
-  const [display, setDisplay] = useState(reduced ? Math.round(value) : 0);
+  const [display, setDisplay] = useState(animate ? 0 : Math.round(value));
 
   useAnimatedReaction(
     () => Math.round(progress.value * max),

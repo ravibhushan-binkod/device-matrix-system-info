@@ -3,11 +3,12 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+
+import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 
 import { Button, Card, Chip, PermissionBanner } from '@/design-system/components';
 import { withAlpha } from '@/design-system/color';
@@ -47,7 +48,8 @@ function batteryLabel(reading: BatteryReading): string {
 export function ChargingTest({ onUnavailable }: Props) {
   const { colors } = useTheme();
   const { reading, seenPlugged, seenUnplugged, plugged } = useChargingTest();
-  const reduced = useReducedMotion();
+  const { animate } = useMotionPreference();
+  const reduced = !animate;
   const pulse = useSharedValue(0.3);
 
   useEffect(() => {

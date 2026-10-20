@@ -1,13 +1,20 @@
 import { Link } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Switch, Text, View } from 'react-native';
 
 import { forceEeaConsentTest, openAdInspector, resetConsent } from '@/core/ads/consent';
 import { features, isEnabled } from '@/core/features';
+import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
+import { PressableScale } from '@/design-system/animations/pressable-scale';
+import type { MotionMode } from '@/design-system/animations/motion';
+import { withAlpha } from '@/design-system/color';
 import { Button, Card, Chip, Screen, SectionHeader } from '@/design-system/components';
+import { Icon } from '@/design-system/icon';
 import { useTheme, type ThemeMode } from '@/design-system/theme';
 import { accents, spacing, typography, type AccentName } from '@/design-system/tokens';
+import { getDashboardTileDefinition } from '@/features/dashboard/services/dashboard-tiles';
 import { useAdsStore, type AdsStatus } from '@/state/ads-store';
+import { useDashboardLayoutStore } from '@/state/dashboard-store';
 import { useSettingsStore } from '@/state/settings-store';
 
 const themeModes: { value: ThemeMode; label: string }[] = [
@@ -17,6 +24,12 @@ const themeModes: { value: ThemeMode; label: string }[] = [
 ];
 
 const accentNames: AccentName[] = ['cyan', 'blue', 'violet', 'green'];
+
+const animationModes: { value: MotionMode; label: string }[] = [
+  { value: 'full', label: 'Full' },
+  { value: 'reduced', label: 'Reduced' },
+  { value: 'off', label: 'Off' },
+];
 
 const adsStatusLabels: Record<AdsStatus, string> = {
   idle: 'idle',
@@ -33,6 +46,14 @@ export default function SettingsScreen() {
   const accent = useSettingsStore((state) => state.accent);
   const setThemeMode = useSettingsStore((state) => state.setThemeMode);
   const setAccent = useSettingsStore((state) => state.setAccent);
+  const animationMode = useSettingsStore((state) => state.animationMode);
+  const setAnimationMode = useSettingsStore((state) => state.setAnimationMode);
+  const motion = useMotionPreference();
+
+  const tiles = useDashboardLayoutStore((state) => state.tiles);
+  const toggleTile = useDashboardLayoutStore((state) => state.toggleTile);
+  const moveTile = useDashboardLayoutStore((state) => state.moveTile);
+  const resetTiles = useDashboardLayoutStore((state) => state.resetTiles);
 
   const adsStatus = useAdsStore((state) => state.status);
   const [adsNotice, setAdsNotice] = useState<string | null>(null);
@@ -78,6 +99,96 @@ export default function SettingsScreen() {
             />
           ))}
         </View>
+      </Card>
+
+      <SectionHeader title="Dashboard" />
+      <Card contentStyle={styles.tileList}>
+        <Text style={[typography.body, { color: colors.muted }]}>
+          Choose which tiles Home shows and the order they appear in. Hidden tiles keep their
+          position.
+        </Text>
+        {tiles.map((tile, index) => {
+          const definition = getDashboardTileDefinition(tile.id);
+          return (
+            <View
+              key={tile.id}
+              style={[
+                styles.tileRow,
+                index > 0 && {
+                  borderTopColor: colors.border,
+                  borderTopWidth: StyleSheet.hairlineWidth,
+                },
+              ]}
+            >
+              <View style={[styles.tileIcon, { backgroundColor: withAlpha(colors.accent, 0.1) }]}>
+                <Icon name={definition.icon} size={16} color={colors.accent} />
+              </View>
+              <View style={styles.tileCopy}>
+                <Text numberOfLines={1} style={[typography.body, { color: colors.text }]}>
+                  {definition.shortTitle}
+                </Text>
+                <Text style={[typography.caption, { color: colors.muted }]}>
+                  {definition.size.toUpperCase()} tile
+                </Text>
+              </View>
+              <PressableScale
+                onPress={() => moveTile(tile.id, 'up')}
+                disabled={index === 0}
+                haptic={false}
+                accessibilityRole="button"
+                accessibilityLabel={`Move ${definition.shortTitle} up`}
+                hitSlop={6}
+                style={[styles.reorder, index === 0 && styles.reorderDisabled]}
+              >
+                <Text style={[styles.reorderText, { color: colors.muted }]}>↑</Text>
+              </PressableScale>
+              <PressableScale
+                onPress={() => moveTile(tile.id, 'down')}
+                disabled={index === tiles.length - 1}
+                haptic={false}
+                accessibilityRole="button"
+                accessibilityLabel={`Move ${definition.shortTitle} down`}
+                hitSlop={6}
+                style={[styles.reorder, index === tiles.length - 1 && styles.reorderDisabled]}
+              >
+                <Text style={[styles.reorderText, { color: colors.muted }]}>↓</Text>
+              </PressableScale>
+              <Switch
+                value={tile.visible}
+                onValueChange={() => toggleTile(tile.id)}
+                accessibilityLabel={`Show ${definition.shortTitle} on Home`}
+                trackColor={{ false: colors.surface2, true: withAlpha(colors.accent, 0.45) }}
+                thumbColor={tile.visible ? colors.accent : colors.muted}
+              />
+            </View>
+          );
+        })}
+        <Button title="Reset layout" variant="ghost" icon="refresh" onPress={resetTiles} />
+      </Card>
+
+      <SectionHeader title="Animations" />
+      <Card contentStyle={styles.stack}>
+        <View style={styles.row}>
+          {animationModes.map((mode) => (
+            <Chip
+              key={mode.value}
+              label={mode.label}
+              selected={animationMode === mode.value}
+              onPress={() => setAnimationMode(mode.value)}
+            />
+          ))}
+        </View>
+        <Text style={[typography.body, { color: colors.muted }]}>
+          {motion.source === 'system'
+            ? 'Android’s Reduce motion setting is on, so Full plays as Reduced. Your choice is saved.'
+            : motion.source === 'performance'
+              ? 'Reduced was switched on for this session because the phone dropped frames. Your saved choice is still Full.'
+              : animationMode === 'full'
+                ? 'Movement, live loops, parallax and chart drawing are on.'
+                : animationMode === 'reduced'
+                  ? 'Short opacity fades only — live loops, particles and parallax are paused.'
+                  : 'Everything renders immediately, with no animation at all.'}
+        </Text>
       </Card>
 
       <SectionHeader title="More" />
@@ -180,5 +291,39 @@ const styles = StyleSheet.create({
   devLink: {
     ...typography.body,
     textDecorationLine: 'underline',
+  },
+  tileList: {
+    gap: spacing.sm,
+  },
+  tileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+  },
+  tileIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tileCopy: {
+    flex: 1,
+  },
+  reorder: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  reorderDisabled: {
+    opacity: 0.3,
+  },
+  reorderText: {
+    ...typography.title,
+  },
+  stack: {
+    gap: spacing.sm,
   },
 });

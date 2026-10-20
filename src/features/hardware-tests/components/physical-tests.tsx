@@ -4,11 +4,12 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   cancelAnimation,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+
+import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 
 import { Button, Card } from '@/design-system/components';
 import { withAlpha } from '@/design-system/color';
@@ -23,7 +24,8 @@ type Props = { onUnavailable: (reason: string | null) => void };
 export function TorchTest({ onUnavailable }: Props) {
   const { colors } = useTheme();
   const { available, on, notice, turnOn, turnOff } = useTorchTest();
-  const reduced = useReducedMotion();
+  const { animate } = useMotionPreference();
+  const reduced = !animate;
   const pulse = useSharedValue(0.35);
 
   useEffect(() => {
@@ -107,7 +109,8 @@ export function TorchTest({ onUnavailable }: Props) {
 export function VibrationTest({ onUnavailable }: Props) {
   const { colors } = useTheme();
   const { hasVibrator, error, playing, run } = useVibrationTest();
-  const reduced = useReducedMotion();
+  const { animate } = useMotionPreference();
+  const reduced = !animate;
   const pulse = useSharedValue(0);
 
   useEffect(() => {

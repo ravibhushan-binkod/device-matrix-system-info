@@ -1,34 +1,83 @@
-import { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { usePolling } from '@/core/hooks/use-polling';
-import { useSystemSettings } from '@/core/hooks/use-system-settings';
-import { readDashboardSummary } from '@/features/dashboard/services/dashboard-service';
-import type { DashboardSummary } from '@/features/dashboard/types';
+import {
+  readDashboardInventory,
+  readDashboardSummary,
+} from '@/features/dashboard/services/dashboard-service';
+import type { DashboardInventory, DashboardSummary } from '@/features/dashboard/types';
 
 /** RAM, storage and battery move slowly; 5 s keeps the screen honest and cheap. */
 const POLL_MS = 5_000;
+/** Sparkline window: 24 samples at five seconds = two minutes. */
+const HISTORY_LIMIT = 24;
 
 /**
- * Dashboard data for the Home screen: one summary read on focus and every
- * poll tick, pull-to-refresh, and the quick-action launcher. `summary` is
- * `null` until the first read lands — the screen shows skeletons until then.
+ * Dashboard data for the Home screen. The live summary polls every five
+ * seconds and pauses when Home loses focus or the app backgrounds. The
+ * sensor/camera inventory and the CPU/RAM sparkline history are separate so a
+ * slow hardware read never delays the live tiles.
  */
 export function useDashboard() {
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
+  const [inventory, setInventory] = useState<DashboardInventory | null>(null);
+  const [cpuHistory, setCpuHistory] = useState<number[]>([]);
+  const [memoryHistory, setMemoryHistory] = useState<number[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const { notice, open } = useSystemSettings();
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const loadInventory = useCallback(() => {
+    setInventory(readDashboardInventory());
+  }, []);
 
   const load = useCallback(() => {
-    setSummary(readDashboardSummary());
+    const next = readDashboardSummary();
+    setSummary(next);
+
+    const cpu = next.cpu.status === 'ok' ? next.cpu.value.averageMhz : null;
+    if (cpu != null) {
+      setCpuHistory((history) => [...history, cpu].slice(-HISTORY_LIMIT));
+    }
+    const memory = next.memory.status === 'ok' ? next.memory.value.percent : null;
+    if (memory != null) {
+      setMemoryHistory((history) => [...history, memory].slice(-HISTORY_LIMIT));
+    }
   }, []);
 
   usePolling(load, { intervalMs: POLL_MS });
 
+  useFocusEffect(
+    useCallback(() => {
+      loadInventory();
+    }, [loadInventory]),
+  );
+
+  useEffect(
+    () => () => {
+      if (refreshTimer.current) clearTimeout(refreshTimer.current);
+    },
+    [],
+  );
+
   const refresh = useCallback(() => {
+    if (refreshTimer.current) clearTimeout(refreshTimer.current);
     setRefreshing(true);
     load();
-    setRefreshing(false);
-  }, [load]);
+    loadInventory();
+    refreshTimer.current = setTimeout(() => {
+      refreshTimer.current = null;
+      setRefreshing(false);
+    }, 260);
+  }, [load, loadInventory]);
 
-  return { summary, refreshing, refresh, notice, openSettings: open };
+  return {
+    summary,
+    inventory,
+    cpuHistory,
+    memoryHistory,
+    refreshing,
+    refresh,
+    refreshInventory: loadInventory,
+  };
 }

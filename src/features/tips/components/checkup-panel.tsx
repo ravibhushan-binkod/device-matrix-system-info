@@ -3,11 +3,12 @@ import { StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+
+import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 
 import { Button, Card } from '@/design-system/components';
 import { withAlpha } from '@/design-system/color';
@@ -37,7 +38,8 @@ export function CheckupIntro({ onRun }: { onRun: () => void }) {
 /** The scan animation while the rules run (two pulsing rings around the icon). */
 export function CheckupAnimation() {
   const { colors } = useTheme();
-  const reduced = useReducedMotion();
+  const { animate } = useMotionPreference();
+  const reduced = !animate;
   const progress = useSharedValue(0);
 
   useEffect(() => {

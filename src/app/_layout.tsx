@@ -17,6 +17,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { AutoReduceMotion } from '@/design-system/animations/auto-reduce-motion';
 import { ThemeProvider, useTheme } from '@/design-system/theme';
 import { useAdsBootstrap } from '@/core/ads/hooks/use-ads-bootstrap';
 import { useSettingsStore } from '@/state/settings-store';
@@ -112,6 +113,7 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider mode={themeMode} accent={accent}>
+        <AutoReduceMotion />
         <Navigator />
       </ThemeProvider>
     </GestureHandlerRootView>

@@ -2,13 +2,13 @@ import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
 
 import { durations } from '@/design-system/animations/motion';
+import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 import { clamp01 } from '@/design-system/status';
 import { useTheme } from '@/design-system/theme';
 import { spacing } from '@/design-system/tokens';
@@ -57,13 +57,13 @@ function SignalBar({ index, max, strength, height, barWidth, color }: BarProps) 
 /** Stepped signal bars; the level animates softly when the strength changes. */
 export function SignalBars({ level, max = 4, height = 20, barWidth = 4, color }: Props) {
   const { colors } = useTheme();
-  const reduced = useReducedMotion();
+  const { animate } = useMotionPreference();
   const strength = useSharedValue(level ?? 0);
 
   useEffect(() => {
     const next = level ?? 0;
-    strength.value = reduced ? next : withTiming(next, { duration: durations.normal });
-  }, [level, reduced, strength]);
+    strength.value = animate ? withTiming(next, { duration: durations.normal }) : next;
+  }, [animate, level, strength]);
 
   const tint = color ?? colors.accent;
 

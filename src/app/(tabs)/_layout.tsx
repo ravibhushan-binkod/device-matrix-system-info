@@ -1,15 +1,15 @@
 import { Tabs, useRouter } from 'expo-router';
 
+import { DashboardTabBar } from '@/design-system/components/dashboard-tab-bar';
 import { HeaderIconButton } from '@/design-system/components';
-import { Icon, type IconName } from '@/design-system/icon';
 import { useTheme } from '@/design-system/theme';
 
-const tabs: { name: string; title: string; icon: IconName }[] = [
-  { name: 'index', title: 'Home', icon: 'home' },
-  { name: 'hardware', title: 'Hardware', icon: 'cpu' },
-  { name: 'network', title: 'Network', icon: 'wifi' },
-  { name: 'apps', title: 'Apps', icon: 'apps' },
-  { name: 'tools', title: 'Tools', icon: 'tools' },
+const tabs: { name: string; title: string }[] = [
+  { name: 'index', title: 'Home' },
+  { name: 'hardware', title: 'Hardware' },
+  { name: 'network', title: 'Network' },
+  { name: 'apps', title: 'Apps' },
+  { name: 'tools', title: 'Tools' },
 ];
 
 export default function TabsLayout() {
@@ -18,6 +18,7 @@ export default function TabsLayout() {
 
   return (
     <Tabs
+      tabBar={(props) => <DashboardTabBar {...props} />}
       screenOptions={{
         headerStyle: { backgroundColor: colors.background },
         headerTintColor: colors.text,
@@ -44,7 +45,6 @@ export default function TabsLayout() {
           options={{
             title: tab.title,
             headerShown: tab.name !== 'index',
-            tabBarIcon: ({ color }) => <Icon name={tab.icon} size={24} color={color as string} />,
           }}
         />
       ))}
