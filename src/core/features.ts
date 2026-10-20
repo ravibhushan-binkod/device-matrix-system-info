@@ -30,6 +30,12 @@ export const features = {
   speedTest: 'v2',
   /** The Wi-Fi analyzer (nearby networks) — built in 13D. */
   nearbyWifi: 'v1',
+  /** The guided hardware checkup — display, touch, sound, sensors, ports. */
+  hardwareTests: 'v1',
+  /** Microphone test — off; no RECORD_AUDIO permission is requested. */
+  microphoneTest: 'off',
+  /** Fingerprint test — off; needs a biometrics dependency (not installed). */
+  fingerprintTest: 'off',
   nfcTools: 'v2',
   localHistory: 'v2',
   /** The report's "Save as PDF" export (expo-print) — off in V1. */

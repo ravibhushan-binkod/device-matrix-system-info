@@ -6,6 +6,11 @@ import {
   selectedReportGroups,
 } from '@/features/report/services/report-service';
 
+jest.mock('@/core/storage/mmkv', () => ({
+  getString: jest.fn(() => undefined),
+  setString: jest.fn(),
+}));
+
 jest.mock('@/core/native', () => ({
   getBatteryInfo: jest.fn(),
   getConnectivityInfo: jest.fn(),
@@ -40,6 +45,7 @@ describe('selectedReportGroups', () => {
     expect(new Set(ids).size).toBe(ids.length);
     expect(ids).toContain('device');
     expect(ids).toContain('sensors');
+    expect(ids).toContain('hardwareTests');
   });
 });
 

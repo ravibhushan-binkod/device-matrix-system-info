@@ -9,7 +9,8 @@ export type ReportGroupId =
   | 'cpu'
   | 'network'
   | 'thermal'
-  | 'sensors';
+  | 'sensors'
+  | 'hardwareTests';
 
 /** One pickable block of the report; `build` reads the device only when asked. */
 export type ReportGroup = {

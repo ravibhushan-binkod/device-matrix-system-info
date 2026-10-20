@@ -14,6 +14,12 @@ import { formatFrequencyKhz } from '@/core/utils/format-frequency';
 import { formatTemperature } from '@/core/utils/format-temperature';
 import { buildReportText, type ReportEntry, type ReportSection } from '@/core/utils/report-text';
 import { batteryStatusLabel, buildBatteryStats } from '@/features/battery/services/battery-stats';
+import { HARDWARE_TESTS } from '@/features/hardware-tests/services/test-catalog';
+import {
+  readTestResults,
+  reportLine,
+  summarizeResults,
+} from '@/features/hardware-tests/services/results-service';
 import { readDeviceInfo } from '@/features/device/services/device-service';
 import {
   brightnessModeLabel,
@@ -282,6 +288,27 @@ function sensorSections(): ReportSection[] {
   ];
 }
 
+/** Guided checkup results saved on this phone, including optional tests. */
+function hardwareTestSections(): ReportSection[] {
+  const now = new Date();
+  const results = readTestResults();
+  const summary = summarizeResults(results);
+  return [
+    {
+      title: 'Hardware tests',
+      entries: [
+        { label: 'Guided checks passed', value: `${summary.passed} of ${summary.total}` },
+        { label: 'Failed', value: String(summary.failed) },
+        { label: 'Untested', value: String(summary.untested) },
+        ...HARDWARE_TESTS.map((definition) => ({
+          label: definition.title,
+          value: reportLine(results, definition.id, now),
+        })),
+      ],
+    },
+  ];
+}
+
 /**
  * The pickable report sections in display order. Each `build` reads Android
  * only when the report is actually generated.
@@ -296,6 +323,7 @@ export const REPORT_GROUPS: readonly ReportGroup[] = [
   { id: 'network', title: 'Network', build: networkSections },
   { id: 'thermal', title: 'Thermal', build: thermalSections },
   { id: 'sensors', title: 'Sensors', build: sensorSections },
+  { id: 'hardwareTests', title: 'Hardware tests', build: hardwareTestSections },
 ];
 
 /** Selected groups in catalog order (not in tap order). */

@@ -76,6 +76,8 @@ function Navigator() {
         <Stack.Screen name="timer" options={{ title: 'Timer' }} />
         <Stack.Screen name="touch-test" options={{ title: 'Touch test', headerShown: false }} />
         <Stack.Screen name="screen-test" options={{ title: 'Screen test', headerShown: false }} />
+        <Stack.Screen name="hardware-tests/index" options={{ title: 'Hardware tests' }} />
+        <Stack.Screen name="hardware-tests/[test]" options={{ title: 'Hardware test' }} />
         <Stack.Screen name="dev/gallery" options={{ title: 'Dev Gallery' }} />
         <Stack.Screen name="dev/support-matrix" options={{ title: 'Support matrix' }} />
       </Stack>

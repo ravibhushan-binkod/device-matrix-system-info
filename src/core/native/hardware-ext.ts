@@ -335,6 +335,93 @@ export type VibrationInfo = {
   hasVibrator: boolean;
 };
 
+export type AudioOutputRoute =
+  'wired-headset' | 'usb-audio' | 'bluetooth' | 'earpiece' | 'speaker' | 'unknown';
+
+export type AudioOutput = {
+  route: AudioOutputRoute;
+  headsetConnected: boolean;
+  usbAudioConnected: boolean;
+  /** Android reports a built-in earpiece output. */
+  earpieceAvailable: boolean;
+  /** Raw output-device labels, useful when the route is not obvious. */
+  devices: string[];
+};
+
+export type ToneRoute = 'speaker' | 'earpiece';
+export type ToneChannel = 'left' | 'right' | 'both';
+
+const AUDIO_ROUTES: readonly AudioOutputRoute[] = [
+  'wired-headset',
+  'usb-audio',
+  'bluetooth',
+  'earpiece',
+  'speaker',
+  'unknown',
+];
+
+/** Connected audio outputs and the current route, from AudioManager. */
+export function getAudioOutput(): Result<AudioOutput> {
+  const module = getModule();
+  if (!module) return unavailable('The HardwareExt native module is not in this build.');
+  try {
+    const raw = module.getAudioOutput();
+    if (!raw) return unavailable('Android did not return the audio outputs.');
+    return ok({
+      route: (AUDIO_ROUTES as readonly string[]).includes(raw.route)
+        ? (raw.route as AudioOutputRoute)
+        : 'unknown',
+      headsetConnected: raw.headsetConnected,
+      usbAudioConnected: raw.usbAudioConnected,
+      earpieceAvailable: raw.earpieceAvailable,
+      devices: raw.devices.filter((device) => device.length > 0),
+    });
+  } catch {
+    return unavailable('Reading the audio outputs failed.');
+  }
+}
+
+/**
+ * Plays a short test tone for `durationMs` and stops. `earpiece` switches
+ * Android to communication mode for the duration and restores it when
+ * stopped. No recording permission is involved; the normal
+ * MODIFY_AUDIO_SETTINGS permission covers the route.
+ */
+export function startTone(
+  route: ToneRoute,
+  channel: ToneChannel,
+  durationMs: number = 10_000,
+): Result<boolean> {
+  const module = getModule();
+  if (!module) return unavailable('The HardwareExt native module is not in this build.');
+  try {
+    const raw = module.startTone(route, channel, durationMs);
+    if (!raw || !raw.ok) {
+      if (raw?.reason === 'no-earpiece') {
+        return unavailable('This device does not report a built-in earpiece.');
+      }
+      if (raw?.reason === 'blocked') {
+        return unavailable('Android blocked audio routing on this device.');
+      }
+      return unavailable('The tone could not be played.');
+    }
+    return ok(true);
+  } catch {
+    return unavailable('The tone could not be played.');
+  }
+}
+
+/** Stops and releases the tone; safe to call when nothing is playing. */
+export function stopTone(): void {
+  const module = getModule();
+  if (!module) return;
+  try {
+    module.stopTone();
+  } catch {
+    // Already stopped or the module is going away.
+  }
+}
+
 export function getVibrationInfo(): Result<VibrationInfo> {
   const module = getModule();
   if (!module) return unavailable('The HardwareExt native module is not in this build.');
