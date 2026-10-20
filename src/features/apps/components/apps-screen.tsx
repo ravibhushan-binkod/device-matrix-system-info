@@ -4,22 +4,26 @@ import { FlatList, RefreshControl, StyleSheet, Text, TextInput, View } from 'rea
 
 import {
   AdSlot,
+  Card,
   Chip,
   EmptyState,
+  InfoSheet,
+  PermissionBanner,
   Screen,
   SectionHeader,
   Skeleton,
 } from '@/design-system/components';
 import { PressableScale } from '@/design-system/animations/pressable-scale';
-import { Icon } from '@/design-system/icon';
+import { StaggerItem } from '@/design-system/animations/stagger';
+import { withAlpha } from '@/design-system/color';
+import { Icon, type IconName } from '@/design-system/icon';
 import { useTheme } from '@/design-system/theme';
 import { radius, spacing, typography } from '@/design-system/tokens';
 import { AppRow } from '@/features/apps/components/app-row';
-import { UsagePanel } from '@/features/apps/components/usage-panel';
-import { useAppUsage } from '@/features/apps/hooks/use-app-usage';
 import { useApps } from '@/features/apps/hooks/use-apps';
+import { useInstalledSizes } from '@/features/apps/hooks/use-installed-sizes';
 import { useUsageAccess } from '@/features/apps/hooks/use-usage-access';
-import { selectApps } from '@/features/apps/services/apps-service';
+import { selectApps, storageSizesMap } from '@/features/apps/services/apps-service';
 import type { AppFilter, AppSort } from '@/features/apps/types';
 
 const FILTERS: { key: AppFilter; label: string }[] = [
@@ -30,27 +34,79 @@ const FILTERS: { key: AppFilter; label: string }[] = [
 
 const SORTS: { key: AppSort; label: string }[] = [
   { key: 'name', label: 'Name' },
-  { key: 'installed', label: 'Newest' },
+  { key: 'size', label: 'Size' },
+  { key: 'installed', label: 'Installed' },
   { key: 'updated', label: 'Updated' },
+  { key: 'targetSdk', label: 'Target SDK' },
 ];
 
-/** Apps and usage insights: the launcher list plus screen time and sizes. */
+const APPS_SHEET = {
+  title: 'Installed apps: what this means',
+  paragraphs: [
+    'The list covers apps with a launcher icon. Android 11 and newer only show those to an app when the manifest asks for the launcher intent — which this app does — and Device Matrix never asks for QUERY_ALL_PACKAGES, so apps without a launcher icon stay invisible.',
+    'Version, install and update dates, minimum and target SDK, and the installer come from Android’s PackageManager. “Not reported” means Android returned nothing for that field.',
+    'Size, cache and screen time need Usage Access (Settings › Special app access › Usage access). Without it Android hides those numbers and this screen says so; nothing is estimated.',
+    '“Min” and “Target” are API levels: the oldest Android the app supports and the Android version it was built for.',
+  ],
+};
+
+type ExploreTarget = {
+  icon: IconName;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+};
+
+/** Apps, the analyzer links and the installed-app list with search, filter and sort. */
 export function AppsScreen() {
   const router = useRouter();
   const { colors } = useTheme();
   const { apps, refreshing, refresh } = useApps();
   const { granted, notice, openSettings } = useUsageAccess();
-  const { usage, range, setRange, storage, scanStorage } = useAppUsage(granted);
+  const storage = useInstalledSizes(granted);
 
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<AppFilter>('all');
   const [sort, setSort] = useState<AppSort>('name');
+  const [sheetVisible, setSheetVisible] = useState(false);
 
   const all = useMemo(() => (apps?.status === 'ok' ? apps.value : []), [apps]);
-  const visible = useMemo(
-    () => selectApps(all, { query, filter, sort }),
-    [all, query, filter, sort],
+  const sizes = useMemo(
+    () => (storage?.status === 'ok' ? storageSizesMap(storage.value) : null),
+    [storage],
   );
+  const cacheSizes = useMemo(
+    () =>
+      storage?.status === 'ok'
+        ? new Map(storage.value.map((entry) => [entry.packageName, entry.cacheBytes]))
+        : null,
+    [storage],
+  );
+  const visible = useMemo(
+    () => selectApps(all, { query, filter, sort }, sizes),
+    [all, query, filter, sort, sizes],
+  );
+
+  const explore: ExploreTarget[] = [
+    {
+      icon: 'gauge',
+      title: 'App analyzer',
+      subtitle: 'Charts for target SDK, installer, install year, sizes and permissions',
+      onPress: () => router.push('/app-analyzer'),
+    },
+    {
+      icon: 'search',
+      title: 'Permission analyzer',
+      subtitle: 'Pick a permission and see which apps request it and which Android grants',
+      onPress: () => router.push('/permission-analyzer'),
+    },
+    {
+      icon: 'clock',
+      title: 'Screen time',
+      subtitle: 'Today and the last 7 days, ranked apps, a daily chart and last-used times',
+      onPress: () => router.push('/screen-time'),
+    },
+  ];
 
   const header = (
     <View style={styles.header}>
@@ -109,22 +165,44 @@ export function AppsScreen() {
         </View>
       </View>
 
-      <UsagePanel
-        granted={granted}
-        apps={all}
-        usage={usage}
-        range={range}
-        onRangeChange={setRange}
-        storage={storage}
-        onScanStorage={scanStorage}
-        onOpenSettings={openSettings}
-        notice={notice}
-      />
+      {sort === 'size' && granted !== true ? (
+        <Text style={[styles.caption, { color: colors.muted }]}>
+          Size sorting needs Usage Access. Until it is allowed, apps without a reported size stay in
+          name order at the end.
+        </Text>
+      ) : null}
+
+      {granted === false ? (
+        <PermissionBanner
+          icon="apps"
+          title="Usage Access is off"
+          message="App sizes, cache sizes and screen time stay hidden until you allow Usage Access. The app list, search and every detail keep working."
+          actionLabel="Open settings"
+          onAction={openSettings}
+        />
+      ) : null}
+
+      <SectionHeader title="Explore" />
+      {explore.map((target) => (
+        <Card key={target.title} onPress={target.onPress}>
+          <View style={styles.linkRow}>
+            <View style={[styles.linkBadge, { backgroundColor: withAlpha(colors.accent, 0.12) }]}>
+              <Icon name={target.icon} size={20} color={colors.accent} />
+            </View>
+            <View style={styles.linkLabels}>
+              <Text style={[styles.linkTitle, { color: colors.text }]}>{target.title}</Text>
+              <Text style={[styles.caption, { color: colors.muted }]}>{target.subtitle}</Text>
+            </View>
+            <Icon name="chevron-right" size={20} color={colors.muted} />
+          </View>
+        </Card>
+      ))}
 
       <AdSlot placement="apps-header" />
 
       <SectionHeader
         title="Installed apps"
+        onInfo={() => setSheetVisible(true)}
         action={
           apps?.status === 'ok' ? (
             <Text style={[styles.count, { color: colors.muted }]}>
@@ -133,6 +211,7 @@ export function AppsScreen() {
           ) : null
         }
       />
+      {notice ? <Text style={[styles.caption, { color: colors.muted }]}>{notice}</Text> : null}
     </View>
   );
 
@@ -165,10 +244,12 @@ export function AppsScreen() {
       <FlatList
         data={visible}
         keyExtractor={(item) => item.packageName}
-        renderItem={({ item, index }) => (
-          <>
+        renderItem={({ item, index }) => {
+          const row = (
             <AppRow
               app={item}
+              sizeBytes={sizes?.get(item.packageName) ?? null}
+              cacheBytes={cacheSizes?.get(item.packageName) ?? null}
               onPress={() =>
                 router.push({
                   pathname: '/apps/[package]',
@@ -176,9 +257,14 @@ export function AppsScreen() {
                 })
               }
             />
-            {index === 8 ? <AdSlot placement="apps-list" style={styles.listAd} /> : null}
-          </>
-        )}
+          );
+          return (
+            <>
+              {index < 14 ? <StaggerItem index={Math.min(index, 10)}>{row}</StaggerItem> : row}
+              {index === 8 ? <AdSlot placement="apps-list" style={styles.listAd} /> : null}
+            </>
+          );
+        }}
         ListHeaderComponent={header}
         ListEmptyComponent={empty}
         ItemSeparatorComponent={() => (
@@ -199,6 +285,12 @@ export function AppsScreen() {
             tintColor={colors.accent}
           />
         }
+      />
+      <InfoSheet
+        visible={sheetVisible}
+        title={APPS_SHEET.title}
+        paragraphs={APPS_SHEET.paragraphs}
+        onClose={() => setSheetVisible(false)}
       />
     </Screen>
   );
@@ -232,18 +324,42 @@ const styles = StyleSheet.create({
   },
   controls: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: spacing.sm,
   },
   controlLabel: {
     ...typography.caption,
     width: 34,
+    paddingTop: 8,
   },
   chips: {
     flex: 1,
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
+  },
+  caption: {
+    ...typography.caption,
+  },
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  linkBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.button,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  linkLabels: {
+    flex: 1,
+    gap: 2,
+  },
+  linkTitle: {
+    ...typography.body,
+    fontFamily: 'Inter_600SemiBold',
   },
   count: {
     ...typography.caption,

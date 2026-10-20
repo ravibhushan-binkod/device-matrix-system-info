@@ -3,6 +3,8 @@ export { AppBar } from './app-bar';
 export { Button } from './button';
 export { Card } from './card';
 export { Chip } from './chip';
+export { CopyButton } from './copy-button';
+export { CopyRow } from './copy-row';
 export { EmptyState } from './empty-state';
 export { HeaderIconButton } from './header-icon-button';
 export { InfoSheet } from './info-sheet';

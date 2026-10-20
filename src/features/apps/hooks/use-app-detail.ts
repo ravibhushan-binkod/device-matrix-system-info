@@ -1,13 +1,18 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 
-import type { InstalledApp } from '@/core/native';
+import type { AppAnalyzer, InstalledApp } from '@/core/native';
 import { describeResult, type Result } from '@/core/result';
-import { openAppInfoSettings, readAppDetail } from '@/features/apps/services/apps-service';
+import {
+  openAppInfoSettings,
+  readAppAnalyzer,
+  readAppDetail,
+} from '@/features/apps/services/apps-service';
 
-/** One app's metadata plus the hand-off to the system "App info" screen. */
+/** One app's metadata plus the analyzer reading and the system "App info" hand-off. */
 export function useAppDetail(packageName: string) {
   const [app, setApp] = useState<Result<InstalledApp> | null>(null);
+  const [analyzer, setAnalyzer] = useState<Result<AppAnalyzer> | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
   useFocusEffect(
@@ -15,6 +20,9 @@ export function useAppDetail(packageName: string) {
       let cancelled = false;
       readAppDetail(packageName).then((result) => {
         if (!cancelled) setApp(result);
+      });
+      readAppAnalyzer(packageName).then((result) => {
+        if (!cancelled) setAnalyzer(result);
       });
       return () => {
         cancelled = true;
@@ -29,5 +37,5 @@ export function useAppDetail(packageName: string) {
     }
   }, [packageName]);
 
-  return { app, notice, openInfo };
+  return { app, analyzer, notice, openInfo };
 }

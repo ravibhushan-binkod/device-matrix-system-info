@@ -67,6 +67,10 @@ const config: ExpoConfig = {
   plugins: [
     'expo-router',
     './plugins/with-release-signing',
+    // Makes the launcher apps visible on Android 11+ through a `<queries>`
+    // intent entry (not a permission — see the plugin file). This is what the
+    // Apps tab can list; QUERY_ALL_PACKAGES is never used.
+    './plugins/with-launcher-queries',
     // Makes the installed Play services version readable on Android 11+
     // (a `<queries>` entry, not a permission — see the plugin file).
     './plugins/with-gms-queries',

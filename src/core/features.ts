@@ -34,6 +34,10 @@ export const features = {
   localHistory: 'v2',
   /** The report's "Save as PDF" export (expo-print) — off in V1. */
   pdfReport: 'v2',
+  /** The APK extraction (copy an installed app's APK to the share sheet) —
+   * implemented but deliberately off: it is not part of the shipped feature
+   * set until a later phase turns it on. */
+  apkExtraction: 'off',
   /** Cross-cutting. */
   ads: 'v1',
   /** Full-screen interstitials — built, but kept off until reviewed. */

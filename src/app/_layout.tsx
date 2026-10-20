@@ -67,6 +67,9 @@ function Navigator() {
         <Stack.Screen name="data-usage" options={{ title: 'Data usage' }} />
         <Stack.Screen name="sensors/[type]" options={{ title: 'Sensor' }} />
         <Stack.Screen name="apps/[package]" options={{ title: 'App details' }} />
+        <Stack.Screen name="app-analyzer" options={{ title: 'App analyzer' }} />
+        <Stack.Screen name="permission-analyzer" options={{ title: 'Permission analyzer' }} />
+        <Stack.Screen name="screen-time" options={{ title: 'Screen time' }} />
         <Stack.Screen name="tips" options={{ title: 'Tips' }} />
         <Stack.Screen name="report" options={{ title: 'Report' }} />
         <Stack.Screen name="alarm" options={{ title: 'Set alarm' }} />
