@@ -28,7 +28,8 @@ export const features = {
   usageInsights: 'v1',
   /** Planned for V2. */
   speedTest: 'v2',
-  nearbyWifi: 'v2',
+  /** The Wi-Fi analyzer (nearby networks) — built in 13D. */
+  nearbyWifi: 'v1',
   nfcTools: 'v2',
   localHistory: 'v2',
   /** The report's "Save as PDF" export (expo-print) — off in V1. */

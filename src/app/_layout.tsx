@@ -62,6 +62,9 @@ function Navigator() {
         <Stack.Screen name="display" options={{ title: 'Display' }} />
         <Stack.Screen name="camera" options={{ title: 'Camera' }} />
         <Stack.Screen name="sensors" options={{ title: 'Sensors' }} />
+        <Stack.Screen name="connectivity" options={{ title: 'Connectivity' }} />
+        <Stack.Screen name="wifi-analyzer" options={{ title: 'Wi-Fi analyzer' }} />
+        <Stack.Screen name="data-usage" options={{ title: 'Data usage' }} />
         <Stack.Screen name="sensors/[type]" options={{ title: 'Sensor' }} />
         <Stack.Screen name="apps/[package]" options={{ title: 'App details' }} />
         <Stack.Screen name="tips" options={{ title: 'Tips' }} />

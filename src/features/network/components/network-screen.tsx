@@ -1,40 +1,89 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 
+import { isEnabled, features } from '@/core/features';
 import { openAppSettings, type UsePermission } from '@/core/permissions';
 import {
   AdSlot,
   Button,
   Card,
   Chip,
+  InfoSheet,
   OpenSettingsDialog,
   PermissionBanner,
   PermissionRationaleSheet,
   Screen,
+  SectionHeader,
   Skeleton,
   StatRow,
 } from '@/design-system/components';
+import { withAlpha } from '@/design-system/color';
+import { Icon, type IconName } from '@/design-system/icon';
 import { useTheme } from '@/design-system/theme';
-import { spacing, typography } from '@/design-system/tokens';
+import { radius, spacing, typography } from '@/design-system/tokens';
 import { SignalBars } from '@/design-system/visuals';
 import { useNetwork } from '@/features/network/hooks/use-network';
 import {
   connectionTypeLabel,
   formatDnsServers,
-  formatIp,
   formatLinkSpeed,
+  formatSubnet,
+  formatTxRxSpeeds,
   onOffLabel,
   privateDnsLabel,
+  proxyLabel,
+  roamingLabel,
   signalBarsFromDbm,
   signalSummary,
   supportLabel,
   vpnLabel,
   wifiBandAndChannelLabel,
+  wifiChannelWidthLabel,
   wifiStandardLabel,
 } from '@/features/network/services/network-service';
 import type { NetworkPermissionKind } from '@/features/network/types';
 
 const NOT_AVAILABLE = 'Not available on this device';
+
+type SectionId = 'connection' | 'wifi' | 'radios' | 'shortcuts';
+
+/** "What this means" copy, one sheet per section. */
+const SHEETS: Record<SectionId, { title: string; paragraphs: string[] }> = {
+  connection: {
+    title: 'Connection: what this means',
+    paragraphs: [
+      'The type chip shows the transport Android currently uses. When a VPN is active, apps see the VPN while the phone still runs on Wi-Fi or mobile data underneath.',
+      'IPv4 and IPv6 are this phone’s addresses on the local network. The subnet shows how large that local network is, and the gateway is the router that leads onward.',
+      'DNS servers turn names into addresses; Private DNS sends those lookups encrypted. “Metered” means Android treats the connection as limited — that is what Data Saver restricts.',
+      'Roaming is shown on mobile networks only: it means the phone is registered outside its operator’s home network.',
+    ],
+  },
+  wifi: {
+    title: 'Wi-Fi: what this means',
+    paragraphs: [
+      'The link speed is the current negotiated rate between the phone and the access point — not the speed of your internet connection.',
+      'TX / RX are the transmit and receive rates Android 11+ reports separately; the standard (Wi-Fi 4/5/6/7) is the radio generation in use on this link.',
+      'Signal is measured in dBm: −30 is excellent, −70 is usable, below −80 is weak.',
+      'The name and the channel width come from Android’s scan data, which Android treats as location — they appear once the location permission is allowed.',
+    ],
+  },
+  radios: {
+    title: 'Bluetooth & NFC: what this means',
+    paragraphs: [
+      'Bluetooth on/off is a state read; Android 12 and newer require the Nearby devices permission to see it.',
+      'NFC allows short-range taps for payments or tags. This app only reports whether NFC is on — it never reads tags or payment data.',
+      'The Connectivity screen lists the deeper radio features (LE Audio, Wi-Fi Direct, UWB, USB, GNSS) and every system feature Android reports for this device.',
+    ],
+  },
+  shortcuts: {
+    title: 'Shortcuts: what this means',
+    paragraphs: [
+      'Android does not let apps switch Wi-Fi, Bluetooth, mobile data or airplane mode on and off. Each button opens the matching system screen, which is the only honest way to change these settings.',
+      'NFC is read-only here; switching it happens in the system NFC settings.',
+    ],
+  },
+};
 
 /** Copy for the two permission flows, kept together for review. */
 const PERMISSIONS: Record<
@@ -70,9 +119,17 @@ const PERMISSIONS: Record<
   },
 };
 
-/** Network: connection, Wi-Fi details and the radio shortcuts. */
+type ExploreTarget = {
+  icon: IconName;
+  title: string;
+  subtitle: string;
+  onPress: () => void;
+};
+
+/** Network: connection, Wi-Fi details, the radio shortcuts and the deep screens. */
 export function NetworkScreen() {
   const { colors } = useTheme();
+  const router = useRouter();
   const {
     connectivity,
     wifi,
@@ -88,6 +145,7 @@ export function NetworkScreen() {
 
   const [sheet, setSheet] = useState<NetworkPermissionKind | null>(null);
   const [settingsDialog, setSettingsDialog] = useState<NetworkPermissionKind | null>(null);
+  const [sectionSheet, setSectionSheet] = useState<SectionId | null>(null);
 
   const permissionFor = (kind: NetworkPermissionKind): UsePermission =>
     kind === 'wifi-name' ? location : bluetoothPermission;
@@ -119,6 +177,10 @@ export function NetworkScreen() {
         ? (wifiValue.ssid ?? NOT_AVAILABLE)
         : 'Not connected';
 
+  const channelWidthValue = !location.granted
+    ? 'Hidden until allowed'
+    : (wifiChannelWidthLabel(wifiValue?.channelWidthCode ?? null) ?? NOT_AVAILABLE);
+
   // Banners only appear after the first check and never for absent hardware.
   const showWifiBanner =
     !location.granted && location.state !== 'checking' && wifi?.status !== 'unavailable';
@@ -126,6 +188,31 @@ export function NetworkScreen() {
     !bluetoothPermission.granted &&
     bluetoothPermission.state !== 'checking' &&
     bluetooth?.status !== 'unavailable';
+
+  const explore: ExploreTarget[] = [
+    {
+      icon: 'signal',
+      title: 'Connectivity & features',
+      subtitle: 'Bluetooth, NFC, UWB, USB, GNSS and every system feature Android reports',
+      onPress: () => router.push('/connectivity'),
+    },
+    ...(isEnabled(features.nearbyWifi)
+      ? [
+          {
+            icon: 'wifi' as IconName,
+            title: 'Wi-Fi analyzer',
+            subtitle: 'Nearby networks, channels, signal and estimated distance',
+            onPress: () => router.push('/wifi-analyzer'),
+          },
+        ]
+      : []),
+    {
+      icon: 'gauge',
+      title: 'Data usage',
+      subtitle: 'Wi-Fi and mobile traffic per day, with the apps behind it',
+      onPress: () => router.push('/data-usage'),
+    },
+  ];
 
   return (
     <Screen
@@ -145,12 +232,13 @@ export function NetworkScreen() {
         <NetworkSkeleton />
       ) : (
         <>
+          <SectionHeader
+            title="Connection"
+            action={conn ? <Chip label={connectionTypeLabel(conn.type)} /> : undefined}
+            onInfo={() => setSectionSheet('connection')}
+          />
           <Card>
             <View style={styles.cardBody}>
-              <View style={styles.cardHead}>
-                <Text style={[styles.sectionTitle, { color: colors.muted }]}>Connection</Text>
-                {conn ? <Chip label={connectionTypeLabel(conn.type)} /> : null}
-              </View>
               {conn ? (
                 <>
                   <StatRow label="Metered" value={onOffLabel(conn.metered) ?? NOT_AVAILABLE} />
@@ -161,18 +249,27 @@ export function NetworkScreen() {
                     value={onOffLabel(conn.airplaneMode) ?? NOT_AVAILABLE}
                   />
                   <StatRow label="Mobile operator" value={conn.operatorName ?? NOT_AVAILABLE} />
+                  {conn.roaming !== null ? (
+                    <StatRow label="Roaming" value={roamingLabel(conn.roaming) ?? NOT_AVAILABLE} />
+                  ) : null}
                   <StatRow
                     label="Private DNS"
                     value={
                       privateDnsLabel(conn.privateDnsMode, conn.privateDnsHost) ?? NOT_AVAILABLE
                     }
                   />
+                  <StatRow label="IPv4" value={conn.ipv4 ?? NOT_AVAILABLE} />
+                  <StatRow label="IPv6" value={conn.ipv6 ?? NOT_AVAILABLE} />
                   <StatRow
-                    label="Local IP"
-                    value={formatIp(conn.ipv4, conn.ipv6) ?? NOT_AVAILABLE}
+                    label="Subnet"
+                    value={formatSubnet(conn.subnetPrefix) ?? NOT_AVAILABLE}
                   />
                   <StatRow label="Gateway" value={conn.gateway ?? NOT_AVAILABLE} />
                   <StatRow label="DNS" value={formatDnsServers(conn.dnsServers) ?? NOT_AVAILABLE} />
+                  <StatRow
+                    label="Proxy"
+                    value={proxyLabel(conn.proxyHost, conn.proxyPort, conn.proxyPacUrl) ?? 'None'}
+                  />
                 </>
               ) : (
                 <Text style={[styles.unavailableTitle, { color: colors.text }]}>
@@ -184,19 +281,20 @@ export function NetworkScreen() {
 
           <AdSlot placement="network-connection" />
 
+          <SectionHeader
+            title="Wi-Fi"
+            action={
+              wifiValue ? (
+                <Chip
+                  label={wifiValue.enabled === null ? 'Unknown' : wifiValue.enabled ? 'On' : 'Off'}
+                  dotColor={wifiValue.enabled ? colors.good : undefined}
+                />
+              ) : undefined
+            }
+            onInfo={() => setSectionSheet('wifi')}
+          />
           <Card>
             <View style={styles.cardBody}>
-              <View style={styles.cardHead}>
-                <Text style={[styles.sectionTitle, { color: colors.muted }]}>Wi-Fi</Text>
-                {wifiValue ? (
-                  <Chip
-                    label={
-                      wifiValue.enabled === null ? 'Unknown' : wifiValue.enabled ? 'On' : 'Off'
-                    }
-                    dotColor={wifiValue.enabled ? colors.good : undefined}
-                  />
-                ) : null}
-              </View>
               {showWifiBanner ? (
                 <PermissionBanner
                   icon="wifi"
@@ -212,9 +310,19 @@ export function NetworkScreen() {
                 value={formatLinkSpeed(wifiValue?.linkSpeedMbps ?? null) ?? NOT_AVAILABLE}
               />
               <StatRow
+                label="Link speed (TX / RX)"
+                value={
+                  formatTxRxSpeeds(
+                    wifiValue?.txLinkSpeedMbps ?? null,
+                    wifiValue?.rxLinkSpeedMbps ?? null,
+                  ) ?? NOT_AVAILABLE
+                }
+              />
+              <StatRow
                 label="Band & channel"
                 value={wifiBandAndChannelLabel(wifiValue?.frequencyMhz ?? null) ?? NOT_AVAILABLE}
               />
+              <StatRow label="Channel width" value={channelWidthValue} />
               <StatRow
                 label="Standard"
                 value={wifiStandardLabel(wifiValue?.standardCode ?? null) ?? NOT_AVAILABLE}
@@ -242,9 +350,9 @@ export function NetworkScreen() {
             </View>
           </Card>
 
+          <SectionHeader title="Bluetooth & NFC" onInfo={() => setSectionSheet('radios')} />
           <Card>
             <View style={styles.cardBody}>
-              <Text style={[styles.sectionTitle, { color: colors.muted }]}>Bluetooth & NFC</Text>
               {showBluetoothBanner ? (
                 <PermissionBanner
                   icon="bluetooth"
@@ -272,9 +380,27 @@ export function NetworkScreen() {
             </View>
           </Card>
 
+          <SectionHeader title="Explore" />
+          {explore.map((target) => (
+            <Card key={target.title} onPress={target.onPress}>
+              <View style={styles.linkRow}>
+                <View
+                  style={[styles.linkBadge, { backgroundColor: withAlpha(colors.accent, 0.12) }]}
+                >
+                  <Icon name={target.icon} size={20} color={colors.accent} />
+                </View>
+                <View style={styles.linkLabels}>
+                  <Text style={[styles.linkTitle, { color: colors.text }]}>{target.title}</Text>
+                  <Text style={[styles.caption, { color: colors.muted }]}>{target.subtitle}</Text>
+                </View>
+                <Icon name="chevron-right" size={20} color={colors.muted} />
+              </View>
+            </Card>
+          ))}
+
+          <SectionHeader title="Shortcuts" onInfo={() => setSectionSheet('shortcuts')} />
           <Card>
             <View style={styles.cardBody}>
-              <Text style={[styles.sectionTitle, { color: colors.muted }]}>Shortcuts</Text>
               <View style={styles.actions}>
                 <Button
                   title="Bluetooth settings"
@@ -336,6 +462,15 @@ export function NetworkScreen() {
         }}
         onCancel={() => setSettingsDialog(null)}
       />
+
+      {sectionSheet !== null ? (
+        <InfoSheet
+          visible
+          title={SHEETS[sectionSheet].title}
+          paragraphs={SHEETS[sectionSheet].paragraphs}
+          onClose={() => setSectionSheet(null)}
+        />
+      ) : null}
     </Screen>
   );
 }
@@ -364,18 +499,6 @@ const styles = StyleSheet.create({
   },
   cardBody: {
     gap: spacing.sm,
-  },
-  cardHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  sectionTitle: {
-    ...typography.caption,
-    fontFamily: 'Inter_600SemiBold',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
   },
   caption: {
     ...typography.caption,
@@ -407,5 +530,25 @@ const styles = StyleSheet.create({
   actions: {
     gap: spacing.sm,
     paddingTop: spacing.sm,
+  },
+  linkRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  linkBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.button,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  linkLabels: {
+    flex: 1,
+    gap: 2,
+  },
+  linkTitle: {
+    ...typography.body,
+    fontFamily: 'Inter_600SemiBold',
   },
 });

@@ -11,9 +11,12 @@ describe('features', () => {
     expect(isEnabled(features.usageInsights)).toBe(true);
   });
 
+  it('enables the Wi-Fi analyzer from phase 13D', () => {
+    expect(isEnabled(features.nearbyWifi)).toBe(true);
+  });
+
   it('keeps V2 features disabled for V1', () => {
     expect(isEnabled(features.speedTest)).toBe(false);
-    expect(isEnabled(features.nearbyWifi)).toBe(false);
     expect(isEnabled(features.nfcTools)).toBe(false);
     expect(isEnabled(features.localHistory)).toBe(false);
     expect(isEnabled(features.pdfReport)).toBe(false);

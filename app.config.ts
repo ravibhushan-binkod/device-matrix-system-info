@@ -32,7 +32,8 @@ const config: ExpoConfig = {
       'android.permission.VIBRATE',
       'android.permission.NFC',
       // Runtime/optional — only requested when the matching feature is used.
-      'android.permission.ACCESS_FINE_LOCATION', // Wi-Fi network name (SSID)
+      'android.permission.ACCESS_FINE_LOCATION', // Wi-Fi name (SSID) + nearby-network scan
+      'android.permission.NEARBY_WIFI_DEVICES', // Wi-Fi scan list on Android 13+
       'android.permission.BLUETOOTH_CONNECT', // Bluetooth state on Android 12+
       // Special access, granted by the user under Settings > Special access >
       // Usage access — only the Apps tab's usage insights read it, and the tab

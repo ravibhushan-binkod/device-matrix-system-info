@@ -1,11 +1,18 @@
 import {
   getBluetoothInfo,
+  getConnectivityCapabilities,
   getConnectivityInfo,
+  getDataUsage,
+  getDataUsageTopApps,
   getNfcInfo,
   getWifiInfo,
+  hasUsageAccess,
   type BluetoothInfo,
   type ConnectionType,
+  type ConnectivityCapabilities,
   type ConnectivityInfo,
+  type DataUsage,
+  type DataUsageTopApps,
   type NfcInfo,
   type PrivateDnsMode,
   type WifiInfo,
@@ -27,6 +34,30 @@ export function readBluetooth(): Result<BluetoothInfo> {
 
 export function readNfc(): Result<NfcInfo> {
   return getNfcInfo();
+}
+
+/** The Wi-Fi/Bluetooth capability flags plus the full system feature list. */
+export function readConnectivityCapabilities(): Result<ConnectivityCapabilities> {
+  return getConnectivityCapabilities();
+}
+
+/** Whether Usage Access is granted (Settings > Special app access). */
+export function readUsageAccess(): Result<boolean> {
+  return hasUsageAccess();
+}
+
+/** Wi-Fi/mobile traffic per bucket for a range; needs Usage Access. */
+export function readDataUsage(
+  startMs: number,
+  endMs: number,
+  bucketMs: number,
+): Promise<Result<DataUsage>> {
+  return getDataUsage(startMs, endMs, bucketMs);
+}
+
+/** Per-app traffic totals for a range; needs Usage Access. */
+export function readTopApps(startMs: number, endMs: number): Promise<Result<DataUsageTopApps>> {
+  return getDataUsageTopApps(startMs, endMs);
 }
 
 const CONNECTION_LABELS: Record<ConnectionType, string> = {
@@ -76,6 +107,61 @@ export function formatIp(ipv4: string | null, ipv6: string | null): string | nul
   return ipv6;
 }
 
+/** The IPv4 subnet mask for a prefix length, e.g. 24 → "255.255.255.0 (/24)". */
+export function formatSubnet(prefixLength: number | null): string | null {
+  if (prefixLength === null || !Number.isInteger(prefixLength)) return null;
+  if (prefixLength < 0 || prefixLength > 32) return null;
+  const mask = prefixLength === 0 ? 0 : (0xffffffff << (32 - prefixLength)) >>> 0;
+  const text = [24, 16, 8, 0].map((shift) => (mask >>> shift) & 0xff).join('.');
+  return `${text} (/ ${prefixLength})`;
+}
+
+/** A manually set proxy; PAC takes precedence in the string when both exist. */
+export function proxyLabel(
+  host: string | null,
+  port: number | null,
+  pacUrl: string | null,
+): string | null {
+  if (pacUrl) return `PAC · ${pacUrl}`;
+  if (!host) return null;
+  return port ? `${host}:${port}` : host;
+}
+
+/** "866 / 866 Mbps" (TX / RX); a missing side reads "—". */
+export function formatTxRxSpeeds(tx: number | null, rx: number | null): string | null {
+  if (tx === null && rx === null) return null;
+  const left = tx === null ? '—' : String(tx);
+  const right = rx === null ? '—' : String(rx);
+  return `${left} / ${right} Mbps`;
+}
+
+/** `ScanResult.CHANNEL_WIDTH_*` code → label. */
+export function wifiChannelWidthLabel(code: number | null): string | null {
+  if (code === null) return null;
+  switch (code) {
+    case 0:
+      return '20 MHz';
+    case 1:
+      return '40 MHz';
+    case 2:
+      return '80 MHz';
+    case 3:
+      return '160 MHz';
+    case 4:
+      return '80 + 80 MHz';
+    case 5:
+      return '320 MHz';
+    default:
+      return null;
+  }
+}
+
+/** Roaming wording for a cellular connection. */
+export function roamingLabel(roaming: boolean | null): string | null {
+  if (roaming === null) return null;
+  return roaming ? 'Roaming' : 'Not roaming';
+}
+
 export function formatDnsServers(servers: readonly string[]): string | null {
   const list = servers.map((server) => server.trim()).filter((server) => server.length > 0);
   return list.length > 0 ? list.join(' · ') : null;
@@ -86,13 +172,19 @@ export function formatLinkSpeed(mbps: number | null): string | null {
   return `${mbps} Mbps`;
 }
 
+/** 2.4 / 5 / 6 GHz discriminant for a Wi-Fi centre frequency. */
+export function wifiBand(frequencyMhz: number | null): '2.4' | '5' | '6' | null {
+  if (frequencyMhz === null || frequencyMhz <= 0) return null;
+  if (frequencyMhz >= 2400 && frequencyMhz < 2500) return '2.4';
+  if (frequencyMhz >= 4900 && frequencyMhz < 5925) return '5';
+  if (frequencyMhz >= 5925 && frequencyMhz <= 7125) return '6';
+  return null;
+}
+
 /** 2.4 / 5 / 6 GHz label for a Wi-Fi centre frequency. */
 export function wifiBandLabel(frequencyMhz: number | null): string | null {
-  if (frequencyMhz === null || frequencyMhz <= 0) return null;
-  if (frequencyMhz >= 2400 && frequencyMhz < 2500) return '2.4 GHz';
-  if (frequencyMhz >= 4900 && frequencyMhz < 5925) return '5 GHz';
-  if (frequencyMhz >= 5925 && frequencyMhz <= 7125) return '6 GHz';
-  return null;
+  const band = wifiBand(frequencyMhz);
+  return band === null ? null : `${band} GHz`;
 }
 
 /** Wi-Fi channel number for a centre frequency (2.4/5/6 GHz rules). */
