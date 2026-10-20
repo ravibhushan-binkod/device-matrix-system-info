@@ -82,10 +82,32 @@ class SensorExtModule : Module() {
         "resolution" to sensor.resolution.toDouble(),
         "powerMa" to sensor.power.toDouble(),
         "minDelayUs" to sensor.minDelay,
+        "maxDelayUs" to maxDelayUs(sensor),
+        "fifoMaxEventCount" to fifoMaxEventCount(sensor),
+        "fifoReservedEventCount" to fifoReservedEventCount(sensor),
         "isWakeUp" to isWakeUp(sensor),
         "reportingMode" to reportingModeName(sensor)
       )
     }
+  }
+
+  /** `Sensor.getMaxDelay()` is Android 8+; `null` when the platform hides it. */
+  private fun maxDelayUs(sensor: Sensor): Int? = try {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) sensor.maxDelay else null
+  } catch (_: Exception) {
+    null
+  }
+
+  private fun fifoMaxEventCount(sensor: Sensor): Int? = try {
+    sensor.fifoMaxEventCount
+  } catch (_: Exception) {
+    null
+  }
+
+  private fun fifoReservedEventCount(sensor: Sensor): Int? = try {
+    sensor.fifoReservedEventCount
+  } catch (_: Exception) {
+    null
   }
 
   private fun isWakeUp(sensor: Sensor): Boolean = try {

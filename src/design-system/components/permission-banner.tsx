@@ -36,7 +36,12 @@ export function PermissionBanner({ title, message, icon = 'alert', actionLabel, 
         <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
         <Text style={[styles.message, { color: colors.muted }]}>{message}</Text>
         {actionLabel && onAction ? (
-          <PressableScale onPress={onAction} accessibilityRole="button" style={styles.action}>
+          <PressableScale
+            onPress={onAction}
+            accessibilityRole="button"
+            hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+            style={styles.action}
+          >
             <Text style={[styles.actionLabel, { color: colors.warning }]}>{actionLabel}</Text>
           </PressableScale>
         ) : null}

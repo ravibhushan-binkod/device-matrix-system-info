@@ -22,6 +22,11 @@ export type SensorDescriptor = {
   powerMa: number;
   /** Shortest sampling delay in µs; 0 for one-shot sensors. */
   minDelayUs: number;
+  /** Longest sampling delay in µs (Android 8+); `null` when hidden. */
+  maxDelayUs: number | null;
+  /** Hardware FIFO capacity in events; `null` when hidden. */
+  fifoMaxEventCount: number | null;
+  fifoReservedEventCount: number | null;
   isWakeUp: boolean;
   reportingMode: SensorReportingMode | null;
 };
@@ -72,6 +77,9 @@ export function getSensors(): Result<SensorDescriptor[]> {
         resolution: sensor.resolution,
         powerMa: sensor.powerMa,
         minDelayUs: sensor.minDelayUs,
+        maxDelayUs: sensor.maxDelayUs,
+        fifoMaxEventCount: sensor.fifoMaxEventCount,
+        fifoReservedEventCount: sensor.fifoReservedEventCount,
         isWakeUp: sensor.isWakeUp,
         reportingMode:
           sensor.reportingMode != null &&

@@ -25,6 +25,8 @@ type Props = {
   thickness?: number;
   /** Overrides the automatic good → warning → critical colour. */
   color?: string;
+  /** Spoken label for TalkBack; defaults to `label`. */
+  accessibilityLabel?: string;
 };
 
 /**
@@ -32,7 +34,15 @@ type Props = {
  * number in the centre. Colour follows good → warning → critical as the
  * ratio climbs (higher = worse).
  */
-export function Ring({ value, max = 100, label, size = 168, thickness = 14, color }: Props) {
+export function Ring({
+  value,
+  max = 100,
+  label,
+  size = 168,
+  thickness = 14,
+  color,
+  accessibilityLabel,
+}: Props) {
   const { colors } = useTheme();
   const reduced = useReducedMotion();
   const ratio = clamp01(max === 0 ? 0 : value / max);
@@ -85,7 +95,15 @@ export function Ring({ value, max = 100, label, size = 168, thickness = 14, colo
   });
 
   return (
-    <View style={[styles.root, { width: size, height: size }]}>
+    <View
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={accessibilityLabel ?? label ?? 'Gauge'}
+      accessibilityValue={{
+        text: max === 100 ? `${Math.round(value)} percent` : `${Math.round(value)} of ${max}`,
+      }}
+      style={[styles.root, { width: size, height: size }]}
+    >
       <Canvas style={{ width: size, height: size }}>
         <Path
           path={trackPath}

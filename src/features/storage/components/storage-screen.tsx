@@ -1,7 +1,20 @@
+import { useState } from 'react';
 import { Alert, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import { formatByteSize } from '@/core/utils/format-bytes';
-import { AdSlot, Button, Card, Chip, Screen, Skeleton, StatRow } from '@/design-system/components';
+import {
+  AdSlot,
+  Button,
+  Card,
+  Chip,
+  InfoSheet,
+  PermissionBanner,
+  Screen,
+  SectionHeader,
+  Skeleton,
+  StatRow,
+} from '@/design-system/components';
+import { withAlpha } from '@/design-system/color';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
 import { StorageBar } from '@/design-system/visuals';
@@ -10,11 +23,33 @@ import { buildVolumeRows, toStorageOverview } from '@/features/storage/services/
 
 const NOT_AVAILABLE = 'Not available on this device';
 
-/** Storage: usage bar, volume rows and the app-cache tools. */
+const STORAGE_SHEET = {
+  title: 'Storage: what this means',
+  paragraphs: [
+    "The bar uses Android's own numbers: used = total − free. With Usage Access granted, \"apps\" is the sum Android reports for every installed app, and \"other\" is everything left — system files, media, and data Android does not attribute to an app.",
+    'Media sizes need photo and video access, which Device Matrix does not ask for, so media is counted inside "other".',
+    'The file-system type (f2fs, ext4, erofs…) is read from the kernel mount table when the device allows it.',
+    "Clearing the cache only ever touches this app's own cache folder — never other apps' data.",
+  ],
+};
+
+/** Storage: usage bar, volumes with their file system, and the app-cache tools. */
 export function StorageScreen() {
   const { colors } = useTheme();
-  const { info, cacheSize, clearing, clearCache, notice, openSettings, refreshing, refresh } =
-    useStorage();
+  const {
+    info,
+    cacheSize,
+    clearing,
+    clearCache,
+    notice,
+    openSettings,
+    refreshing,
+    refresh,
+    usageAccess,
+    breakdown,
+    breakdownLoading,
+  } = useStorage();
+  const [sheetVisible, setSheetVisible] = useState(false);
 
   const overview =
     info == null ? null : info.status === 'ok' ? toStorageOverview(info.value) : info;
@@ -50,105 +85,151 @@ export function StorageScreen() {
         <StorageSkeleton />
       ) : (
         <>
-          <Card>
-            <View style={styles.cardBody}>
-              <Text style={[styles.sectionTitle, { color: colors.muted }]}>Internal storage</Text>
-              {overview.status === 'ok' ? (
-                <>
-                  <StorageBar
-                    segments={[
-                      {
-                        key: 'used',
-                        label: 'Used',
-                        value: overview.value.usedBytes,
-                        color: colors.accent,
-                        valueLabel: formatByteSize(overview.value.usedBytes),
-                      },
-                    ]}
-                    total={overview.value.totalBytes}
-                  />
-                  <Text style={[styles.caption, { color: colors.muted }]}>
-                    {Math.round(overview.value.percent)}% used ·{' '}
-                    {formatByteSize(overview.value.totalBytes - overview.value.usedBytes)} free
+          <View style={styles.group}>
+            <SectionHeader title="Internal storage" onInfo={() => setSheetVisible(true)} />
+            <Card>
+              <View style={styles.cardBody}>
+                {overview.status === 'ok' ? (
+                  <>
+                    <StorageBar
+                      segments={
+                        breakdown != null
+                          ? [
+                              {
+                                key: 'apps',
+                                label: 'Apps',
+                                value: breakdown.appsBytes,
+                                color: colors.accent,
+                                valueLabel: formatByteSize(breakdown.appsBytes),
+                              },
+                              {
+                                key: 'other',
+                                label: 'Other',
+                                value: breakdown.otherBytes,
+                                color: withAlpha(colors.accent, 0.4),
+                                valueLabel: formatByteSize(breakdown.otherBytes),
+                              },
+                            ]
+                          : [
+                              {
+                                key: 'used',
+                                label: 'Used',
+                                value: overview.value.usedBytes,
+                                color: colors.accent,
+                                valueLabel: formatByteSize(overview.value.usedBytes),
+                              },
+                            ]
+                      }
+                      total={overview.value.totalBytes}
+                    />
+                    <Text style={[styles.caption, { color: colors.muted }]}>
+                      {Math.round(overview.value.percent)}% used ·{' '}
+                      {formatByteSize(overview.value.totalBytes - overview.value.usedBytes)} free
+                      {overview.value.fsType ? ` · ${overview.value.fsType}` : ''}
+                    </Text>
+                    {breakdownLoading && breakdown == null ? (
+                      <Text style={[styles.caption, { color: colors.muted }]}>
+                        Reading app sizes…
+                      </Text>
+                    ) : null}
+                  </>
+                ) : (
+                  <Text style={[styles.unavailableTitle, { color: colors.text }]}>
+                    {overview.status === 'unavailable' ? NOT_AVAILABLE : 'Permission needed.'}
                   </Text>
-                </>
-              ) : (
-                <Text style={[styles.unavailableTitle, { color: colors.text }]}>
-                  {overview.status === 'unavailable' ? NOT_AVAILABLE : 'Permission needed.'}
-                </Text>
-              )}
-            </View>
-          </Card>
-
-          <AdSlot />
-
-          <Card>
-            <View style={styles.cardBody}>
-              <Text style={[styles.sectionTitle, { color: colors.muted }]}>Volumes</Text>
-              {volumes.length > 0 ? (
-                volumes.map((volume) => (
-                  <View key={volume.key} style={styles.volumeRow}>
-                    <View style={styles.volumeLabels}>
-                      <Text numberOfLines={1} style={[styles.volumeLabel, { color: colors.text }]}>
-                        {volume.label}
-                      </Text>
-                      <Text numberOfLines={1} style={[styles.caption, { color: colors.muted }]}>
-                        {volume.value ?? NOT_AVAILABLE}
-                      </Text>
-                    </View>
-                    {volume.removable ? <Chip label="Removable" /> : null}
-                  </View>
-                ))
-              ) : (
-                <Text style={[styles.unavailableTitle, { color: colors.text }]}>
-                  {NOT_AVAILABLE}
-                </Text>
-              )}
-            </View>
-          </Card>
-
-          <Card>
-            <View style={styles.cardBody}>
-              <Text style={[styles.sectionTitle, { color: colors.muted }]}>Tools</Text>
-              <StatRow
-                label="This app's cache"
-                value={
-                  cacheSize == null
-                    ? NOT_AVAILABLE
-                    : cacheSize.status === 'ok'
-                      ? formatByteSize(cacheSize.value)
-                      : NOT_AVAILABLE
-                }
-                copyable={false}
-              />
-              <View style={styles.actions}>
-                <Button
-                  title="Clear app cache"
-                  icon="storage"
-                  variant="secondary"
-                  disabled={clearing}
-                  onPress={confirmClear}
-                />
-                <Button
-                  title="Open storage settings"
-                  icon="settings"
-                  variant="secondary"
-                  onPress={() => openSettings('storage')}
-                />
-                <Button
-                  title="Free up space (system)"
-                  icon="storage"
-                  variant="secondary"
-                  onPress={() => openSettings('storage-manager')}
-                />
+                )}
               </View>
-              {notice ? (
-                <Text style={[styles.caption, { color: colors.muted }]}>{notice}</Text>
-              ) : null}
-            </View>
-          </Card>
+            </Card>
+            {overview.status === 'ok' && usageAccess === false ? (
+              <PermissionBanner
+                title="See the apps / other / free split"
+                message="Usage access lets Android report how much space each app uses. Media sizes are not included — Device Matrix does not ask for photo or video access."
+                actionLabel="Grant usage access"
+                onAction={() => openSettings('usage-access')}
+              />
+            ) : null}
+          </View>
+
+          <AdSlot placement="storage-top" />
+
+          <View style={styles.group}>
+            <SectionHeader title="Volumes" onInfo={() => setSheetVisible(true)} />
+            <Card>
+              <View style={styles.cardBody}>
+                {volumes.length > 0 ? (
+                  volumes.map((volume) => (
+                    <View key={volume.key} style={styles.volumeRow}>
+                      <View style={styles.volumeLabels}>
+                        <Text numberOfLines={1} style={[styles.volumeLabel, { color: colors.text }]}>
+                          {volume.label}
+                        </Text>
+                        <Text numberOfLines={1} style={[styles.caption, { color: colors.muted }]}>
+                          {volume.value ?? NOT_AVAILABLE}
+                        </Text>
+                      </View>
+                      {volume.removable ? <Chip label="Removable" /> : null}
+                    </View>
+                  ))
+                ) : (
+                  <Text style={[styles.unavailableTitle, { color: colors.text }]}>
+                    {NOT_AVAILABLE}
+                  </Text>
+                )}
+              </View>
+            </Card>
+          </View>
+
+          <View style={styles.group}>
+            <SectionHeader title="Tools" onInfo={() => setSheetVisible(true)} />
+            <Card>
+              <View style={styles.cardBody}>
+                <StatRow
+                  label="This app's cache"
+                  value={
+                    cacheSize == null
+                      ? NOT_AVAILABLE
+                      : cacheSize.status === 'ok'
+                        ? formatByteSize(cacheSize.value)
+                        : NOT_AVAILABLE
+                  }
+                  copyable={false}
+                />
+                <View style={styles.actions}>
+                  <Button
+                    title="Clear app cache"
+                    icon="storage"
+                    variant="secondary"
+                    disabled={clearing}
+                    onPress={confirmClear}
+                  />
+                  <Button
+                    title="Open storage settings"
+                    icon="settings"
+                    variant="secondary"
+                    onPress={() => openSettings('storage')}
+                  />
+                  <Button
+                    title="Free up space (system)"
+                    icon="storage"
+                    variant="secondary"
+                    onPress={() => openSettings('storage-manager')}
+                  />
+                </View>
+                {notice ? (
+                  <Text style={[styles.caption, { color: colors.muted }]}>{notice}</Text>
+                ) : null}
+              </View>
+            </Card>
+          </View>
         </>
       )}
+
+      <InfoSheet
+        visible={sheetVisible}
+        title={STORAGE_SHEET.title}
+        paragraphs={[...STORAGE_SHEET.paragraphs]}
+        onClose={() => setSheetVisible(false)}
+      />
     </Screen>
   );
 }
@@ -179,14 +260,11 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     paddingBottom: spacing.xxl,
   },
-  cardBody: {
+  group: {
     gap: spacing.sm,
   },
-  sectionTitle: {
-    ...typography.caption,
-    fontFamily: 'Inter_600SemiBold',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
+  cardBody: {
+    gap: spacing.sm,
   },
   caption: {
     ...typography.caption,

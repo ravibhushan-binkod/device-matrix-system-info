@@ -6,10 +6,16 @@ import android.content.pm.PackageManager
 import android.graphics.Rect
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
+import android.hardware.camera2.CameraMetadata
+import android.media.MediaRecorder
 import android.opengl.EGL14
 import android.opengl.EGLConfig
 import android.opengl.GLES20
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.provider.Settings
 import android.util.DisplayMetrics
 import android.view.Display
@@ -42,6 +48,126 @@ class HardwareExtModule : Module() {
     Function("getCameraInfo") {
       cameraInfo()
     }
+
+    Function("getTorchInfo") {
+      torchInfo()
+    }
+
+    Function("setTorch") { enabled: Boolean ->
+      setTorch(enabled)
+    }
+
+    Function("getVibrationInfo") {
+      vibrationInfo()
+    }
+
+    OnDestroy {
+      unregisterTorchCallback()
+    }
+  }
+
+  private var torchCallback: CameraManager.TorchCallback? = null
+  private var torchCameraId: String? = null
+
+  /** Last state the system reported through the torch callback; `null` while unknown. */
+  private var torchEnabled: Boolean? = null
+
+  /** The first camera with a flash — the one the torch toggle drives. */
+  private fun flashCameraId(manager: CameraManager): String? = try {
+    manager.cameraIdList.firstOrNull { id ->
+      manager.getCameraCharacteristics(id).get(CameraCharacteristics.FLASH_INFO_AVAILABLE) == true
+    }
+  } catch (_: Exception) {
+    null
+  }
+
+  /**
+   * Torch state and availability. No camera permission is needed for the torch;
+   * the state comes from a TorchCallback (which fires once right after it is
+   * registered) so the app never shows a guessed value.
+   */
+  private fun torchInfo(): Map<String, Any?>? {
+    val context = appContext.reactContext ?: return null
+    val manager = context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager
+      ?: return null
+    val cameraId = flashCameraId(manager)
+    if (cameraId == null) {
+      return mapOf("available" to false, "enabled" to null)
+    }
+    ensureTorchCallback(manager, cameraId)
+    return mapOf("available" to true, "enabled" to torchEnabled)
+  }
+
+  private fun ensureTorchCallback(manager: CameraManager, cameraId: String) {
+    if (torchCallback != null) return
+    torchCameraId = cameraId
+    val callback = object : CameraManager.TorchCallback() {
+      override fun onTorchModeChanged(changedId: String, enabled: Boolean) {
+        if (changedId == torchCameraId) {
+          torchEnabled = enabled
+        }
+      }
+
+      override fun onTorchModeUnavailable(changedId: String) {
+        if (changedId == torchCameraId) {
+          torchEnabled = null
+        }
+      }
+    }
+    try {
+      manager.registerTorchCallback(callback, Handler(Looper.getMainLooper()))
+      torchCallback = callback
+    } catch (_: Exception) {
+      torchCameraId = null
+    }
+  }
+
+  private fun unregisterTorchCallback() {
+    val callback = torchCallback ?: return
+    torchCallback = null
+    val context = appContext.reactContext ?: return
+    val manager = context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager ?: return
+    try {
+      manager.unregisterTorchCallback(callback)
+    } catch (_: Exception) {
+      // The module is going away; Android drops the callback with it.
+    }
+  }
+
+  /** Switches the torch; the wrapper turns a failure into an honest "not available". */
+  private fun setTorch(enabled: Boolean): Map<String, Any?> {
+    val context = appContext.reactContext
+      ?: return mapOf("ok" to false, "reason" to "failed")
+    val manager = context.getSystemService(Context.CAMERA_SERVICE) as? CameraManager
+      ?: return mapOf("ok" to false, "reason" to "failed")
+    val cameraId = torchCameraId ?: flashCameraId(manager)
+      ?: return mapOf("ok" to false, "reason" to "unavailable")
+    ensureTorchCallback(manager, cameraId)
+    return try {
+      manager.setTorchMode(cameraId, enabled)
+      mapOf("ok" to true, "reason" to null)
+    } catch (_: SecurityException) {
+      mapOf("ok" to false, "reason" to "blocked")
+    } catch (_: Exception) {
+      mapOf("ok" to false, "reason" to "failed")
+    }
+  }
+
+  @Suppress("DEPRECATION")
+  private fun vibrationInfo(): Map<String, Any?> {
+    val context = appContext.reactContext ?: return mapOf("hasVibrator" to false)
+    val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+      (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)
+        ?.defaultVibrator
+    } else {
+      context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+    }
+    val hasVibrator = try {
+      vibrator?.hasVibrator() ?: false
+    } catch (_: Exception) {
+      false
+    }
+    return mapOf("hasVibrator" to hasVibrator)
   }
 
   private fun cpuInfo(): Map<String, Any?> {
@@ -58,10 +184,14 @@ class HardwareExtModule : Module() {
 
     val cores = cpuNumbers?.size ?: Runtime.getRuntime().availableProcessors()
     val frequencies = (cpuNumbers ?: (0 until cores)).map { cpu ->
+      val base = "/sys/devices/system/cpu/cpu$cpu/cpufreq"
       mapOf(
         "index" to cpu,
-        "currentKhz" to readLong("/sys/devices/system/cpu/cpu$cpu/cpufreq/scaling_cur_freq"),
-        "maxKhz" to readLong("/sys/devices/system/cpu/cpu$cpu/cpufreq/cpuinfo_max_freq")
+        "currentKhz" to readFrequencyKhz("$base/scaling_cur_freq"),
+        "minKhz" to (readFrequencyKhz("$base/cpuinfo_min_freq")
+          ?: readFrequencyKhz("$base/scaling_min_freq")),
+        "maxKhz" to readFrequencyKhz("$base/cpuinfo_max_freq"),
+        "governor" to readText("$base/scaling_governor")
       )
     }
 
@@ -93,6 +223,21 @@ class HardwareExtModule : Module() {
     null
   }
 
+  /**
+   * cpufreq files report kHz. A few kernels (the emulator does this) write
+   * placeholder values like 1 or 2, so anything outside 100 MHz – 10 GHz is
+   * treated as "not reported" instead of being shown as a nonsensical speed.
+   */
+  private fun readFrequencyKhz(path: String): Long? =
+    readLong(path)?.takeIf { it in 100_000..10_000_000 }
+
+  /** Same idea for cpufreq strings (the governor name); blocked reads stay null. */
+  private fun readText(path: String): String? = try {
+    File(path).readText().trim().takeIf { it.isNotEmpty() }
+  } catch (_: Exception) {
+    null
+  }
+
   private fun gpuInfo(): Map<String, Any?>? {
     val context = appContext.reactContext ?: return null
 
@@ -105,12 +250,15 @@ class HardwareExtModule : Module() {
       null
     }
 
+    val vulkanVersion = vulkanVersion(context)
     return mapOf(
       "renderer" to gl.first,
       "vendor" to gl.second,
       "glVersion" to gl.third,
       "glEsVersion" to glEsVersion,
-      "vulkanVersion" to vulkanVersion(context)
+      "vulkanVersion" to vulkanVersion,
+      "vulkanLevel" to (if (vulkanVersion == null) null else vulkanFeatureVersion(context, "android.hardware.vulkan.level")),
+      "vulkanCompute" to (if (vulkanVersion == null) null else hasFeature(context, PackageManager.FEATURE_VULKAN_HARDWARE_COMPUTE))
     )
   }
 
@@ -189,6 +337,7 @@ class HardwareExtModule : Module() {
     return Triple(renderer, vendor, glVersion)
   }
 
+  /** Vulkan API version from the system feature, e.g. "1.3" or "1.3.1". */
   private fun vulkanVersion(context: Context): String? {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return null
     return try {
@@ -199,10 +348,26 @@ class HardwareExtModule : Module() {
       if (version <= 0) return null
       val major = version ushr 22
       val minor = (version ushr 12) and 0x3FF
-      if (major == 0) null else "$major.$minor"
+      val patch = version and 0xFFF
+      if (major == 0) null else if (patch > 0) "$major.$minor.$patch" else "$major.$minor"
     } catch (_: Exception) {
       null
     }
+  }
+
+  /** Version integer of a system feature (e.g. the Vulkan hardware level). */
+  private fun vulkanFeatureVersion(context: Context, featureName: String): Int? = try {
+    val feature = context.packageManager.systemAvailableFeatures
+      ?.firstOrNull { it.name == featureName }
+    feature?.version?.takeIf { it > 0 }
+  } catch (_: Exception) {
+    null
+  }
+
+  private fun hasFeature(context: Context, featureName: String): Boolean? = try {
+    context.packageManager.hasSystemFeature(featureName)
+  } catch (_: Exception) {
+    null
   }
 
   @Suppress("DEPRECATION")
@@ -307,6 +472,16 @@ class HardwareExtModule : Module() {
       null
     }
 
+    val isWideColorGamut = if (display != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      try {
+        display.isWideColorGamut
+      } catch (_: Exception) {
+        null
+      }
+    } else {
+      null
+    }
+
     return mapOf(
       "widthPx" to widthPx,
       "heightPx" to heightPx,
@@ -318,9 +493,57 @@ class HardwareExtModule : Module() {
       "supportedModes" to modes,
       "isHdr" to isHdr,
       "hdrTypes" to hdrTypes,
+      "isWideColorGamut" to isWideColorGamut,
+      "cutout" to cutoutInfo(context, windowManager, display),
       "brightness" to brightness,
       "brightnessMode" to brightnessMode,
       "screenTimeoutMs" to screenTimeoutMs
+    )
+  }
+
+  /**
+   * Display cutout presence and safe insets. `WindowManager.maximumWindowMetrics`
+   * (Android 11+) is preferred; `Display.getCutout()` (Android 10) is the fallback.
+   * `null` means the value is not available on this Android version or blocked.
+   */
+  private fun cutoutInfo(
+    context: Context,
+    windowManager: WindowManager,
+    display: Display?
+  ): Map<String, Any?>? {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return null
+    val cutout = try {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        windowManager.maximumWindowMetrics.windowInsets.displayCutout
+      } else {
+        display?.cutout
+      }
+    } catch (_: Exception) {
+      null
+    }
+
+    if (cutout == null) {
+      // No insets source on this Android version — an honest "not readable".
+      return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        mapOf(
+          "hasCutout" to false,
+          "safeInsetTopPx" to 0,
+          "safeInsetBottomPx" to 0,
+          "safeInsetLeftPx" to 0,
+          "safeInsetRightPx" to 0
+        )
+      } else {
+        null
+      }
+    }
+
+    return mapOf(
+      "hasCutout" to (cutout.boundingRects.isNotEmpty() || cutout.safeInsetTop > 0 ||
+        cutout.safeInsetBottom > 0 || cutout.safeInsetLeft > 0 || cutout.safeInsetRight > 0),
+      "safeInsetTopPx" to cutout.safeInsetTop,
+      "safeInsetBottomPx" to cutout.safeInsetBottom,
+      "safeInsetLeftPx" to cutout.safeInsetLeft,
+      "safeInsetRightPx" to cutout.safeInsetRight
     )
   }
 
@@ -361,10 +584,15 @@ class HardwareExtModule : Module() {
       else -> "unknown"
     }
 
+    val activeArray: Rect? = try {
+      characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE)
+    } catch (_: Exception) {
+      null
+    }
+
     val megapixels = try {
-      val size: Rect? = characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE)
-      if (size != null && size.width() > 0 && size.height() > 0) {
-        size.width().toDouble() * size.height().toDouble() / 1_000_000.0
+      if (activeArray != null && activeArray.width() > 0 && activeArray.height() > 0) {
+        activeArray.width().toDouble() * activeArray.height().toDouble() / 1_000_000.0
       } else {
         null
       }
@@ -372,19 +600,93 @@ class HardwareExtModule : Module() {
       null
     }
 
-    val aperture = try {
-      characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES)
-        ?.firstOrNull()
-        ?.toDouble()
+    val physicalSize = try {
+      characteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE)
     } catch (_: Exception) {
       null
     }
 
-    val focalLength = try {
-      characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)
-        ?.firstOrNull()
-        ?.toDouble()
+    val apertures = try {
+      characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES)?.map { it.toDouble() }
     } catch (_: Exception) {
+      null
+    }
+
+    val focalLengths = try {
+      characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)
+        ?.map { it.toDouble() }
+    } catch (_: Exception) {
+      null
+    }
+
+    val isoRange = try {
+      characteristics.get(CameraCharacteristics.SENSOR_INFO_SENSITIVITY_RANGE)
+    } catch (_: Exception) {
+      null
+    }
+
+    val exposureRange = try {
+      characteristics.get(CameraCharacteristics.SENSOR_INFO_EXPOSURE_TIME_RANGE)
+    } catch (_: Exception) {
+      null
+    }
+
+    val minFocusDistance = try {
+      characteristics.get(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE)?.toDouble()
+    } catch (_: Exception) {
+      null
+    }
+
+    val maxDigitalZoom = try {
+      characteristics.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM)?.toDouble()
+    } catch (_: Exception) {
+      null
+    }
+
+    val rawSupport = try {
+      characteristics.get(CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES)
+        ?.contains(CameraMetadata.REQUEST_AVAILABLE_CAPABILITIES_RAW)
+    } catch (_: Exception) {
+      null
+    }
+
+    val videoSizes = try {
+      val streamMap = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP)
+      streamMap?.getOutputSizes(MediaRecorder::class.java)?.map { size ->
+        mapOf("widthPx" to size.width, "heightPx" to size.height)
+      }
+    } catch (_: Exception) {
+      null
+    }
+
+    val fpsRanges = try {
+      characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES)?.map { range ->
+        mapOf("minFps" to range.lower, "maxFps" to range.upper)
+      }
+    } catch (_: Exception) {
+      null
+    }
+
+    val hardwareLevel = try {
+      when (characteristics.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL)) {
+        CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY -> "legacy"
+        CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LIMITED -> "limited"
+        CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_FULL -> "full"
+        CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_3 -> "level3"
+        CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_EXTERNAL -> "external"
+        else -> null
+      }
+    } catch (_: Exception) {
+      null
+    }
+
+    val physicalCameraIds = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+      try {
+        characteristics.physicalCameraIds.toList()
+      } catch (_: Exception) {
+        null
+      }
+    } else {
       null
     }
 
@@ -420,8 +722,25 @@ class HardwareExtModule : Module() {
       "id" to id,
       "facing" to facing,
       "megapixels" to megapixels,
-      "aperture" to aperture,
-      "focalLengthMm" to focalLength,
+      "sensorWidthPx" to activeArray?.width(),
+      "sensorHeightPx" to activeArray?.height(),
+      "sensorPhysicalWidthMm" to physicalSize?.width?.toDouble(),
+      "sensorPhysicalHeightMm" to physicalSize?.height?.toDouble(),
+      "aperture" to apertures?.firstOrNull(),
+      "apertures" to apertures,
+      "focalLengthMm" to focalLengths?.firstOrNull(),
+      "focalLengthsMm" to focalLengths,
+      "isoMin" to isoRange?.lower,
+      "isoMax" to isoRange?.upper,
+      "exposureMinNs" to exposureRange?.lower?.toDouble(),
+      "exposureMaxNs" to exposureRange?.upper?.toDouble(),
+      "minFocusDistance" to minFocusDistance,
+      "maxDigitalZoom" to maxDigitalZoom,
+      "rawSupport" to rawSupport,
+      "videoSizes" to videoSizes,
+      "fpsRanges" to fpsRanges,
+      "hardwareLevel" to hardwareLevel,
+      "physicalCameraIds" to physicalCameraIds,
       "flash" to flash,
       "opticalStabilization" to opticalStabilization,
       "videoStabilization" to videoStabilization

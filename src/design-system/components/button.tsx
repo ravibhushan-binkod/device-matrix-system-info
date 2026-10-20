@@ -32,7 +32,7 @@ export function Button({
     variant === 'primary' ? colors.onPrimary : variant === 'ghost' ? colors.primary : colors.text;
   const background =
     variant === 'primary'
-      ? colors.primary
+      ? colors.primarySolid
       : variant === 'secondary'
         ? colors.surface2
         : 'transparent';

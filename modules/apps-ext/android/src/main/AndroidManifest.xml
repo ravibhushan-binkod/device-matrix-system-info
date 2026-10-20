@@ -1,0 +1,13 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!--
+    Package visibility: Device Matrix sees only the apps that handle the
+    launcher intent — never the whole device. QUERY_ALL_PACKAGES stays blocked
+    in app.config.ts; this <queries> entry is exactly what the Apps tab needs.
+  -->
+  <queries>
+    <intent>
+      <action android:name="android.intent.action.MAIN" />
+      <category android:name="android.intent.category.LAUNCHER" />
+    </intent>
+  </queries>
+</manifest>

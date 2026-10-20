@@ -3,24 +3,34 @@ import {
   formatDnsServers,
   formatIp,
   formatLinkSpeed,
+  formatSubnet,
+  formatTxRxSpeeds,
   onOffLabel,
   privateDnsLabel,
+  proxyLabel,
+  roamingLabel,
   signalBarsFromDbm,
   signalQualityLabel,
   signalSummary,
   supportLabel,
   vpnLabel,
+  wifiBand,
   wifiBandAndChannelLabel,
   wifiBandLabel,
   wifiChannel,
+  wifiChannelWidthLabel,
   wifiStandardLabel,
 } from '@/features/network/services/network-service';
 
 jest.mock('@/core/native', () => ({
   getBluetoothInfo: jest.fn(),
+  getConnectivityCapabilities: jest.fn(),
   getConnectivityInfo: jest.fn(),
+  getDataUsage: jest.fn(),
+  getDataUsageTopApps: jest.fn(),
   getNfcInfo: jest.fn(),
   getWifiInfo: jest.fn(),
+  hasUsageAccess: jest.fn(),
 }));
 
 describe('connection labels', () => {
@@ -130,5 +140,57 @@ describe('supportLabel', () => {
   it('labels capability flags', () => {
     expect(supportLabel(true)).toBe('Supported');
     expect(supportLabel(false)).toBe('No');
+  });
+});
+
+describe('phase 13D formatters', () => {
+  it('turns a prefix length into a subnet mask', () => {
+    expect(formatSubnet(24)).toBe('255.255.255.0 (/ 24)');
+    expect(formatSubnet(16)).toBe('255.255.0.0 (/ 16)');
+    expect(formatSubnet(0)).toBe('0.0.0.0 (/ 0)');
+    expect(formatSubnet(32)).toBe('255.255.255.255 (/ 32)');
+    expect(formatSubnet(33)).toBeNull();
+    expect(formatSubnet(24.5)).toBeNull();
+    expect(formatSubnet(null)).toBeNull();
+  });
+
+  it('labels a manual proxy and lets a PAC URL win', () => {
+    expect(proxyLabel('10.0.0.2', 8080, null)).toBe('10.0.0.2:8080');
+    expect(proxyLabel('10.0.0.2', null, null)).toBe('10.0.0.2');
+    expect(proxyLabel(null, null, 'https://pac.example/proxy.pac')).toBe(
+      'PAC · https://pac.example/proxy.pac',
+    );
+    expect(proxyLabel(null, null, null)).toBeNull();
+  });
+
+  it('formats the transmit and receive link speeds', () => {
+    expect(formatTxRxSpeeds(866, 780)).toBe('866 / 780 Mbps');
+    expect(formatTxRxSpeeds(null, 780)).toBe('— / 780 Mbps');
+    expect(formatTxRxSpeeds(null, null)).toBeNull();
+  });
+
+  it('labels every ScanResult channel width', () => {
+    expect(wifiChannelWidthLabel(0)).toBe('20 MHz');
+    expect(wifiChannelWidthLabel(1)).toBe('40 MHz');
+    expect(wifiChannelWidthLabel(2)).toBe('80 MHz');
+    expect(wifiChannelWidthLabel(3)).toBe('160 MHz');
+    expect(wifiChannelWidthLabel(4)).toBe('80 + 80 MHz');
+    expect(wifiChannelWidthLabel(5)).toBe('320 MHz');
+    expect(wifiChannelWidthLabel(9)).toBeNull();
+    expect(wifiChannelWidthLabel(null)).toBeNull();
+  });
+
+  it('says whether a mobile connection is roaming', () => {
+    expect(roamingLabel(true)).toBe('Roaming');
+    expect(roamingLabel(false)).toBe('Not roaming');
+    expect(roamingLabel(null)).toBeNull();
+  });
+
+  it('returns the band key for a frequency', () => {
+    expect(wifiBand(2437)).toBe('2.4');
+    expect(wifiBand(5180)).toBe('5');
+    expect(wifiBand(6115)).toBe('6');
+    expect(wifiBand(900)).toBeNull();
+    expect(wifiBand(null)).toBeNull();
   });
 });

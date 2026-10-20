@@ -8,6 +8,8 @@ export type AppColors = {
   glassFrom: string;
   glassTo: string;
   primary: string;
+  /** Solid primary fill; always readable with `onPrimary` text on top. */
+  primarySolid: string;
   onPrimary: string;
   accent: string;
   violet: string;
@@ -22,6 +24,7 @@ export type AppColors = {
  * Dark-first palette (base colours per the design brief).
  * `border`, `glassFrom`, `glassTo` and `onPrimary` are derived helper tokens
  * used by the glass cards, hairline dividers and coloured buttons.
+ * Text pairs are checked for ≥ 4.5:1 contrast (WCAG AA) in both schemes.
  */
 export const palettes: Record<ColorScheme, AppColors> = {
   dark: {
@@ -32,9 +35,10 @@ export const palettes: Record<ColorScheme, AppColors> = {
     glassFrom: 'rgba(232,238,245,0.055)',
     glassTo: 'rgba(232,238,245,0.02)',
     primary: '#4F8CFF',
+    primarySolid: '#3B6FE0',
     onPrimary: '#FFFFFF',
     accent: '#22D3EE',
-    violet: '#8B5CF6',
+    violet: '#A78BFA',
     good: '#22C55E',
     warning: '#F59E0B',
     critical: '#EF4444',
@@ -48,26 +52,31 @@ export const palettes: Record<ColorScheme, AppColors> = {
     border: 'rgba(17,24,39,0.10)',
     glassFrom: 'rgba(255,255,255,0.92)',
     glassTo: 'rgba(255,255,255,0.55)',
-    primary: '#4F8CFF',
+    primary: '#2563EB',
+    primarySolid: '#2563EB',
     onPrimary: '#FFFFFF',
-    accent: '#22D3EE',
-    violet: '#8B5CF6',
-    good: '#22C55E',
-    warning: '#F59E0B',
-    critical: '#EF4444',
+    accent: '#0E7490',
+    violet: '#7C3AED',
+    good: '#147A39',
+    warning: '#A8510A',
+    critical: '#C52222',
     text: '#111827',
-    muted: '#667085',
+    muted: '#5D6B7E',
   },
 };
 
 /** Accent colours the user can pick in settings (default: cyan). */
 export type AccentName = 'cyan' | 'blue' | 'violet' | 'green';
 
-export const accents: Record<AccentName, string> = {
-  cyan: '#22D3EE',
-  blue: '#4F8CFF',
-  violet: '#8B5CF6',
-  green: '#22C55E',
+/**
+ * Highlight colour per scheme: vivid on the dark background, deepened in the
+ * light theme so icons and label text keep ≥ 4.5:1 contrast on white.
+ */
+export const accents: Record<AccentName, Record<ColorScheme, string>> = {
+  cyan: { dark: '#22D3EE', light: '#0E7490' },
+  blue: { dark: '#4F8CFF', light: '#2563EB' },
+  violet: { dark: '#A78BFA', light: '#7C3AED' },
+  green: { dark: '#22C55E', light: '#147A39' },
 };
 
 /** Spacing on a 4 dp grid. */

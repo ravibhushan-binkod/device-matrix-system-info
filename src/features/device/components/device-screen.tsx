@@ -3,7 +3,16 @@ import * as Haptics from 'expo-haptics';
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 
-import { AdSlot, Button, Card, Screen, Skeleton, StatRow } from '@/design-system/components';
+import {
+  AdSlot,
+  Button,
+  Card,
+  InfoSheet,
+  Screen,
+  SectionHeader,
+  Skeleton,
+  StatRow,
+} from '@/design-system/components';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
 import { useDevice } from '@/features/device/hooks/use-device';
@@ -11,10 +20,21 @@ import type { DeviceInfoEntry, DeviceInfoSection } from '@/features/device/types
 
 const NOT_AVAILABLE = 'Not available on this device';
 
-/** Device & OS: identity, OS details and kernel/build values with a "Copy all" report. */
+const DEVICE_SHEET = {
+  title: 'Device details: what this means',
+  paragraphs: [
+    '"Estimated age" uses the older of two dates: when the ROM was built (Build.TIME) and when the Android version the phone launched with was first released. Manufacturers often build a ROM months before the phone ships, so treat it as a rough lower bound — the hardware itself can be older.',
+    '"First API level" is the Android version the phone shipped with, and it never changes. Release names were only public up to Android 9 (Pie); newer versions only report the number.',
+    '"Play services" is the version of the Google Play services package installed on the phone. "SELinux" is the kernel\'s security mode — Enforcing is the secure default.',
+    'Every value here comes from public Android and Linux interfaces. Whatever the phone hides shows as "Not available on this device".',
+  ],
+};
+
+/** Device & OS: identity, Android build facts, system details and the boot chain. */
 export function DeviceScreen() {
   const { colors } = useTheme();
   const { info, refreshing, refresh } = useDevice();
+  const [sheetVisible, setSheetVisible] = useState(false);
 
   return (
     <Screen
@@ -34,8 +54,8 @@ export function DeviceScreen() {
         <>
           {info.sections.map((section, index) => (
             <Fragment key={section.key}>
-              {index === 2 ? <AdSlot /> : null}
-              <SectionCard section={section} />
+              {index === 2 ? <AdSlot placement="device-sections" /> : null}
+              <SectionCard section={section} onInfo={() => setSheetVisible(true)} />
             </Fragment>
           ))}
           <CopyAllButton report={info.report} />
@@ -43,31 +63,38 @@ export function DeviceScreen() {
       ) : (
         <DeviceSkeleton />
       )}
+
+      <InfoSheet
+        visible={sheetVisible}
+        title={DEVICE_SHEET.title}
+        paragraphs={[...DEVICE_SHEET.paragraphs]}
+        onClose={() => setSheetVisible(false)}
+      />
     </Screen>
   );
 }
 
-function SectionCard({ section }: { section: DeviceInfoSection }) {
-  const { colors } = useTheme();
-
+function SectionCard({ section, onInfo }: { section: DeviceInfoSection; onInfo: () => void }) {
   return (
-    <Card>
-      <View style={styles.cardBody}>
-        <Text style={[styles.sectionTitle, { color: colors.muted }]}>{section.title}</Text>
-        {section.entries.map((entry) =>
-          entry.multiline ? (
-            <BlockRow key={entry.key} entry={entry} />
-          ) : (
-            <StatRow
-              key={entry.key}
-              label={entry.label}
-              value={entry.value ?? NOT_AVAILABLE}
-              copyable={entry.value != null}
-            />
-          ),
-        )}
-      </View>
-    </Card>
+    <View style={styles.group}>
+      <SectionHeader title={section.title} onInfo={onInfo} />
+      <Card>
+        <View style={styles.cardBody}>
+          {section.entries.map((entry) =>
+            entry.multiline ? (
+              <BlockRow key={entry.key} entry={entry} />
+            ) : (
+              <StatRow
+                key={entry.key}
+                label={entry.label}
+                value={entry.value ?? NOT_AVAILABLE}
+                copyable={entry.value != null}
+              />
+            ),
+          )}
+        </View>
+      </Card>
+    </View>
   );
 }
 
@@ -118,7 +145,7 @@ function CopyAllButton({ report }: { report: string }) {
 function DeviceSkeleton() {
   return (
     <View style={styles.skeletonStack}>
-      {[0, 1, 2].map((card) => (
+      {[0, 1, 2, 3].map((card) => (
         <Card key={card}>
           <View style={styles.cardBody}>
             <Skeleton width="35%" height={14} />
@@ -140,11 +167,8 @@ const styles = StyleSheet.create({
   cardBody: {
     gap: spacing.sm,
   },
-  sectionTitle: {
-    ...typography.caption,
-    fontFamily: 'Inter_600SemiBold',
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
+  group: {
+    gap: spacing.sm,
   },
   block: {
     gap: spacing.xs,

@@ -2,6 +2,8 @@ export type CameraSpec = {
   key: string;
   label: string;
   value: string | null;
+  /** Long list values render as a label above a wrapping value. */
+  multiline?: boolean;
 };
 
 export type CameraEntry = {

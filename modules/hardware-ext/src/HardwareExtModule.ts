@@ -5,6 +5,9 @@ import type {
   NativeCpuInfo,
   NativeDisplayInfo,
   NativeGpuInfo,
+  NativeTorchInfo,
+  NativeTorchResult,
+  NativeVibrationInfo,
 } from './HardwareExt.types';
 
 declare class HardwareExtModule extends NativeModule<Record<string, never>> {
@@ -12,6 +15,9 @@ declare class HardwareExtModule extends NativeModule<Record<string, never>> {
   getGpuInfo(): NativeGpuInfo | null;
   getDisplayInfo(): NativeDisplayInfo | null;
   getCameraInfo(): NativeCameraInfo | null;
+  getTorchInfo(): NativeTorchInfo | null;
+  setTorch(enabled: boolean): NativeTorchResult | null;
+  getVibrationInfo(): NativeVibrationInfo | null;
 }
 
 export default requireNativeModule<HardwareExtModule>('HardwareExt');

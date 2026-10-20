@@ -1,9 +1,10 @@
-import { getBatteryInfo, getThermalStatus } from '@/core/native';
-import type { ThermalStatusName } from '@/core/native';
+import { getBatteryInfo, getThermalStatus, getThermalZones } from '@/core/native';
+import type { ThermalStatusName, ThermalZone } from '@/core/native';
 import { denied, ok, unavailable, type Result } from '@/core/result';
+import { formatTemperature } from '@/core/utils/format-temperature';
 import { thermalStatusLabel } from '@/core/utils/thermal-status';
 import { clamp01, type StatusTone } from '@/design-system/status';
-import type { ThermalInfo } from '@/features/thermal/types';
+import type { ThermalInfo, ThermalZoneRow } from '@/features/thermal/types';
 
 /**
  * 0 % = full headroom (cool), 100 % = the system reports no headroom left.
@@ -29,13 +30,29 @@ export function thermalStatusTone(status: ThermalStatusName | null): StatusTone 
   }
 }
 
-/** Thermal screen data; the battery temperature is optional and never blocks the read. */
+/** One row per readable zone; the zone name is the kernel's own label. */
+export function buildZoneRows(zones: ThermalZone[]): ThermalZoneRow[] {
+  return zones.map((zone, index) => ({
+    key: `${zone.name}-${index}`,
+    name: zone.name,
+    temperature:
+      zone.temperatureC == null || !Number.isFinite(zone.temperatureC)
+        ? null
+        : formatTemperature(zone.temperatureC, 'C', 0),
+  }));
+}
+
+/**
+ * Thermal screen data; the battery temperature and the sysfs zones are
+ * optional and never block the Android thermal-status read.
+ */
 export function readThermalInfo(): Result<ThermalInfo> {
   const thermal = getThermalStatus();
   if (thermal.status === 'unavailable') return unavailable(thermal.reason);
   if (thermal.status === 'denied') return denied(thermal.permission);
 
   const battery = getBatteryInfo();
+  const zones = getThermalZones();
   const headroom = thermal.value.headroom;
 
   return ok({
@@ -44,5 +61,14 @@ export function readThermalInfo(): Result<ThermalInfo> {
     loadPercent: thermalLoadPercent(headroom),
     headroomPercent: headroom == null ? null : Math.round(clamp01(headroom) * 100),
     batteryTemperatureC: battery.status === 'ok' ? battery.value.temperatureC : null,
+    zones: zones.status === 'ok' ? buildZoneRows(zones.value) : [],
+    zonesNote:
+      zones.status === 'ok'
+        ? zones.value.length === 0
+          ? 'This device does not let apps read any thermal zone.'
+          : null
+        : zones.status === 'unavailable'
+          ? zones.reason
+          : `Permission needed: ${zones.permission}`,
   });
 }

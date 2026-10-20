@@ -1,4 +1,4 @@
-import { Redirect } from 'expo-router';
+import { Link, Redirect } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -103,6 +103,9 @@ export default function DevGalleryScreen() {
 
   return (
     <Screen scroll contentStyle={styles.content}>
+      <Link href="/dev/support-matrix" style={[styles.link, { color: colors.accent }]}>
+        Open support matrix
+      </Link>
       <SectionHeader title="Theme" />
       <Card>
         <Text style={[styles.sub, { color: colors.muted }]}>Mode · resolved {scheme}</Text>
@@ -122,7 +125,7 @@ export default function DevGalleryScreen() {
             <Chip
               key={name}
               label={name.charAt(0).toUpperCase() + name.slice(1)}
-              dotColor={accents[name]}
+              dotColor={accents[name][scheme]}
               selected={accent === name}
               onPress={() => setAccent(name)}
             />
@@ -216,7 +219,7 @@ export default function DevGalleryScreen() {
           onDismiss={() => setTipVisible(false)}
         />
       ) : null}
-      <AdSlot />
+      <AdSlot placement="gallery" />
       <Card>
         <EmptyState
           icon="sensors"
@@ -414,6 +417,10 @@ const styles = StyleSheet.create({
     letterSpacing: 0.6,
     textTransform: 'uppercase',
     marginBottom: spacing.sm,
+  },
+  link: {
+    ...typography.body,
+    textDecorationLine: 'underline',
   },
   spaced: {
     marginTop: spacing.md,

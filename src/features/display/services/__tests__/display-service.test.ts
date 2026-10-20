@@ -3,6 +3,7 @@ import {
   brightnessModeLabel,
   brightnessPercent,
   buildModeRows,
+  cutoutLabel,
   diagonalInches,
   formatInches,
   formatRefreshRate,
@@ -10,6 +11,7 @@ import {
   hdrLabel,
   modeLabel,
   uniqueDisplayModes,
+  wideGamutLabel,
 } from '@/features/display/services/display-service';
 
 jest.mock('@/core/native', () => ({
@@ -28,6 +30,8 @@ function display(overrides: Partial<DisplayInfo> = {}): DisplayInfo {
     supportedModes: [],
     isHdr: true,
     hdrTypes: ['HDR10'],
+    isWideColorGamut: true,
+    cutout: { hasCutout: false, safeInsetTopPx: 0, safeInsetBottomPx: 0, safeInsetLeftPx: 0, safeInsetRightPx: 0 },
     brightness: 128,
     brightnessMode: 'manual',
     screenTimeoutMs: 30_000,
@@ -130,5 +134,55 @@ describe('hdrLabel', () => {
     expect(hdrLabel(true, [])).toBe('Supported');
     expect(hdrLabel(false, [])).toBe('No');
     expect(hdrLabel(null, [])).toBeNull();
+  });
+});
+
+describe('wideGamutLabel', () => {
+  it('labels the color range', () => {
+    expect(wideGamutLabel(true)).toBe('Wide color gamut');
+    expect(wideGamutLabel(false)).toBe('Standard (sRGB)');
+    expect(wideGamutLabel(null)).toBeNull();
+  });
+});
+
+describe('cutoutLabel', () => {
+  it('lists the non-zero safe-area insets', () => {
+    expect(
+      cutoutLabel({
+        hasCutout: true,
+        safeInsetTopPx: 118,
+        safeInsetBottomPx: 0,
+        safeInsetLeftPx: 0,
+        safeInsetRightPx: 34,
+      }),
+    ).toBe('Cutout · safe area top 118 px · right 34 px');
+  });
+
+  it('says "Cutout" when none of the insets is readable', () => {
+    expect(
+      cutoutLabel({
+        hasCutout: true,
+        safeInsetTopPx: 0,
+        safeInsetBottomPx: 0,
+        safeInsetLeftPx: 0,
+        safeInsetRightPx: 0,
+      }),
+    ).toBe('Cutout');
+  });
+
+  it('reports an honest "No cutout"', () => {
+    expect(
+      cutoutLabel({
+        hasCutout: false,
+        safeInsetTopPx: 0,
+        safeInsetBottomPx: 0,
+        safeInsetLeftPx: 0,
+        safeInsetRightPx: 0,
+      }),
+    ).toBe('No cutout');
+  });
+
+  it('returns null when the platform did not answer', () => {
+    expect(cutoutLabel(null)).toBeNull();
   });
 });

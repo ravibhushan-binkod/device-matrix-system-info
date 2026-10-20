@@ -1,11 +1,5 @@
-import { PlaceholderScreen } from '@/design-system/components';
+import { ToolsHub } from '@/features/tools/components/tools-hub';
 
 export default function ToolsScreen() {
-  return (
-    <PlaceholderScreen
-      icon="tools"
-      title="Tools"
-      description="Clipboard, display tests and the other utilities arrive here."
-    />
-  );
+  return <ToolsHub />;
 }

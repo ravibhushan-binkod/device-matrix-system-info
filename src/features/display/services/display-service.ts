@@ -1,5 +1,5 @@
 import { getDisplayInfo } from '@/core/native';
-import type { DisplayInfo, DisplayMode } from '@/core/native';
+import type { DisplayCutout, DisplayInfo, DisplayMode } from '@/core/native';
 import type { Result } from '@/core/result';
 import type { DisplayModeRows } from '@/features/display/types';
 
@@ -85,4 +85,26 @@ export function hdrLabel(isHdr: boolean | null, hdrTypes: string[]): string | nu
   if (isHdr == null) return null;
   if (hdrTypes.length > 0) return hdrTypes.join(' · ');
   return isHdr ? 'Supported' : 'No';
+}
+
+/** "Wide color gamut", "Standard (sRGB)", or `null` when the panel does not report it. */
+export function wideGamutLabel(isWideColorGamut: boolean | null): string | null {
+  if (isWideColorGamut == null) return null;
+  return isWideColorGamut ? 'Wide color gamut' : 'Standard (sRGB)';
+}
+
+/**
+ * Human summary of the display cutout — "No cutout" or the non-zero safe-area
+ * insets Android reports around the camera hole. `null` when the platform
+ * could not answer (before Android 10, or blocked).
+ */
+export function cutoutLabel(cutout: DisplayCutout | null): string | null {
+  if (cutout == null) return null;
+  if (!cutout.hasCutout) return 'No cutout';
+  const insets: string[] = [];
+  if (cutout.safeInsetTopPx > 0) insets.push(`top ${cutout.safeInsetTopPx} px`);
+  if (cutout.safeInsetBottomPx > 0) insets.push(`bottom ${cutout.safeInsetBottomPx} px`);
+  if (cutout.safeInsetLeftPx > 0) insets.push(`left ${cutout.safeInsetLeftPx} px`);
+  if (cutout.safeInsetRightPx > 0) insets.push(`right ${cutout.safeInsetRightPx} px`);
+  return insets.length > 0 ? `Cutout · safe area ${insets.join(' · ')}` : 'Cutout';
 }

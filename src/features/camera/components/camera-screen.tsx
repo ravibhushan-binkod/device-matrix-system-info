@@ -1,12 +1,33 @@
+import { Fragment, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, Chip, EmptyState, Screen, Skeleton, StatRow } from '@/design-system/components';
+import {
+  AdSlot,
+  Card,
+  Chip,
+  EmptyState,
+  InfoSheet,
+  Screen,
+  SectionHeader,
+  Skeleton,
+  StatRow,
+} from '@/design-system/components';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
 import { useCamera } from '@/features/camera/hooks/use-camera';
 import { buildCameraEntries } from '@/features/camera/services/camera-service';
 
 const NOT_AVAILABLE = 'Not available on this device';
+
+const CAMERA_SHEET = {
+  title: 'Camera: what this means',
+  paragraphs: [
+    "Every row comes from Android's camera2 characteristics — the same data the system camera app reads. When a brand hides a value, the row says \"Not available on this device\"; nothing is guessed.",
+    'Several lenses can sit behind one logical camera, and Android 9+ lists them under "Physical lenses". "Max resolution" is the largest JPEG the camera reports, and megapixels come from that number.',
+    'The 35 mm equivalent is computed from the lens focal length and the physical sensor size (a full-frame sensor is 43.27 mm diagonally). "Min focus" comes from the lens dioptre value — 0 dioptres means fixed focus.',
+    'Device Matrix never asks for the camera permission, so this screen only reports capabilities — it cannot take pictures.',
+  ],
+};
 
 /**
  * Camera: one card per lens from camera2 characteristics. This screen never
@@ -15,37 +36,59 @@ const NOT_AVAILABLE = 'Not available on this device';
 export function CameraScreen() {
   const { colors } = useTheme();
   const { cameras } = useCamera();
+  const [sheetVisible, setSheetVisible] = useState(false);
 
   const entries = cameras?.status === 'ok' ? buildCameraEntries(cameras.value) : null;
 
   return (
     <Screen scroll contentStyle={styles.content}>
+      <SectionHeader title="Cameras & lenses" onInfo={() => setSheetVisible(true)} />
+
       {cameras === null ? (
         <CameraSkeleton />
       ) : entries && entries.length > 0 ? (
-        entries.map((entry) => (
-          <Card key={entry.key}>
-            <View style={styles.cardBody}>
-              <Text style={[styles.cardTitle, { color: colors.text }]}>{entry.title}</Text>
-              {entry.chips.length > 0 ? (
-                <View style={styles.chips}>
-                  {entry.chips.map((chip) => (
-                    <Chip key={chip} label={chip} />
-                  ))}
+        entries.map((entry, index) => (
+          <Fragment key={entry.key}>
+            <Card>
+              <View style={styles.cardBody}>
+                <Text style={[styles.cardTitle, { color: colors.text }]}>{entry.title}</Text>
+                {entry.chips.length > 0 ? (
+                  <View style={styles.chips}>
+                    {entry.chips.map((chip) => (
+                      <Chip key={chip} label={chip} />
+                    ))}
+                  </View>
+                ) : null}
+                <View style={styles.specs}>
+                  {entry.specs.map((spec) =>
+                    spec.multiline ? (
+                      <View key={spec.key} style={styles.block}>
+                        <Text style={[styles.blockLabel, { color: colors.muted }]}>
+                          {spec.label}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.blockValue,
+                            { color: spec.value ? colors.text : colors.muted },
+                          ]}
+                        >
+                          {spec.value ?? NOT_AVAILABLE}
+                        </Text>
+                      </View>
+                    ) : (
+                      <StatRow
+                        key={spec.key}
+                        label={spec.label}
+                        value={spec.value ?? NOT_AVAILABLE}
+                        copyable={spec.value != null && spec.key === 'id'}
+                      />
+                    ),
+                  )}
                 </View>
-              ) : null}
-              <View style={styles.specs}>
-                {entry.specs.map((spec) => (
-                  <StatRow
-                    key={spec.key}
-                    label={spec.label}
-                    value={spec.value ?? NOT_AVAILABLE}
-                    copyable={spec.value != null && spec.key === 'id'}
-                  />
-                ))}
               </View>
-            </View>
-          </Card>
+            </Card>
+            {index === 0 ? <AdSlot placement="camera-lens" /> : null}
+          </Fragment>
         ))
       ) : (
         <EmptyState
@@ -60,6 +103,13 @@ export function CameraScreen() {
           }
         />
       )}
+
+      <InfoSheet
+        visible={sheetVisible}
+        title={CAMERA_SHEET.title}
+        paragraphs={[...CAMERA_SHEET.paragraphs]}
+        onClose={() => setSheetVisible(false)}
+      />
     </Screen>
   );
 }
@@ -100,5 +150,15 @@ const styles = StyleSheet.create({
   specs: {
     gap: spacing.xs,
     paddingTop: spacing.sm,
+  },
+  block: {
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+  },
+  blockLabel: {
+    ...typography.caption,
+  },
+  blockValue: {
+    ...typography.mono,
   },
 });

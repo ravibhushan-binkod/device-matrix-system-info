@@ -139,6 +139,36 @@ export function sensorFrequencyHz(minDelayUs: number): number | null {
   return Math.round(1_000_000 / minDelayUs);
 }
 
+/**
+ * Sampling-rate range from the shortest and longest delays, e.g.
+ * "5 – 200 Hz". Falls back to the readable bound only.
+ */
+export function samplingRateLabel(minDelayUs: number, maxDelayUs: number | null): string | null {
+  const fastest = sensorFrequencyHz(minDelayUs);
+  const slowestRaw = maxDelayUs != null && maxDelayUs > 0 ? Math.round(1_000_000 / maxDelayUs) : null;
+  const slowest = slowestRaw != null && slowestRaw > 0 ? slowestRaw : null;
+  if (fastest == null && slowest == null) return null;
+  if (fastest == null) return `from ${slowest} Hz`;
+  if (slowest == null) return `up to ${fastest} Hz`;
+  return slowest === fastest ? `${fastest} Hz` : `${slowest} – ${fastest} Hz`;
+}
+
+/** Hardware FIFO depth, e.g. "3000 events · 1500 reserved"; `null` when hidden. */
+export function fifoLabel(maxEvents: number | null, reservedEvents: number | null): string | null {
+  const max = maxEvents != null && maxEvents > 0 ? Math.round(maxEvents) : null;
+  const reserved = reservedEvents != null && reservedEvents > 0 ? Math.round(reservedEvents) : null;
+  if (max == null && reserved == null) return null;
+  if (max == null) return `${reserved} reserved`;
+  if (reserved == null) return `${max} events`;
+  return `${max} events · ${reserved} reserved`;
+}
+
+/** Typical power draw in mA, e.g. "0.15 mA"; `null` when not reported. */
+export function formatSensorPower(powerMa: number): string | null {
+  if (!(powerMa > 0)) return null;
+  return `${Math.round(powerMa * 100) / 100} mA`;
+}
+
 const MODE_LABELS: Record<SensorReportingMode, string> = {
   continuous: 'Continuous',
   'on-change': 'On change',

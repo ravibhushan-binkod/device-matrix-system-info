@@ -85,6 +85,13 @@ export function StorageBar({ segments, total, height = 14, showLegend = true }: 
   }
   const denominator = all.reduce((acc, segment) => acc + Math.max(0, segment.value), 0);
 
+  const spoken =
+    denominator === 0
+      ? 'Storage usage: no data'
+      : `Storage usage: ${all
+          .map((segment) => `${segment.label} ${segment.valueLabel ?? Math.round(segment.value)}`)
+          .join(', ')}`;
+
   const usable = width - (all.length - 1) * GAP;
 
   let cursor = 0;
@@ -99,6 +106,9 @@ export function StorageBar({ segments, total, height = 14, showLegend = true }: 
   return (
     <View style={styles.root}>
       <View
+        accessible
+        accessibilityRole="image"
+        accessibilityLabel={spoken}
         onLayout={(event: LayoutChangeEvent) => setWidth(event.nativeEvent.layout.width)}
         style={[styles.track, { height, backgroundColor: colors.surface2 }]}
       >

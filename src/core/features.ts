@@ -23,13 +23,28 @@ export const features = {
     apps: 'v1',
     tips: 'v1',
   },
+  /** The Apps tab's usage insights (screen time, app sizes) — needs Usage
+   * Access, which the user grants in system settings. */
+  usageInsights: 'v1',
   /** Planned for V2. */
   speedTest: 'v2',
-  nearbyWifi: 'v2',
+  /** The Wi-Fi analyzer (nearby networks) — built in 13D. */
+  nearbyWifi: 'v1',
   nfcTools: 'v2',
   localHistory: 'v2',
+  /** The report's "Save as PDF" export (expo-print) — off in V1. */
+  pdfReport: 'v2',
+  /** The APK extraction (copy an installed app's APK to the share sheet) —
+   * implemented but deliberately off: it is not part of the shipped feature
+   * set until a later phase turns it on. */
+  apkExtraction: 'off',
   /** Cross-cutting. */
   ads: 'v1',
+  /** Full-screen interstitials — built, but kept off until reviewed. */
+  interstitialAds: 'off',
+  /** Developer ad tools in Settings (reset consent, Ad Inspector, EEA test).
+   * Flip to 'off' to hide them from users. */
+  adDebugTools: 'v1',
 } as const satisfies Record<string, unknown>;
 
 export function isEnabled(flag: FeatureAvailability): boolean {

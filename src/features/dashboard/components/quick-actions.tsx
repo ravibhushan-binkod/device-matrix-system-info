@@ -64,6 +64,8 @@ const styles = StyleSheet.create({
   label: {
     ...typography.caption,
     textAlign: 'center',
-    height: 32,
+    // minHeight (not a fixed height) so two-line labels still fit when the
+    // system font scale is large.
+    minHeight: 32,
   },
 });

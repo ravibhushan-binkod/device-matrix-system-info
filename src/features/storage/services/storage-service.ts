@@ -1,8 +1,12 @@
 import { getStorageInfo } from '@/core/native';
-import type { StorageInfo } from '@/core/native';
+import type { AppStorageStats, StorageInfo } from '@/core/native';
 import { denied, ok, unavailable, type Result } from '@/core/result';
 import { formatByteSize } from '@/core/utils/format-bytes';
-import type { StorageOverview, StorageVolumeRow } from '@/features/storage/types';
+import type {
+  StorageBreakdown,
+  StorageOverview,
+  StorageVolumeRow,
+} from '@/features/storage/types';
 
 export function readStorage(): Result<StorageInfo> {
   return getStorageInfo();
@@ -20,6 +24,7 @@ export function toStorageOverview(info: StorageInfo): Result<StorageOverview> {
     usedBytes,
     totalBytes: internal.totalBytes,
     percent: (usedBytes / internal.totalBytes) * 100,
+    fsType: internal.fsType,
   });
 }
 
@@ -43,6 +48,7 @@ export function buildVolumeRows(info: StorageInfo): StorageVolumeRow[] {
     } else if (volume.state !== '' && volume.state !== 'mounted') {
       value = volume.state;
     }
+    if (volume.fsType) value = value == null ? volume.fsType : `${value} · ${volume.fsType}`;
 
     return {
       key: volume.uuid ?? `${label}-${index}`,
@@ -51,4 +57,39 @@ export function buildVolumeRows(info: StorageInfo): StorageVolumeRow[] {
       removable: volume.isRemovable,
     };
   });
+}
+
+/**
+ * Sum of what Android reports per app: code + data. The cache is *inside*
+ * the data bytes (per the StorageStats docs), so it is never added again.
+ */
+export function sumAppBytes(stats: AppStorageStats[]): number {
+  let total = 0;
+  for (const entry of stats) {
+    total += Math.max(0, entry.appBytes) + Math.max(0, entry.dataBytes);
+  }
+  return total;
+}
+
+/**
+ * apps / other / free split. `null` when the inputs cannot produce an honest
+ * answer (no total, no app figure). App bytes are clamped into the used space
+ * so a rounding difference can never push "other" below zero.
+ */
+export function buildStorageBreakdown(
+  totalBytes: number,
+  freeBytes: number,
+  appsBytes: number | null,
+): StorageBreakdown | null {
+  if (!(totalBytes > 0)) return null;
+  if (appsBytes == null || !Number.isFinite(appsBytes) || appsBytes < 0) return null;
+  const free = Math.min(Math.max(0, freeBytes), totalBytes);
+  const used = totalBytes - free;
+  const apps = Math.min(appsBytes, used);
+  return {
+    appsBytes: apps,
+    freeBytes: free,
+    otherBytes: used - apps,
+    totalBytes,
+  };
 }

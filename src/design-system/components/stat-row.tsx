@@ -66,6 +66,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.md,
+    minHeight: 48,
     paddingVertical: spacing.sm,
   },
   label: {

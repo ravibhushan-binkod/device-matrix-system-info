@@ -1,48 +1,21 @@
-import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import type { StyleProp, ViewStyle } from 'react-native';
 
-import { useTheme } from '@/design-system/theme';
-import { radius, spacing, typography } from '@/design-system/tokens';
+import { BannerAd } from '@/core/ads/components/banner-ad';
+import type { BannerPlacement } from '@/core/ads/placements';
 
 type Props = {
-  /** Reserved height so real ads will not shift the layout (default 64). */
-  height?: number;
-  label?: string;
+  /** Which slot this is — see `BannerPlacement` for the placement rules. */
+  placement: BannerPlacement;
   style?: StyleProp<ViewStyle>;
 };
 
 /**
- * Empty, reserved ad space. Ads are added later — this placeholder keeps the
- * layout stable and reminds that the ad rules apply (never on splash,
- * permission sheets, settings, full-screen tests or live graphs).
+ * A banner slot between information sections. Ads stay off until consent
+ * allows ad requests (the banner renders nothing before that), so screens can
+ * keep the slot in place unconditionally and the layout simply has no gap
+ * while ads are unavailable. Never place this on splash, permission sheets,
+ * settings, full-screen tests or live graphs.
  */
-export function AdSlot({ height = 64, label = 'Ad space reserved', style }: Props) {
-  const { colors } = useTheme();
-
-  return (
-    <View
-      accessibilityRole="none"
-      accessible={false}
-      style={[
-        styles.slot,
-        { height, borderColor: colors.border, backgroundColor: colors.surface2 },
-        style,
-      ]}
-    >
-      <Text style={[styles.label, { color: colors.muted }]}>{label}</Text>
-    </View>
-  );
+export function AdSlot({ placement, style }: Props) {
+  return <BannerAd placement={placement} style={style} />;
 }
-
-const styles = StyleSheet.create({
-  slot: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: radius.button,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    paddingHorizontal: spacing.lg,
-  },
-  label: {
-    ...typography.caption,
-  },
-});

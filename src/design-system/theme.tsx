@@ -41,7 +41,7 @@ export function ThemeProvider({ mode = 'system', accent = 'cyan', children }: Pr
       mode,
       scheme,
       accent,
-      colors: { ...palettes[scheme], accent: accents[accent] },
+      colors: { ...palettes[scheme], accent: accents[accent][scheme] },
     }),
     [mode, scheme, accent],
   );

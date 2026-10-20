@@ -1,5 +1,6 @@
 import type {
   BatteryReading,
+  CameraDescriptor,
   CameraInfo,
   CpuInfo,
   DeviceIdentity,
@@ -49,10 +50,13 @@ const memory: MemoryInfo = {
   availableBytes: 2_000_000_000,
   thresholdBytes: 300_000_000,
   lowMemory: false,
+  swapTotalBytes: null,
+  swapFreeBytes: null,
+  swapCachedBytes: null,
 };
 
 const storage: StorageInfo = {
-  internal: { totalBytes: 128_000_000_000, freeBytes: 59_000_000_000 },
+  internal: { totalBytes: 128_000_000_000, freeBytes: 59_000_000_000, fsType: 'f2fs' },
   volumes: [],
 };
 
@@ -89,14 +93,47 @@ const display: DisplayInfo = {
   supportedModes: [],
   isHdr: true,
   hdrTypes: ['HDR10'],
+  isWideColorGamut: true,
+  cutout: null,
   brightness: 128,
   brightnessMode: 'manual',
   screenTimeoutMs: 30_000,
 };
 
+function descriptor(overrides: Partial<CameraDescriptor> = {}): CameraDescriptor {
+  return {
+    id: '0',
+    facing: 'back',
+    megapixels: null,
+    sensorWidthPx: null,
+    sensorHeightPx: null,
+    sensorPhysicalWidthMm: null,
+    sensorPhysicalHeightMm: null,
+    aperture: null,
+    apertures: null,
+    focalLengthMm: null,
+    focalLengthsMm: null,
+    isoMin: null,
+    isoMax: null,
+    exposureMinNs: null,
+    exposureMaxNs: null,
+    minFocusDistance: null,
+    maxDigitalZoom: null,
+    rawSupport: null,
+    videoSizes: null,
+    fpsRanges: null,
+    hardwareLevel: null,
+    physicalCameraIds: null,
+    flash: false,
+    opticalStabilization: null,
+    videoStabilization: null,
+    ...overrides,
+  };
+}
+
 const camera: CameraInfo = {
   cameras: [
-    {
+    descriptor({
       id: '0',
       facing: 'back',
       megapixels: 49.9,
@@ -105,8 +142,8 @@ const camera: CameraInfo = {
       flash: true,
       opticalStabilization: true,
       videoStabilization: true,
-    },
-    {
+    }),
+    descriptor({
       id: '1',
       facing: 'front',
       megapixels: 32,
@@ -115,7 +152,7 @@ const camera: CameraInfo = {
       flash: false,
       opticalStabilization: false,
       videoStabilization: true,
-    },
+    }),
   ],
 };
 
@@ -130,6 +167,9 @@ const sensors: SensorDescriptor[] = [
     resolution: 0.002,
     powerMa: 0.15,
     minDelayUs: 5000,
+    maxDelayUs: null,
+    fifoMaxEventCount: null,
+    fifoReservedEventCount: null,
     isWakeUp: true,
     reportingMode: 'continuous',
   },
