@@ -1,0 +1,19 @@
+<resources>
+  <string name="widget_title">Device Matrix</string>
+  <string name="widget_description">Memory, storage and battery at a glance.</string>
+  <string name="widget_updated">Updated %1$s</string>
+  <string name="widget_updated_placeholder">Updated --:--</string>
+  <string name="widget_memory">Memory</string>
+  <string name="widget_storage">Storage</string>
+  <string name="widget_battery">Battery</string>
+  <string name="widget_placeholder">--</string>
+  <string name="widget_not_available">Not available</string>
+  <string name="widget_on_this_device">on this device</string>
+  <string name="widget_charging">Charging</string>
+  <string name="widget_on_battery">On battery</string>
+  <string name="widget_full">Full</string>
+  <string name="widget_not_charging">Not charging</string>
+  <string name="widget_status_unknown">Status unknown</string>
+  <string name="widget_refresh">Refresh widget</string>
+  <string name="widget_open_app">Open Device Matrix</string>
+</resources>

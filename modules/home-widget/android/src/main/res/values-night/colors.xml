@@ -1,0 +1,7 @@
+<resources>
+  <color name="widget_surface">#0B0F14</color>
+  <color name="widget_tile">#131A22</color>
+  <color name="widget_text_primary">#E8EEF5</color>
+  <color name="widget_text_muted">#8A98A8</color>
+  <color name="widget_accent">#22D3EE</color>
+</resources>
