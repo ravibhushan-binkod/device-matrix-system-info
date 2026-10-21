@@ -9,6 +9,7 @@ import {
   Button,
   Card,
   Chip,
+  CopyableText,
   InfoSheet,
   OpenSettingsDialog,
   PermissionBanner,
@@ -19,6 +20,7 @@ import {
   StatRow,
 } from '@/design-system/components';
 import { withAlpha } from '@/design-system/color';
+import { copyValue } from '@/design-system/copy/copy-value';
 import { Icon, type IconName } from '@/design-system/icon';
 import { useTheme } from '@/design-system/theme';
 import { radius, spacing, typography } from '@/design-system/tokens';
@@ -181,6 +183,50 @@ export function NetworkScreen() {
     ? 'Hidden until allowed'
     : (wifiChannelWidthLabel(wifiValue?.channelWidthCode ?? null) ?? NOT_AVAILABLE);
 
+  const signalValue = signalSummary(wifiValue?.rssiDbm ?? null, bars) ?? NOT_AVAILABLE;
+
+  const connectionCopy = conn
+    ? [
+        `Connection: ${connectionTypeLabel(conn.type)}`,
+        `Metered: ${onOffLabel(conn.metered) ?? NOT_AVAILABLE}`,
+        `VPN: ${vpnLabel(conn.vpnActive)}`,
+        `Data Saver: ${onOffLabel(conn.dataSaver) ?? NOT_AVAILABLE}`,
+        `Airplane mode: ${onOffLabel(conn.airplaneMode) ?? NOT_AVAILABLE}`,
+        `Mobile operator: ${conn.operatorName ?? NOT_AVAILABLE}`,
+        conn.roaming === null ? null : `Roaming: ${roamingLabel(conn.roaming) ?? NOT_AVAILABLE}`,
+        `Private DNS: ${privateDnsLabel(conn.privateDnsMode, conn.privateDnsHost) ?? NOT_AVAILABLE}`,
+        `IPv4: ${conn.ipv4 ?? NOT_AVAILABLE}`,
+        `IPv6: ${conn.ipv6 ?? NOT_AVAILABLE}`,
+        `Subnet: ${formatSubnet(conn.subnetPrefix) ?? NOT_AVAILABLE}`,
+        `Gateway: ${conn.gateway ?? NOT_AVAILABLE}`,
+        `DNS: ${formatDnsServers(conn.dnsServers) ?? NOT_AVAILABLE}`,
+        `Proxy: ${proxyLabel(conn.proxyHost, conn.proxyPort, conn.proxyPacUrl) ?? 'None'}`,
+      ]
+        .filter((line): line is string => line != null)
+        .join('\n')
+    : undefined;
+
+  const wifiCopy = wifiValue
+    ? [
+        `Wi-Fi: ${wifiValue.enabled === null ? 'Unknown' : wifiValue.enabled ? 'On' : 'Off'}`,
+        `Network: ${wifiNameValue}`,
+        `Link speed: ${formatLinkSpeed(wifiValue.linkSpeedMbps) ?? NOT_AVAILABLE}`,
+        `Link speed (TX / RX): ${
+          formatTxRxSpeeds(wifiValue.txLinkSpeedMbps, wifiValue.rxLinkSpeedMbps) ?? NOT_AVAILABLE
+        }`,
+        `Band & channel: ${wifiBandAndChannelLabel(wifiValue.frequencyMhz) ?? NOT_AVAILABLE}`,
+        `Channel width: ${channelWidthValue}`,
+        `Standard: ${wifiStandardLabel(wifiValue.standardCode) ?? NOT_AVAILABLE}`,
+        `Signal: ${signalValue}`,
+      ].join('\n')
+    : undefined;
+
+  const radiosCopy = [
+    `Bluetooth: ${bt ? (onOffLabel(bt.enabled) ?? NOT_AVAILABLE) : NOT_AVAILABLE}`,
+    `Bluetooth LE: ${bt ? supportLabel(bt.leSupported) : NOT_AVAILABLE}`,
+    `NFC: ${nfcValue ? (onOffLabel(nfcValue.enabled) ?? NOT_AVAILABLE) : NOT_AVAILABLE}`,
+  ].join('\n');
+
   // Banners only appear after the first check and never for absent hardware.
   const showWifiBanner =
     !location.granted && location.state !== 'checking' && wifi?.status !== 'unavailable';
@@ -235,6 +281,7 @@ export function NetworkScreen() {
           <SectionHeader
             title="Connection"
             action={conn ? <Chip label={connectionTypeLabel(conn.type)} /> : undefined}
+            copyText={connectionCopy}
             onInfo={() => setSectionSheet('connection')}
           />
           <Card>
@@ -288,9 +335,15 @@ export function NetworkScreen() {
                 <Chip
                   label={wifiValue.enabled === null ? 'Unknown' : wifiValue.enabled ? 'On' : 'Off'}
                   dotColor={wifiValue.enabled ? colors.good : undefined}
+                  onLongPress={
+                    wifiValue.enabled === null
+                      ? undefined
+                      : () => void copyValue(wifiValue.enabled ? 'On' : 'Off', 'Wi-Fi state')
+                  }
                 />
               ) : undefined
             }
+            copyText={wifiCopy}
             onInfo={() => setSectionSheet('wifi')}
           />
           <Card>
@@ -331,9 +384,13 @@ export function NetworkScreen() {
                 <Text style={[styles.signalLabel, { color: colors.muted }]}>Signal</Text>
                 <View style={styles.signalValue}>
                   <SignalBars level={bars} />
-                  <Text style={[styles.signalText, { color: colors.text }]}>
-                    {signalSummary(wifiValue?.rssiDbm ?? null, bars) ?? NOT_AVAILABLE}
-                  </Text>
+                  <CopyableText
+                    value={signalValue}
+                    copyLabel="Signal"
+                    style={[styles.signalText, { color: colors.text }]}
+                  >
+                    {signalValue}
+                  </CopyableText>
                 </View>
               </View>
               <View style={styles.actions}>
@@ -350,7 +407,11 @@ export function NetworkScreen() {
             </View>
           </Card>
 
-          <SectionHeader title="Bluetooth & NFC" onInfo={() => setSectionSheet('radios')} />
+          <SectionHeader
+            title="Bluetooth & NFC"
+            copyText={radiosCopy}
+            onInfo={() => setSectionSheet('radios')}
+          />
           <Card>
             <View style={styles.cardBody}>
               {showBluetoothBanner ? (

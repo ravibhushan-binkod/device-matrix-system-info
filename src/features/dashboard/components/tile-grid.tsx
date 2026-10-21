@@ -6,7 +6,7 @@ import { TileTransition } from '@/design-system/animations/tile-transition';
 import { AdSlot } from '@/design-system/components';
 import { spacing } from '@/design-system/tokens';
 import { TileCard } from '@/features/dashboard/components/tile-card';
-import { TileContent } from '@/features/dashboard/components/tile-content';
+import { TileContent, tileCopySummary } from '@/features/dashboard/components/tile-content';
 import {
   getDashboardTileDefinition,
   layoutDashboardTileRows,
@@ -49,6 +49,7 @@ export function TileGrid({ tiles, summary, inventory, cpuHistory, memoryHistory 
                       size={placement.size}
                       onPress={() => router.push(definition.route)}
                       accessibilityLabel={`${definition.title}. Opens the ${definition.title} section.`}
+                      copyText={tileCopySummary(placement.id, summary, inventory)}
                     >
                       <TileContent
                         id={placement.id}

@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import { Card, SectionHeader } from '@/design-system/components';
+import { Card, CopyableText, SectionHeader } from '@/design-system/components';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
 import { formatFirstApiLevel, formatDeviceAge } from '@/features/dashboard/services/device-facts';
@@ -16,9 +16,14 @@ function Fact({ label, value }: FactProps) {
   return (
     <View style={styles.fact}>
       <Text style={[styles.factLabel, { color: colors.muted }]}>{label}</Text>
-      <Text numberOfLines={2} style={[styles.factValue, { color: colors.text }]}>
+      <CopyableText
+        value={value}
+        copyLabel={label}
+        numberOfLines={2}
+        style={[styles.factValue, { color: colors.text }]}
+      >
         {value}
-      </Text>
+      </CopyableText>
     </View>
   );
 }
@@ -27,11 +32,16 @@ function Fact({ label, value }: FactProps) {
 export function DeviceFactsRow({ summary }: { summary: DashboardSummary }) {
   const { colors } = useTheme();
   const facts = summary.facts.status === 'ok' ? summary.facts.value : null;
+  const factsCopy = [
+    `Build date: ${facts?.buildDateLabel ?? 'Not reported'}`,
+    `First API: ${formatFirstApiLevel(facts?.firstApiLevel ?? null) ?? 'Not reported'}`,
+    `Est. age: ${formatDeviceAge(facts?.estimatedAgeYears ?? null) ?? 'Not reported'}`,
+  ].join('\n');
 
   return (
     <View>
       <View style={styles.header}>
-        <SectionHeader title="Device facts" />
+        <SectionHeader title="Device facts" copyText={factsCopy} />
       </View>
       <View style={styles.wrap}>
         <Card style={styles.card} contentStyle={styles.cardContent}>

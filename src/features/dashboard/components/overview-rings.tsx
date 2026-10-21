@@ -4,6 +4,7 @@ import type { Result } from '@/core/result';
 import { formatBytes } from '@/core/utils/format-bytes';
 import { PressableScale } from '@/design-system/animations/pressable-scale';
 import { Card } from '@/design-system/components';
+import { copyValue } from '@/design-system/copy/copy-value';
 import { Icon } from '@/design-system/icon';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
@@ -122,7 +123,10 @@ function RingTile({ label, value, caption, size, thickness, color, onPress }: Ri
     <PressableScale
       accessibilityRole="button"
       accessibilityLabel={`Open ${label} details`}
+      accessibilityHint="Long press to copy the reading"
       onPress={onPress}
+      onLongPress={() => void copyValue(`${label}: ${value}% · ${caption}`, label)}
+      delayLongPress={320}
       style={styles.tile}
     >
       <Ring value={value} max={100} label={label} size={size} thickness={thickness} color={color} />

@@ -11,6 +11,7 @@ import {
 } from 'react-native-reanimated';
 
 import { durations } from '@/design-system/animations/motion';
+import { PressableScale } from '@/design-system/animations/pressable-scale';
 import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 import { withAlpha } from '@/design-system/color';
 import { clamp01, statusColor } from '@/design-system/status';
@@ -29,6 +30,8 @@ type Props = {
   displayValue?: string;
   /** Spoken label for TalkBack; defaults to `label`. */
   accessibilityLabel?: string;
+  /** Optional long-press action (e.g. copy the numeric reading). */
+  onLongPress?: () => void;
 };
 
 /**
@@ -45,6 +48,7 @@ export function Ring({
   color,
   displayValue,
   accessibilityLabel,
+  onLongPress,
 }: Props) {
   const { colors } = useTheme();
   const { animate } = useMotionPreference();
@@ -97,16 +101,8 @@ export function Ring({
     return path;
   });
 
-  return (
-    <View
-      accessible
-      accessibilityRole="progressbar"
-      accessibilityLabel={accessibilityLabel ?? label ?? 'Gauge'}
-      accessibilityValue={{
-        text: max === 100 ? `${Math.round(value)} percent` : `${Math.round(value)} of ${max}`,
-      }}
-      style={[styles.root, { width: size, height: size }]}
-    >
+  const body = (
+    <>
       <Canvas style={{ width: size, height: size }}>
         <Path
           path={trackPath}
@@ -122,6 +118,38 @@ export function Ring({
         <Text style={[styles.value, { color: colors.text }]}>{displayValue ?? display}</Text>
         {label ? <Text style={[styles.label, { color: colors.muted }]}>{label}</Text> : null}
       </View>
+    </>
+  );
+  const accessibilityValueText =
+    max === 100 ? `${Math.round(value)} percent` : `${Math.round(value)} of ${max}`;
+
+  if (onLongPress) {
+    return (
+      <PressableScale
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityLabel={accessibilityLabel ?? label ?? 'Gauge'}
+        accessibilityValue={{ text: accessibilityValueText }}
+        accessibilityHint="Long press to copy this value"
+        haptic={false}
+        onLongPress={onLongPress}
+        delayLongPress={320}
+        style={[styles.root, { width: size, height: size }]}
+      >
+        {body}
+      </PressableScale>
+    );
+  }
+
+  return (
+    <View
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={accessibilityLabel ?? label ?? 'Gauge'}
+      accessibilityValue={{ text: accessibilityValueText }}
+      style={[styles.root, { width: size, height: size }]}
+    >
+      {body}
     </View>
   );
 }

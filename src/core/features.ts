@@ -38,8 +38,8 @@ export const features = {
   fingerprintTest: 'off',
   nfcTools: 'v2',
   localHistory: 'v2',
-  /** The report's "Save as PDF" export (expo-print) — off in V1. */
-  pdfReport: 'v2',
+  /** The report's "Share PDF" export (expo-print). */
+  pdfReport: 'v1',
   /** The APK extraction (copy an installed app's APK to the share sheet) —
    * implemented but deliberately off: it is not part of the shipped feature
    * set until a later phase turns it on. */

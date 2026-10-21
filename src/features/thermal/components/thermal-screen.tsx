@@ -44,6 +44,41 @@ export function ThermalScreen() {
 
   const result = info;
 
+  const thermalCopy =
+    result?.status === 'ok'
+      ? [
+          result.value.statusLabel ? `Status: ${result.value.statusLabel}` : null,
+          result.value.loadPercent == null ? null : `Thermal load: ${result.value.loadPercent}%`,
+          result.value.headroomPercent == null
+            ? null
+            : `Headroom: ${result.value.headroomPercent}%`,
+        ]
+          .filter((line): line is string => line != null)
+          .join('\n')
+      : undefined;
+  const zonesCopy =
+    result?.status === 'ok' && result.value.zones.length > 0
+      ? result.value.zones
+          .map((zone) => `${zone.name}: ${zone.temperature ?? NOT_AVAILABLE}`)
+          .join('\n')
+      : undefined;
+  const detailsCopy =
+    result?.status === 'ok'
+      ? [
+          `Status: ${result.value.statusLabel ?? NOT_AVAILABLE}`,
+          `Headroom: ${
+            result.value.headroomPercent == null
+              ? NOT_AVAILABLE
+              : `${result.value.headroomPercent}%`
+          }`,
+          `Battery temperature: ${
+            result.value.batteryTemperatureC == null
+              ? NOT_AVAILABLE
+              : formatTemperature(result.value.batteryTemperatureC, 'C', 1)
+          }`,
+        ].join('\n')
+      : undefined;
+
   return (
     <Screen
       scroll
@@ -63,7 +98,11 @@ export function ThermalScreen() {
       ) : result.status === 'ok' ? (
         <>
           <View style={styles.group}>
-            <SectionHeader title="Thermal load" onInfo={() => setSheetVisible(true)} />
+            <SectionHeader
+              title="Thermal load"
+              copyText={thermalCopy}
+              onInfo={() => setSheetVisible(true)}
+            />
             <Card>
               <View style={styles.cardBody}>
                 <View style={styles.cardHead}>
@@ -99,7 +138,11 @@ export function ThermalScreen() {
           <AdSlot placement="thermal-mid" />
 
           <View style={styles.group}>
-            <SectionHeader title="Readable zones" onInfo={() => setSheetVisible(true)} />
+            <SectionHeader
+              title="Readable zones"
+              copyText={zonesCopy}
+              onInfo={() => setSheetVisible(true)}
+            />
             <Card>
               <View style={styles.cardBody}>
                 {result.value.zones.length > 0 ? (
@@ -132,14 +175,10 @@ export function ThermalScreen() {
           </View>
 
           <View style={styles.group}>
-            <SectionHeader title="Details" />
+            <SectionHeader title="Details" copyText={detailsCopy} />
             <Card>
               <View style={styles.cardBody}>
-                <StatRow
-                  label="Status"
-                  value={result.value.statusLabel ?? NOT_AVAILABLE}
-                  copyable={false}
-                />
+                <StatRow label="Status" value={result.value.statusLabel ?? NOT_AVAILABLE} />
                 <StatRow
                   label="Headroom"
                   value={
@@ -147,7 +186,6 @@ export function ThermalScreen() {
                       ? NOT_AVAILABLE
                       : `${result.value.headroomPercent}%`
                   }
-                  copyable={false}
                 />
                 <StatRow
                   label="Battery temperature"
@@ -156,7 +194,6 @@ export function ThermalScreen() {
                       ? NOT_AVAILABLE
                       : formatTemperature(result.value.batteryTemperatureC, 'C', 1)
                   }
-                  copyable={false}
                 />
               </View>
             </Card>

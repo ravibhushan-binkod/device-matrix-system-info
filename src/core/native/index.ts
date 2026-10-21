@@ -7,4 +7,5 @@ export * from './file-share';
 export * from './hardware-ext';
 export * from './network-ext';
 export * from './sensor-ext';
+export * from './theme-ext';
 export * from './tools-ext';

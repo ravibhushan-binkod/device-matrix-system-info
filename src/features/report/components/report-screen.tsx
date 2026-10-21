@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { PressableScale } from '@/design-system/animations/pressable-scale';
 import { Button, Card, Chip, Screen, SectionHeader } from '@/design-system/components';
@@ -8,7 +8,7 @@ import { radius, spacing, typography } from '@/design-system/tokens';
 import { useReport } from '@/features/report/hooks/use-report';
 import { REPORT_GROUPS } from '@/features/report/services/report-service';
 
-/** The report composer: pick sections, preview the text, copy / share / PDF. */
+/** The report composer: pick sections, preview, then copy, share or export. */
 export function ReportScreen() {
   const { colors } = useTheme();
   const {
@@ -16,93 +16,137 @@ export function ReportScreen() {
     toggle,
     selectAll,
     clearAll,
+    preview,
+    buildPreview,
     copy,
     share,
     savePdf,
     pdfEnabled,
     notice,
     busy,
-    text,
   } = useReport();
-  const canExport = selected.size > 0;
+  const canExport = preview !== null && busy === null;
+  const pickingDisabled = busy !== null;
 
   return (
     <Screen scroll contentStyle={styles.content}>
-      <SectionHeader title="Sections" />
+      <SectionHeader
+        title="Sections"
+        action={
+          <Text style={[styles.count, { color: colors.muted }]}>
+            {selected.size} of {REPORT_GROUPS.length}
+          </Text>
+        }
+      />
       <View style={styles.toolbar}>
         <Chip label="Select all" onPress={selectAll} />
         <Chip label="Clear" onPress={clearAll} />
       </View>
 
-      <Card>
-        <View style={styles.list}>
-          {REPORT_GROUPS.map((group) => {
-            const checked = selected.has(group.id);
-            return (
-              <PressableScale
-                key={group.id}
-                onPress={() => toggle(group.id)}
-                accessibilityRole="checkbox"
-                accessibilityState={{ checked }}
-                accessibilityLabel={group.title}
-                style={styles.row}
+      <Card contentStyle={styles.list}>
+        {REPORT_GROUPS.map((group) => {
+          const checked = selected.has(group.id);
+          return (
+            <PressableScale
+              key={group.id}
+              onPress={() => toggle(group.id)}
+              disabled={pickingDisabled}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked, disabled: pickingDisabled }}
+              accessibilityLabel={`${group.title}. ${group.description}`}
+              style={[styles.row, pickingDisabled && styles.rowDisabled]}
+            >
+              <View
+                style={[
+                  styles.check,
+                  {
+                    borderColor: checked ? colors.accent : colors.border,
+                    backgroundColor: checked ? colors.accent : 'transparent',
+                  },
+                ]}
               >
-                <View
-                  style={[
-                    styles.check,
-                    {
-                      borderColor: checked ? colors.accent : colors.border,
-                      backgroundColor: checked ? colors.accent : 'transparent',
-                    },
-                  ]}
-                >
-                  {checked ? <Icon name="check" size={16} color={colors.background} /> : null}
-                </View>
+                {checked ? <Icon name="check" size={16} color={colors.background} /> : null}
+              </View>
+              <View style={styles.rowCopy}>
                 <Text style={[styles.rowTitle, { color: colors.text }]}>{group.title}</Text>
-              </PressableScale>
-            );
-          })}
-        </View>
+                <Text style={[styles.rowDescription, { color: colors.muted }]}>
+                  {group.description}
+                </Text>
+              </View>
+            </PressableScale>
+          );
+        })}
       </Card>
 
-      <SectionHeader title="Preview" />
-      <Card>
-        <Text style={[styles.preview, { color: canExport ? colors.text : colors.muted }]}>
-          {canExport ? text : 'Pick at least one section to build the report.'}
-        </Text>
+      <SectionHeader
+        title="Preview"
+        action={
+          preview ? (
+            <Chip label="Rebuild" icon="refresh" onPress={() => void buildPreview()} />
+          ) : undefined
+        }
+      />
+      <Card contentStyle={preview ? styles.previewCard : styles.emptyCard}>
+        {busy === 'preview' ? (
+          <View style={styles.building}>
+            <ActivityIndicator color={colors.accent} />
+            <Text style={[styles.previewNote, { color: colors.muted }]}>
+              Reading this device. Apps summary can take a moment.
+            </Text>
+          </View>
+        ) : preview ? (
+          <Text style={[styles.preview, { color: colors.text }]}>{preview.text}</Text>
+        ) : (
+          <>
+            <Text style={[styles.previewNote, { color: colors.muted }]}>
+              Pick the sections you need, build the preview, then copy, share or export it. What you
+              see here is exactly what leaves the app.
+            </Text>
+            <Button
+              title="Build preview"
+              icon="report"
+              onPress={() => void buildPreview()}
+              disabled={selected.size === 0 || busy !== null}
+            />
+          </>
+        )}
       </Card>
 
       <View style={styles.actions}>
         <Button
-          title="Copy"
+          title="Copy text"
           icon="copy"
           variant="secondary"
-          onPress={copy}
-          disabled={!canExport || busy}
+          onPress={() => void copy()}
+          disabled={!canExport}
           style={styles.action}
         />
         <Button
-          title="Share"
+          title="Share text"
           icon="share"
-          onPress={share}
-          disabled={!canExport || busy}
+          variant="secondary"
+          onPress={() => void share()}
+          disabled={!canExport}
           style={styles.action}
         />
       </View>
 
       {pdfEnabled ? (
         <Button
-          title="Save as PDF"
+          title="Share PDF"
           icon="report"
-          variant="secondary"
-          onPress={savePdf}
-          disabled={!canExport || busy}
+          onPress={() => void savePdf()}
+          disabled={!canExport}
         />
       ) : null}
 
       {notice ? <Text style={[styles.note, { color: colors.muted }]}>{notice}</Text> : null}
       <Text style={[styles.note, { color: colors.muted }]}>
-        The report is built on this phone. Nothing is uploaded.
+        The report is built on this phone and nothing is uploaded. Values marked ≈ are estimates;
+        anything Android did not report reads “Not available on this device”.
+      </Text>
+      <Text style={[styles.note, { color: colors.muted }]}>
+        PDF files leave the app only through the system share sheet.
       </Text>
     </Screen>
   );
@@ -114,19 +158,31 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.xxl,
   },
+  count: {
+    ...typography.caption,
+    fontFamily: 'Inter_600SemiBold',
+  },
   toolbar: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
   list: {
-    gap: spacing.md,
+    gap: spacing.xs,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: 48,
+    minHeight: 56,
     gap: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  rowDisabled: {
+    opacity: 0.6,
+  },
+  rowCopy: {
+    flex: 1,
+    gap: 2,
   },
   check: {
     width: 22,
@@ -138,9 +194,28 @@ const styles = StyleSheet.create({
   },
   rowTitle: {
     ...typography.body,
+    fontFamily: 'Inter_600SemiBold',
+  },
+  rowDescription: {
+    ...typography.caption,
+  },
+  previewCard: {
+    gap: spacing.md,
+  },
+  emptyCard: {
+    gap: spacing.md,
+  },
+  building: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.sm,
   },
   preview: {
     ...typography.mono,
+  },
+  previewNote: {
+    ...typography.caption,
   },
   actions: {
     flexDirection: 'row',

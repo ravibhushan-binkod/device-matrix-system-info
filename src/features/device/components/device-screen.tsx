@@ -1,18 +1,18 @@
-import * as Clipboard from 'expo-clipboard';
-import * as Haptics from 'expo-haptics';
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useState } from 'react';
 import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import {
   AdSlot,
   Button,
   Card,
+  CopyableText,
   InfoSheet,
   Screen,
   SectionHeader,
   Skeleton,
   StatRow,
 } from '@/design-system/components';
+import { copyValue } from '@/design-system/copy/copy-value';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
 import { useDevice } from '@/features/device/hooks/use-device';
@@ -74,10 +74,16 @@ export function DeviceScreen() {
   );
 }
 
+function sectionCopyText(section: DeviceInfoSection): string {
+  return section.entries
+    .map((entry) => `${entry.label}: ${entry.value ?? NOT_AVAILABLE}`)
+    .join('\n');
+}
+
 function SectionCard({ section, onInfo }: { section: DeviceInfoSection; onInfo: () => void }) {
   return (
     <View style={styles.group}>
-      <SectionHeader title={section.title} onInfo={onInfo} />
+      <SectionHeader title={section.title} copyText={sectionCopyText(section)} onInfo={onInfo} />
       <Card>
         <View style={styles.cardBody}>
           {section.entries.map((entry) =>
@@ -104,40 +110,23 @@ function BlockRow({ entry }: { entry: DeviceInfoEntry }) {
   return (
     <View style={styles.block}>
       <Text style={[styles.blockLabel, { color: colors.muted }]}>{entry.label}</Text>
-      <Text style={[styles.blockValue, { color: entry.value ? colors.text : colors.muted }]}>
+      <CopyableText
+        value={entry.value}
+        copyLabel={entry.label}
+        style={[styles.blockValue, { color: entry.value ? colors.text : colors.muted }]}
+      >
         {entry.value ?? NOT_AVAILABLE}
-      </Text>
+      </CopyableText>
     </View>
   );
 }
 
 function CopyAllButton({ report }: { report: string }) {
-  const [copied, setCopied] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(
-    () => () => {
-      if (timer.current) clearTimeout(timer.current);
-    },
-    [],
-  );
-
-  const onPress = () => {
-    Clipboard.setStringAsync(report)
-      .then(() => {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-        setCopied(true);
-        if (timer.current) clearTimeout(timer.current);
-        timer.current = setTimeout(() => setCopied(false), 1500);
-      })
-      .catch(() => {});
-  };
-
   return (
     <Button
-      title={copied ? 'Copied' : 'Copy all'}
-      icon={copied ? 'check' : 'copy'}
-      onPress={onPress}
+      title="Copy all"
+      icon="copy"
+      onPress={() => void copyValue(report, 'All device details')}
     />
   );
 }

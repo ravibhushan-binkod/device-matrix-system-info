@@ -4,6 +4,7 @@ import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 import {
   Card,
   Chip,
+  CopyableText,
   EmptyState,
   InfoSheet,
   PermissionBanner,
@@ -62,6 +63,23 @@ export function ScreenTimeScreen() {
     [ranking.rows],
   );
 
+  const totalCopy = data == null ? undefined : formatUptime(data.totalTimeMs);
+  const dailyCopy =
+    bars.length > 0
+      ? bars.map((bar) => `${bar.label}: ${formatUptime(bar.totalTimeMs)}`).join('\n')
+      : undefined;
+  const topAppsCopy =
+    ranking.rows.length > 0
+      ? ranking.rows
+          .map(
+            (row) =>
+              `${row.label}: ${formatUptime(row.totalTimeMs)} · last used ${
+                formatLastUsed(row.lastUsedMs) ?? 'Not reported'
+              }`,
+          )
+          .join('\n')
+      : undefined;
+
   return (
     <Screen
       scroll
@@ -94,7 +112,11 @@ export function ScreenTimeScreen() {
         </>
       ) : (
         <>
-          <SectionHeader title="Screen time" onInfo={() => setSheetVisible(true)} />
+          <SectionHeader
+            title="Screen time"
+            copyText={totalCopy}
+            onInfo={() => setSheetVisible(true)}
+          />
           <View style={styles.chips}>
             {SCREEN_TIME_RANGES.map((entry) => (
               <Chip
@@ -118,9 +140,13 @@ export function ScreenTimeScreen() {
             <>
               <Card>
                 <View style={styles.cardBody}>
-                  <Text style={[styles.total, { color: colors.text }]}>
+                  <CopyableText
+                    value={formatUptime(data.totalTimeMs)}
+                    copyLabel="Screen time"
+                    style={[styles.total, { color: colors.text }]}
+                  >
                     {formatUptime(data.totalTimeMs)}
-                  </Text>
+                  </CopyableText>
                   <Text style={[styles.caption, { color: colors.muted }]}>
                     Foreground time · {rangeLabel}
                     {refreshing ? ' · updating…' : ''}
@@ -128,7 +154,7 @@ export function ScreenTimeScreen() {
                 </View>
               </Card>
 
-              <SectionHeader title="Daily chart" />
+              <SectionHeader title="Daily chart" copyText={dailyCopy} />
               <Card>
                 <View style={styles.cardBody}>
                   {bars.length === 0 ? (
@@ -148,7 +174,7 @@ export function ScreenTimeScreen() {
                 </View>
               </Card>
 
-              <SectionHeader title="Top apps" />
+              <SectionHeader title="Top apps" copyText={topAppsCopy} />
               <Card>
                 <View style={styles.cardBody}>
                   {ranking.rows.length === 0 ? (
@@ -164,9 +190,13 @@ export function ScreenTimeScreen() {
                         formatValue={(bar) => formatUptime(bar.count)}
                       />
                       {ranking.moreApps > 0 ? (
-                        <Text style={[styles.caption, { color: colors.muted }]}>
+                        <CopyableText
+                          value={`${ranking.moreApps} more apps · ${formatUptime(ranking.moreTimeMs)}`}
+                          copyLabel="More apps"
+                          style={[styles.caption, { color: colors.muted }]}
+                        >
                           {ranking.moreApps} more apps · {formatUptime(ranking.moreTimeMs)}
-                        </Text>
+                        </CopyableText>
                       ) : null}
                     </>
                   )}

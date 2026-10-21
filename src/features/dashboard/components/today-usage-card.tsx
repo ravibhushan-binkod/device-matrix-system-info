@@ -3,7 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { PressableScale } from '@/design-system/animations/pressable-scale';
 import { Shimmer } from '@/design-system/animations/shimmer';
-import { Button, Card, SectionHeader } from '@/design-system/components';
+import { Button, Card, CopyableText, SectionHeader } from '@/design-system/components';
 import { withAlpha } from '@/design-system/color';
 import { Icon } from '@/design-system/icon';
 import { useTheme } from '@/design-system/theme';
@@ -13,6 +13,7 @@ import { formatUptime } from '@/core/utils/format-duration';
 import { useTodayUsage } from '@/features/dashboard/hooks/use-today-usage';
 
 const DOT_COLORS = ['accent', 'violet', 'primary', 'good'] as const;
+const NOT_AVAILABLE = 'Not available on this device';
 
 function ActionLink({ label, onPress }: { label: string; onPress: () => void }) {
   const { colors } = useTheme();
@@ -50,11 +51,22 @@ export function TodayUsageCard() {
     }
   };
 
+  const usageCopy =
+    usage?.granted && usage.apps.length > 0
+      ? [
+          `Screen time today: ${
+            usage.totalTimeMs != null ? formatUptime(usage.totalTimeMs) : NOT_AVAILABLE
+          }`,
+          ...usage.apps.map((app) => `${app.label}: ${formatUptime(app.totalTimeMs)}`),
+        ].join('\n')
+      : undefined;
+
   return (
     <View>
       <View style={styles.header}>
         <SectionHeader
           title="Most used today"
+          copyText={usageCopy}
           action={<ActionLink label="Details" onPress={() => router.push('/screen-time')} />}
         />
       </View>
@@ -97,9 +109,13 @@ export function TodayUsageCard() {
             <>
               <View style={styles.totalRow}>
                 <Text style={[styles.totalLabel, { color: colors.muted }]}>Screen time today</Text>
-                <Text style={[styles.totalValue, { color: colors.text }]}>
+                <CopyableText
+                  value={usage.totalTimeMs != null ? formatUptime(usage.totalTimeMs) : null}
+                  copyLabel="Screen time today"
+                  style={[styles.totalValue, { color: colors.text }]}
+                >
                   {usage.totalTimeMs != null ? formatUptime(usage.totalTimeMs) : '—'}
-                </Text>
+                </CopyableText>
               </View>
               <View style={styles.rows}>
                 {usage.apps.map((app, index) => {
@@ -117,12 +133,21 @@ export function TodayUsageCard() {
                       </View>
                       <View style={styles.appCopy}>
                         <View style={styles.appTop}>
-                          <Text numberOfLines={1} style={[styles.appName, { color: colors.text }]}>
+                          <CopyableText
+                            value={app.label}
+                            copyLabel="App"
+                            numberOfLines={1}
+                            style={[styles.appName, { color: colors.text }]}
+                          >
                             {app.label}
-                          </Text>
-                          <Text style={[styles.appTime, { color: colors.muted }]}>
+                          </CopyableText>
+                          <CopyableText
+                            value={formatUptime(app.totalTimeMs)}
+                            copyLabel={app.label}
+                            style={[styles.appTime, { color: colors.muted }]}
+                          >
                             {formatUptime(app.totalTimeMs)}
-                          </Text>
+                          </CopyableText>
                         </View>
                         <View style={[styles.track, { backgroundColor: colors.surface2 }]}>
                           <View

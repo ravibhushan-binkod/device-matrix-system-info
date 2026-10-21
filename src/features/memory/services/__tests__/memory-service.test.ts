@@ -51,9 +51,7 @@ describe('toMemoryStats', () => {
   });
 
   it('keeps swap honest: clamped, partial or negative reads stay usable or null', () => {
-    const clamped = toMemoryStats(
-      info({ swapTotalBytes: 1_000, swapFreeBytes: 5_000 }),
-    );
+    const clamped = toMemoryStats(info({ swapTotalBytes: 1_000, swapFreeBytes: 5_000 }));
     expect(clamped.status).toBe('ok');
     if (clamped.status === 'ok') expect(clamped.value.swapUsedBytes).toBe(0);
 
@@ -64,9 +62,7 @@ describe('toMemoryStats', () => {
       expect(partial.value.swapUsedBytes).toBeNull();
     }
 
-    const negative = toMemoryStats(
-      info({ swapTotalBytes: -5, swapFreeBytes: 1_000 }),
-    );
+    const negative = toMemoryStats(info({ swapTotalBytes: -5, swapFreeBytes: 1_000 }));
     expect(negative.status).toBe('ok');
     if (negative.status === 'ok') {
       expect(negative.value.swapTotalBytes).toBeNull();
@@ -87,9 +83,7 @@ describe('readMemoryStats', () => {
   });
 
   it('maps an ok reading into stats', () => {
-    memoryMock.mockReturnValue(
-      ok(info({ swapTotalBytes: 1_000_000, swapFreeBytes: 250_000 })),
-    );
+    memoryMock.mockReturnValue(ok(info({ swapTotalBytes: 1_000_000, swapFreeBytes: 250_000 })));
     const result = readMemoryStats();
     expect(result.status).toBe('ok');
     if (result.status !== 'ok') return;

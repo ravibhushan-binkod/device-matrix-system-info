@@ -219,7 +219,10 @@ export function formatFocalList(focalLengthsMm: number[] | null): string | null 
 }
 
 /** Largest JPEG the camera reports. */
-export function formatSensorResolution(widthPx: number | null, heightPx: number | null): string | null {
+export function formatSensorResolution(
+  widthPx: number | null,
+  heightPx: number | null,
+): string | null {
   if (widthPx == null || heightPx == null || widthPx <= 0 || heightPx <= 0) return null;
   return `${widthPx} × ${heightPx} px`;
 }
@@ -258,10 +261,7 @@ export function buildCameraEntries(info: CameraInfo): CameraEntry[] {
       formatFocalLength(camera.focalLengthMm),
     ].filter((chip): chip is string => chip != null);
 
-    const diagonal = sensorDiagonalMm(
-      camera.sensorPhysicalWidthMm,
-      camera.sensorPhysicalHeightMm,
-    );
+    const diagonal = sensorDiagonalMm(camera.sensorPhysicalWidthMm, camera.sensorPhysicalHeightMm);
 
     // Multi-lens rows only appear when the camera reports more than one lens;
     // otherwise they would wrongly read as "not available".
@@ -300,8 +300,18 @@ export function buildCameraEntries(info: CameraInfo): CameraEntry[] {
         label: 'Shutter range',
         value: formatShutterRange(camera.exposureMinNs, camera.exposureMaxNs),
       },
-      { key: 'video', label: 'Video sizes', value: videoSizeLabel(camera.videoSizes), multiline: true },
-      { key: 'fps', label: 'Frame rates', value: fpsRangesLabel(camera.fpsRanges), multiline: true },
+      {
+        key: 'video',
+        label: 'Video sizes',
+        value: videoSizeLabel(camera.videoSizes),
+        multiline: true,
+      },
+      {
+        key: 'fps',
+        label: 'Frame rates',
+        value: fpsRangesLabel(camera.fpsRanges),
+        multiline: true,
+      },
       {
         key: 'physical',
         label: 'Physical lenses',

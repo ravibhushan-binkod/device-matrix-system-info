@@ -40,7 +40,11 @@ export function InfoSheet({ visible, title, paragraphs, onClose }: Props) {
         >
           <View style={[styles.handle, { backgroundColor: colors.border }]} />
           <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-          <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent} bounces={false}>
+          <ScrollView
+            style={styles.body}
+            contentContainerStyle={styles.bodyContent}
+            bounces={false}
+          >
             {paragraphs.map((paragraph, index) => (
               <Text key={index} style={[styles.paragraph, { color: colors.muted }]}>
                 {paragraph}

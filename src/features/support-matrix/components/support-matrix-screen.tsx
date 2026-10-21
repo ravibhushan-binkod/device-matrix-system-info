@@ -99,7 +99,9 @@ function MatrixRow({ entry }: { entry: MatrixEntry }) {
         <Text style={[styles.value, { color: available ? colors.text : colors.muted }]}>
           {entry.value ?? 'Not available'}
         </Text>
-        {entry.note ? <Text style={[styles.caption, { color: colors.muted }]}>{entry.note}</Text> : null}
+        {entry.note ? (
+          <Text style={[styles.caption, { color: colors.muted }]}>{entry.note}</Text>
+        ) : null}
       </View>
     </View>
   );

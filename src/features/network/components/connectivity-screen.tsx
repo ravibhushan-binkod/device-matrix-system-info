@@ -1,12 +1,11 @@
-import * as Clipboard from 'expo-clipboard';
-import * as Haptics from 'expo-haptics';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { openAppSettings } from '@/core/permissions';
 import { PressableScale } from '@/design-system/animations/pressable-scale';
 import {
   Card,
+  CopyableText,
   EmptyState,
   InfoSheet,
   OpenSettingsDialog,
@@ -17,6 +16,7 @@ import {
   Skeleton,
   StatRow,
 } from '@/design-system/components';
+import { copyValue } from '@/design-system/copy/copy-value';
 import { Icon } from '@/design-system/icon';
 import { useTheme } from '@/design-system/theme';
 import { radius, spacing, typography } from '@/design-system/tokens';
@@ -126,6 +126,22 @@ export function ConnectivityScreen() {
       ?.find((group) => group.id === 'radios')
       ?.rows.filter((row) => row.id !== 'bluetooth' && row.id !== 'nfc') ?? [];
 
+  const rowsCopy = (groupId: string): string | undefined => {
+    const rows = groups?.find((group) => group.id === groupId)?.rows ?? [];
+    return rows.length > 0
+      ? rows.map((row) => `${row.label}: ${capabilityLabel(row.supported)}`).join('\n')
+      : undefined;
+  };
+  const radiosCopy = [
+    `Bluetooth: ${bt ? (onOffLabel(bt.enabled) ?? NOT_AVAILABLE) : NOT_AVAILABLE}`,
+    `NFC: ${nfcValue ? (onOffLabel(nfcValue.enabled) ?? NOT_AVAILABLE) : NOT_AVAILABLE}`,
+    ...radiosRows.map((row) => `${row.label}: ${capabilityLabel(row.supported)}`),
+  ].join('\n');
+  const featuresCopy =
+    filteredFeatures.length > 0
+      ? filteredFeatures.flatMap((group) => group.features).join('\n')
+      : undefined;
+
   return (
     <Screen scroll contentStyle={styles.content}>
       {capabilities === null ? (
@@ -142,7 +158,7 @@ export function ConnectivityScreen() {
         />
       ) : (
         <>
-          <SectionHeader title="Radios" onInfo={() => setSheet('radios')} />
+          <SectionHeader title="Radios" copyText={radiosCopy} onInfo={() => setSheet('radios')} />
           <Card>
             <View style={styles.cardBody}>
               {showBluetoothBanner ? (
@@ -169,7 +185,11 @@ export function ConnectivityScreen() {
             </View>
           </Card>
 
-          <SectionHeader title="Wi-Fi capabilities" onInfo={() => setSheet('wifi')} />
+          <SectionHeader
+            title="Wi-Fi capabilities"
+            copyText={rowsCopy('wifi')}
+            onInfo={() => setSheet('wifi')}
+          />
           <Card>
             <View style={styles.cardBody}>
               {(groups?.find((group) => group.id === 'wifi')?.rows ?? []).map((row) => (
@@ -178,7 +198,11 @@ export function ConnectivityScreen() {
             </View>
           </Card>
 
-          <SectionHeader title="Wired & positioning" onInfo={() => setSheet('wired')} />
+          <SectionHeader
+            title="Wired & positioning"
+            copyText={rowsCopy('wired')}
+            onInfo={() => setSheet('wired')}
+          />
           <Card>
             <View style={styles.cardBody}>
               {(groups?.find((group) => group.id === 'wired')?.rows ?? []).map((row) => (
@@ -187,7 +211,11 @@ export function ConnectivityScreen() {
             </View>
           </Card>
 
-          <SectionHeader title="Telephony" onInfo={() => setSheet('telephony')} />
+          <SectionHeader
+            title="Telephony"
+            copyText={rowsCopy('telephony')}
+            onInfo={() => setSheet('telephony')}
+          />
           <Card>
             <View style={styles.cardBody}>
               {(groups?.find((group) => group.id === 'telephony')?.rows ?? []).map((row) => (
@@ -196,13 +224,21 @@ export function ConnectivityScreen() {
             </View>
           </Card>
 
-          <SectionHeader title="System features" onInfo={() => setSheet('features')} />
+          <SectionHeader
+            title="System features"
+            copyText={featuresCopy}
+            onInfo={() => setSheet('features')}
+          />
           <SearchField value={query} onChangeText={setQuery} />
-          <Text style={[styles.count, { color: colors.muted }]}>
+          <CopyableText
+            value={featuresCopy}
+            copyLabel="System features"
+            style={[styles.count, { color: colors.muted }]}
+          >
             {shownFeatures === totalFeatures
               ? `${totalFeatures} features`
               : `${shownFeatures} of ${totalFeatures} features`}
-          </Text>
+          </CopyableText>
           {filteredFeatures.length === 0 ? (
             <Card>
               <Text style={[styles.emptyText, { color: colors.muted }]}>
@@ -314,30 +350,13 @@ function SearchField({
   );
 }
 
-/** One system feature; tapping copies the name. */
+/** One system feature; tapping copies the name with the app-wide feedback. */
 function FeatureRow({ feature, divided }: { feature: string; divided: boolean }) {
   const { colors } = useTheme();
-  const [copied, setCopied] = useState(false);
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(
-    () => () => {
-      if (timer.current) clearTimeout(timer.current);
-    },
-    [],
-  );
-
-  const copy = async () => {
-    await Clipboard.setStringAsync(feature);
-    Haptics.selectionAsync().catch(() => {});
-    setCopied(true);
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setCopied(false), 1200);
-  };
 
   return (
     <PressableScale
-      onPress={() => void copy()}
+      onPress={() => void copyValue(feature, 'System feature')}
       accessibilityRole="button"
       accessibilityLabel={`Copy ${feature}`}
       style={[
@@ -348,11 +367,7 @@ function FeatureRow({ feature, divided }: { feature: string; divided: boolean })
       ]}
     >
       <Text style={[styles.featureName, { color: colors.text }]}>{feature}</Text>
-      <Icon
-        name={copied ? 'check' : 'copy'}
-        size={16}
-        color={copied ? colors.good : colors.muted}
-      />
+      <Icon name="copy" size={16} color={colors.muted} />
     </PressableScale>
   );
 }

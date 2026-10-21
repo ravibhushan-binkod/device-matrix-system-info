@@ -7,7 +7,8 @@ import { useParallaxStyle } from '@/design-system/animations/collapsing-header';
 import { PressableScale } from '@/design-system/animations/pressable-scale';
 import { withAlpha } from '@/design-system/color';
 import { Icon } from '@/design-system/icon';
-import { InfoSheet } from '@/design-system/components';
+import { CopyableText, InfoSheet } from '@/design-system/components';
+import { copyValue } from '@/design-system/copy/copy-value';
 import { useTheme } from '@/design-system/theme';
 import { radius, spacing, typography } from '@/design-system/tokens';
 import { Ring } from '@/design-system/visuals';
@@ -46,9 +47,14 @@ function StatChip({ label, tone }: { label: string; tone?: string }) {
       ]}
     >
       <View style={[styles.chipDot, { backgroundColor: tint }]} />
-      <Text numberOfLines={1} style={[styles.chipText, { color: colors.text }]}>
+      <CopyableText
+        value={label}
+        copyLabel="Device info"
+        numberOfLines={1}
+        style={[styles.chipText, { color: colors.text }]}
+      >
         {label}
-      </Text>
+      </CopyableText>
     </View>
   );
 }
@@ -105,9 +111,14 @@ export function HeroCard({ summary, scrollY }: Props) {
         <View style={styles.top}>
           <View style={styles.copy}>
             <Text style={[styles.overline, { color: colors.accent }]}>DEVICE MATRIX</Text>
-            <Text numberOfLines={2} style={[styles.name, { color: colors.text }]}>
+            <CopyableText
+              value={deviceName}
+              copyLabel="Device"
+              numberOfLines={2}
+              style={[styles.name, { color: colors.text }]}
+            >
               {deviceName}
-            </Text>
+            </CopyableText>
             <View style={styles.chips}>
               <StatChip label={android} tone={colors.accent} />
               <StatChip
@@ -117,9 +128,14 @@ export function HeroCard({ summary, scrollY }: Props) {
             </View>
             <View style={styles.uptimeRow}>
               <Icon name="clock" size={16} color={colors.muted} />
-              <Text numberOfLines={1} style={[styles.uptime, { color: colors.muted }]}>
+              <CopyableText
+                value={uptime != null ? `Up ${uptime}` : 'Uptime not available'}
+                copyLabel="Uptime"
+                numberOfLines={1}
+                style={[styles.uptime, { color: colors.muted }]}
+              >
                 {uptime != null ? `Up ${uptime}` : 'Uptime not available'}
-              </Text>
+              </CopyableText>
             </View>
           </View>
 
@@ -133,6 +149,7 @@ export function HeroCard({ summary, scrollY }: Props) {
                 thickness={11}
                 color={tint}
                 accessibilityLabel={`Health score ${score} out of 100`}
+                onLongPress={() => void copyValue(`Health score: ${score}/100`, 'Health score')}
               />
             ) : (
               <View
@@ -158,11 +175,19 @@ export function HeroCard({ summary, scrollY }: Props) {
         <View style={[styles.footer, { borderTopColor: withAlpha(colors.border, 0.75) }]}>
           <View style={styles.footerItem}>
             <View style={[styles.liveDot, { backgroundColor: tint }]} />
-            <Text style={[styles.footerText, { color: colors.muted }]}>
+            <CopyableText
+              value={
+                score != null
+                  ? `${summary.health.availableChecks}/${summary.health.totalChecks} checks read`
+                  : 'No health checks available'
+              }
+              copyLabel="Health checks"
+              style={[styles.footerText, { color: colors.muted }]}
+            >
               {score != null
                 ? `${summary.health.availableChecks}/${summary.health.totalChecks} checks read`
                 : 'No health checks available'}
-            </Text>
+            </CopyableText>
           </View>
           <Text style={[styles.footerText, { color: colors.muted }]}>Calculated locally</Text>
         </View>

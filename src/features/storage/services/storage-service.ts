@@ -2,11 +2,7 @@ import { getStorageInfo } from '@/core/native';
 import type { AppStorageStats, StorageInfo } from '@/core/native';
 import { denied, ok, unavailable, type Result } from '@/core/result';
 import { formatByteSize } from '@/core/utils/format-bytes';
-import type {
-  StorageBreakdown,
-  StorageOverview,
-  StorageVolumeRow,
-} from '@/features/storage/types';
+import type { StorageBreakdown, StorageOverview, StorageVolumeRow } from '@/features/storage/types';
 
 export function readStorage(): Result<StorageInfo> {
   return getStorageInfo();

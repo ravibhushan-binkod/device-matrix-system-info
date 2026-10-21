@@ -94,7 +94,9 @@ describe('buildZoneRows', () => {
   });
 
   it('treats a nonsensical temperature as unavailable', () => {
-    expect(buildZoneRows([{ name: 'battery', temperatureC: Number.NaN }])[0]?.temperature).toBeNull();
+    expect(
+      buildZoneRows([{ name: 'battery', temperatureC: Number.NaN }])[0]?.temperature,
+    ).toBeNull();
   });
 });
 

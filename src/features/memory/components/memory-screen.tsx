@@ -5,6 +5,7 @@ import {
   AdSlot,
   Card,
   Chip,
+  CopyableText,
   EmptyState,
   InfoSheet,
   Screen,
@@ -37,6 +38,33 @@ export function MemoryScreen() {
   const [sheetVisible, setSheetVisible] = useState(false);
 
   const latest = samples.length > 0 ? samples[samples.length - 1] : null;
+  const memoryCopy =
+    stats?.status === 'ok'
+      ? [
+          `Usage: ${Math.round(stats.value.usedPercent)}%`,
+          `Used: ${formatByteSize(stats.value.usedBytes)} of ${formatByteSize(stats.value.totalBytes)}`,
+          `Available: ${formatByteSize(stats.value.availableBytes)}`,
+        ].join('\n')
+      : undefined;
+  const detailsCopy =
+    stats?.status === 'ok'
+      ? [
+          `Total: ${formatByteSize(stats.value.totalBytes)}`,
+          `Available: ${formatByteSize(stats.value.availableBytes)}`,
+          `Used: ${formatByteSize(stats.value.usedBytes)}`,
+          `Threshold: ${formatByteSize(stats.value.thresholdBytes)}`,
+          `Low memory: ${stats.value.lowMemory ? 'Yes' : 'No'}`,
+          stats.value.swapTotalBytes == null
+            ? null
+            : `Swap total: ${formatByteSize(stats.value.swapTotalBytes)}`,
+          stats.value.swapUsedBytes == null
+            ? null
+            : `Swap used: ${formatByteSize(stats.value.swapUsedBytes)}`,
+        ]
+          .filter((line): line is string => line != null)
+          .join('\n')
+      : undefined;
+  const available = latest == null ? NOT_AVAILABLE : formatByteSize(latest * 1_000_000);
 
   return (
     <Screen
@@ -57,7 +85,11 @@ export function MemoryScreen() {
       ) : stats.status === 'ok' ? (
         <>
           <View style={styles.group}>
-            <SectionHeader title="Memory" onInfo={() => setSheetVisible(true)} />
+            <SectionHeader
+              title="Memory"
+              copyText={memoryCopy}
+              onInfo={() => setSheetVisible(true)}
+            />
             <Card>
               <View style={styles.donutBody}>
                 <MemoryDonut
@@ -65,9 +97,13 @@ export function MemoryScreen() {
                   label="used"
                   accessibilityLabel="Memory used"
                 />
-                <Text style={[styles.caption, { color: colors.muted }]}>
+                <CopyableText
+                  value={formatByteSize(stats.value.availableBytes)}
+                  copyLabel="Available memory"
+                  style={[styles.caption, { color: colors.muted }]}
+                >
                   {formatByteSize(stats.value.availableBytes)} available
-                </Text>
+                </CopyableText>
               </View>
             </Card>
           </View>
@@ -75,25 +111,25 @@ export function MemoryScreen() {
           <AdSlot placement="memory-mid" />
 
           <View style={styles.group}>
-            <SectionHeader title="Details" onInfo={() => setSheetVisible(true)} />
+            <SectionHeader
+              title="Details"
+              copyText={detailsCopy}
+              onInfo={() => setSheetVisible(true)}
+            />
             <Card>
               <View style={styles.cardBody}>
                 <StatRow label="Total" value={formatByteSize(stats.value.totalBytes)} />
                 <StatRow label="Available" value={formatByteSize(stats.value.availableBytes)} />
                 <StatRow label="Used" value={formatByteSize(stats.value.usedBytes)} />
                 <StatRow label="Threshold" value={formatByteSize(stats.value.thresholdBytes)} />
-                <StatRow
-                  label="Low memory"
-                  value={stats.value.lowMemory ? 'Yes' : 'No'}
-                  copyable={false}
-                />
+                <StatRow label="Low memory" value={stats.value.lowMemory ? 'Yes' : 'No'} />
                 {stats.value.swapTotalBytes != null ? (
                   <StatRow label="Swap total" value={formatByteSize(stats.value.swapTotalBytes)} />
                 ) : null}
                 {stats.value.swapUsedBytes != null ? (
                   <StatRow label="Swap used" value={formatByteSize(stats.value.swapUsedBytes)} />
                 ) : null}
-                <StatRow label="RAM type & speed" value={NOT_AVAILABLE} copyable={false} />
+                <StatRow label="RAM type & speed" value={NOT_AVAILABLE} />
                 <Text style={[styles.caption, { color: colors.muted }]}>
                   Android does not report RAM type or speed to apps.
                 </Text>
@@ -104,6 +140,7 @@ export function MemoryScreen() {
           <View style={styles.group}>
             <SectionHeader
               title="Available RAM"
+              copyText={latest == null ? undefined : `Available: ${available}`}
               action={
                 <Chip
                   label={paused ? 'Resume' : 'Pause'}
@@ -116,9 +153,13 @@ export function MemoryScreen() {
             <Card>
               <View style={styles.cardBody}>
                 <View style={styles.graphValueRow}>
-                  <Text style={[styles.graphValue, { color: colors.text }]}>
-                    {latest == null ? NOT_AVAILABLE : formatByteSize(latest * 1_000_000)}
-                  </Text>
+                  <CopyableText
+                    value={latest == null ? null : available}
+                    copyLabel="Available memory"
+                    style={[styles.graphValue, { color: colors.text }]}
+                  >
+                    {available}
+                  </CopyableText>
                   <Text style={[styles.caption, { color: colors.muted }]}>
                     {paused ? 'Paused' : isPolling ? 'Live · updates every 3 s' : 'Paused'}
                   </Text>

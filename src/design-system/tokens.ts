@@ -66,7 +66,20 @@ export const palettes: Record<ColorScheme, AppColors> = {
 };
 
 /** Accent colours the user can pick in settings (default: cyan). */
-export type AccentName = 'cyan' | 'blue' | 'violet' | 'green';
+export type AccentName =
+  'cyan' | 'blue' | 'violet' | 'green' | 'amber' | 'rose' | 'teal' | 'indigo';
+
+/** Stable display order for Settings — eight palettes, no third-party branding. */
+export const ACCENT_NAMES = [
+  'cyan',
+  'blue',
+  'violet',
+  'green',
+  'amber',
+  'rose',
+  'teal',
+  'indigo',
+] as const satisfies readonly AccentName[];
 
 /**
  * Highlight colour per scheme: vivid on the dark background, deepened in the
@@ -77,6 +90,26 @@ export const accents: Record<AccentName, Record<ColorScheme, string>> = {
   blue: { dark: '#4F8CFF', light: '#2563EB' },
   violet: { dark: '#A78BFA', light: '#7C3AED' },
   green: { dark: '#22C55E', light: '#147A39' },
+  amber: { dark: '#FBBF24', light: '#A15C00' },
+  rose: { dark: '#FB7185', light: '#BE123C' },
+  teal: { dark: '#2DD4BF', light: '#0F766E' },
+  indigo: { dark: '#818CF8', light: '#4338CA' },
+};
+
+/**
+ * Companion tone for gradients, charts and the aurora. It replaces the
+ * violet token so every accent carries a two-tone identity without changing
+ * semantic status colours (good / warning / critical).
+ */
+export const accentSecondaries: Record<AccentName, Record<ColorScheme, string>> = {
+  cyan: { dark: '#A78BFA', light: '#7C3AED' },
+  blue: { dark: '#60A5FA', light: '#1D4ED8' },
+  violet: { dark: '#F0ABFC', light: '#A21CAF' },
+  green: { dark: '#22D3EE', light: '#0E7490' },
+  amber: { dark: '#FB7185', light: '#BE123C' },
+  rose: { dark: '#FBBF24', light: '#A15C00' },
+  teal: { dark: '#818CF8', light: '#4338CA' },
+  indigo: { dark: '#2DD4BF', light: '#0F766E' },
 };
 
 /** Spacing on a 4 dp grid. */

@@ -42,6 +42,8 @@ type Props = {
   memoryHistory: number[];
 };
 
+const NOT_AVAILABLE = 'Not available on this device';
+
 export function TileContent({
   id,
   size,
@@ -420,8 +422,7 @@ function NetworkTile({ definition, summary }: TileProps) {
             <SignalBars level={network.value.signalBars} height={16} barWidth={4} color={tint} />
           </View>
           <Text numberOfLines={1} style={[styles.networkName, { color: colors.text }]}>
-            {network.value.name ??
-              (network.value.connected ? 'Name hidden' : 'No active network')}
+            {network.value.name ?? (network.value.connected ? 'Name hidden' : 'No active network')}
           </Text>
           <Text numberOfLines={1} style={[styles.caption, { color: colors.muted }]}>
             {network.value.detail ?? network.value.signalLabel ?? '—'}
@@ -660,6 +661,144 @@ function MetricPill({ label, tint }: { label: string; tint: string }) {
       </Text>
     </View>
   );
+}
+
+function connectivityLabel(state: ConnectivityState): string {
+  switch (state) {
+    case 'on':
+      return 'On';
+    case 'off':
+      return 'Off';
+    case 'permission':
+      return 'Permission needed';
+    case 'unavailable':
+      return 'No radio';
+    default:
+      return 'Unknown';
+  }
+}
+
+/** Plain-text summary of a tile, used by the long-press copy action. */
+export function tileCopySummary(
+  id: DashboardTileId,
+  summary: DashboardSummary,
+  inventory: DashboardInventory | null,
+): string {
+  switch (id) {
+    case 'cpu': {
+      const cpu = summary.cpu;
+      if (cpu.status !== 'ok') return `CPU: ${NOT_AVAILABLE}`;
+      return [
+        `Average clock: ${
+          cpu.value.averageMhz != null
+            ? `${(cpu.value.averageMhz / 1000).toFixed(2)} GHz`
+            : NOT_AVAILABLE
+        }`,
+        `Max clock: ${
+          cpu.value.maxMhz != null ? formatFrequencyKhz(cpu.value.maxMhz * 1000) : 'Hidden'
+        }`,
+        `Cores: ${cpu.value.cores}`,
+        `Chipset: ${cpu.value.chipset ?? NOT_AVAILABLE}`,
+      ].join(' · ');
+    }
+    case 'memory': {
+      const memory = summary.memory;
+      if (memory.status !== 'ok') return `Memory: ${NOT_AVAILABLE}`;
+      const free = Math.max(0, memory.value.totalBytes - memory.value.usedBytes);
+      return `${Math.round(memory.value.percent)}% used · ${formatBytes(
+        memory.value.usedBytes,
+      )} of ${formatBytes(memory.value.totalBytes)} · ${formatBytes(free)} free`;
+    }
+    case 'storage': {
+      const storage = summary.storage;
+      if (storage.status !== 'ok') return `Storage: ${NOT_AVAILABLE}`;
+      const free = Math.max(0, storage.value.totalBytes - storage.value.usedBytes);
+      return `${Math.round(storage.value.percent)}% used · ${formatBytes(
+        storage.value.usedBytes,
+      )} of ${formatBytes(storage.value.totalBytes)} · ${formatBytes(free)} free`;
+    }
+    case 'battery': {
+      const battery = summary.battery;
+      if (battery.status !== 'ok') return `Battery: ${NOT_AVAILABLE}`;
+      return [
+        `Level: ${battery.value.percent == null ? NOT_AVAILABLE : `${battery.value.percent}%`}`,
+        `State: ${battery.value.charging ? 'Charging' : 'On battery'}`,
+        `Power: ${battery.value.watts == null ? NOT_AVAILABLE : `${battery.value.watts.toFixed(1)} W`}`,
+        `Temperature: ${
+          battery.value.temperatureC == null
+            ? NOT_AVAILABLE
+            : formatTemperature(battery.value.temperatureC)
+        }`,
+      ].join(' · ');
+    }
+    case 'thermal': {
+      const thermal = summary.thermal;
+      if (thermal.status !== 'ok') return `Thermal: ${NOT_AVAILABLE}`;
+      return [
+        `Temperature: ${
+          thermal.value.temperatureC == null
+            ? NOT_AVAILABLE
+            : formatTemperature(thermal.value.temperatureC)
+        }`,
+        `Status: ${thermal.value.statusLabel ?? NOT_AVAILABLE}`,
+        `Load: ${thermal.value.loadPercent == null ? NOT_AVAILABLE : `${thermal.value.loadPercent}%`}`,
+      ].join(' · ');
+    }
+    case 'display': {
+      const display = summary.display;
+      if (display.status !== 'ok') return `Display: ${NOT_AVAILABLE}`;
+      return [
+        `Resolution: ${display.value.resolution ?? NOT_AVAILABLE}`,
+        `Refresh rate: ${
+          display.value.refreshRateHz == null
+            ? NOT_AVAILABLE
+            : `${Math.round(display.value.refreshRateHz)} Hz`
+        }`,
+        `Panel: ${
+          display.value.diagonalInches == null
+            ? NOT_AVAILABLE
+            : `${display.value.diagonalInches.toFixed(1)} inches`
+        }`,
+      ].join(' · ');
+    }
+    case 'network': {
+      const network = summary.network;
+      if (network.status !== 'ok') return `Network: ${NOT_AVAILABLE}`;
+      return [
+        network.value.typeLabel,
+        `Name: ${network.value.name ?? (network.value.connected ? 'Hidden' : 'No active network')}`,
+        `Detail: ${network.value.detail ?? network.value.signalLabel ?? NOT_AVAILABLE}`,
+        `Link speed: ${
+          network.value.linkSpeedMbps == null
+            ? NOT_AVAILABLE
+            : `${Math.round(network.value.linkSpeedMbps)} Mbps`
+        }`,
+      ].join(' · ');
+    }
+    case 'sensors': {
+      const sensors = inventory?.sensors;
+      return sensors?.status === 'ok'
+        ? `${sensors.value.count} sensors reported`
+        : `Sensors: ${NOT_AVAILABLE}`;
+    }
+    case 'camera': {
+      const cameras = inventory?.cameras;
+      return cameras?.status === 'ok'
+        ? `${cameras.value.lensCount} lenses · ${cameras.value.back} back · ${cameras.value.front} front`
+        : `Cameras: ${NOT_AVAILABLE}`;
+    }
+    case 'connectivity': {
+      const connectivity = summary.connectivity;
+      if (connectivity.status !== 'ok') return `Connectivity: ${NOT_AVAILABLE}`;
+      return [
+        `Bluetooth: ${connectivityLabel(connectivity.value.bluetooth)}`,
+        `NFC: ${connectivityLabel(connectivity.value.nfc)}`,
+        `UWB: ${inventory?.uwb === 'supported' ? 'Supported' : 'Not supported'}`,
+      ].join(' · ');
+    }
+    default:
+      return NOT_AVAILABLE;
+  }
 }
 
 const styles = StyleSheet.create({

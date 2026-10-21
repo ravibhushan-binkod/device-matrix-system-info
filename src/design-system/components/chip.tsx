@@ -12,10 +12,12 @@ type Props = {
   dotColor?: string;
   icon?: IconName;
   onPress?: () => void;
+  /** Optional long-press action (chips that stand for a copyable value). */
+  onLongPress?: () => void;
 };
 
 /** Pill chip — filter, legend or selection. */
-export function Chip({ label, selected = false, dotColor, icon, onPress }: Props) {
+export function Chip({ label, selected = false, dotColor, icon, onPress, onLongPress }: Props) {
   const { colors } = useTheme();
   const fg = selected ? colors.onPrimary : colors.muted;
 
@@ -36,12 +38,15 @@ export function Chip({ label, selected = false, dotColor, icon, onPress }: Props
     },
   ];
 
-  if (onPress) {
+  if (onPress || onLongPress) {
     return (
       <PressableScale
         onPress={onPress}
+        onLongPress={onLongPress}
+        delayLongPress={320}
         accessibilityRole="button"
         accessibilityState={{ selected }}
+        accessibilityHint={onLongPress ? 'Long press to copy this value' : undefined}
         hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
         style={chipStyle}
       >

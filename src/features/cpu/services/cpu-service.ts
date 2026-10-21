@@ -108,10 +108,7 @@ export function frequencyRange(minKhz: number | null, maxKhz: number | null): st
 }
 
 /** Per-core rows for the cluster list. */
-export function buildCoreRows(
-  frequencies: CpuFrequency[],
-  clusters: CpuCluster[],
-): CpuCoreRow[] {
+export function buildCoreRows(frequencies: CpuFrequency[], clusters: CpuCluster[]): CpuCoreRow[] {
   const clusterOf = new Map<number, string>();
   for (const cluster of clusters) {
     for (const core of cluster.cores) clusterOf.set(core, cluster.label);

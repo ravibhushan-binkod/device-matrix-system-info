@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   Chip,
+  CopyableText,
   CopyButton,
   CopyRow,
   EmptyState,
@@ -117,6 +118,70 @@ export function AppDetailScreen({ packageName }: { packageName: string }) {
     .filter((permission) => permission.protection === 'other')
     .sort(byPermissionName);
 
+  const detailsCopy = [
+    `Package: ${loaded.packageName}`,
+    `Version: ${version}`,
+    `Version code: ${loaded.versionCode != null ? String(loaded.versionCode) : NOT_AVAILABLE}`,
+    `Min SDK: ${minSdk != null ? `API ${minSdk}` : NOT_AVAILABLE}`,
+    `Target SDK: ${targetSdk != null ? `API ${targetSdk}` : NOT_AVAILABLE}`,
+    `Installed: ${formatAppDateTime(loaded.firstInstallTimeMs) ?? NOT_AVAILABLE}`,
+    `Updated: ${formatAppDateTime(loaded.lastUpdateTimeMs) ?? NOT_AVAILABLE}`,
+    `Installer: ${installer}`,
+    `Installer package: ${installerPackage ?? NOT_AVAILABLE}`,
+    `Debuggable: ${analysis == null ? 'Reading…' : analysis.debuggable ? 'Yes' : 'No'}`,
+    `Native ABIs: ${
+      analysis == null
+        ? 'Reading…'
+        : analysis.abis.length > 0
+          ? analysis.abis.join(', ')
+          : 'No native libraries'
+    }`,
+  ].join('\n');
+  const storageCopy = hasSizes
+    ? [
+        `App size: ${
+          analysis?.appBytes != null ? formatByteSize(analysis.appBytes) : NOT_AVAILABLE
+        }`,
+        `Data: ${analysis?.dataBytes != null ? formatByteSize(analysis.dataBytes) : NOT_AVAILABLE}`,
+        `Cache: ${
+          analysis?.cacheBytes != null ? formatByteSize(analysis.cacheBytes) : NOT_AVAILABLE
+        }`,
+      ].join('\n')
+    : undefined;
+  const signingCopy =
+    analysis != null && analysis.signerSha256.length > 0
+      ? analysis.signerSha256
+          .map(
+            (fingerprint, index) =>
+              `${analysis.signerSha256.length > 1 ? `SHA-256 #${index + 1}` : 'SHA-256'}: ${fingerprint}`,
+          )
+          .join('\n')
+      : undefined;
+  const permissionsCopy =
+    permissions.length > 0
+      ? permissions
+          .map(
+            (permission) =>
+              `${shortPermissionName(permission.name)}: ${
+                permission.granted ? 'Granted' : 'Not granted'
+              } (${permission.protection})`,
+          )
+          .join('\n')
+      : undefined;
+  const componentsCopy =
+    analysis != null
+      ? [
+          `Activities: ${analysis.activities.length}`,
+          ...analysis.activities.map((name) => `  ${name}`),
+          `Services: ${analysis.services.length}`,
+          ...analysis.services.map((name) => `  ${name}`),
+          `Receivers: ${analysis.receivers.length}`,
+          ...analysis.receivers.map((name) => `  ${name}`),
+          `Providers: ${analysis.providers.length}`,
+          ...analysis.providers.map((name) => `  ${name}`),
+        ].join('\n')
+      : undefined;
+
   return (
     <Screen scroll contentStyle={styles.content}>
       <Stack.Screen options={{ title: loaded.label }} />
@@ -125,16 +190,27 @@ export function AppDetailScreen({ packageName }: { packageName: string }) {
         <View style={styles.head}>
           <AppIcon icon={loaded.icon} label={loaded.label} size={56} />
           <View style={styles.headText}>
-            <Text style={[styles.title, { color: colors.text }]}>{loaded.label}</Text>
-            <Text numberOfLines={2} style={[styles.package, { color: colors.muted }]}>
+            <CopyableText
+              value={loaded.label}
+              copyLabel="App name"
+              style={[styles.title, { color: colors.text }]}
+            >
+              {loaded.label}
+            </CopyableText>
+            <CopyableText
+              value={loaded.packageName}
+              copyLabel="Package"
+              numberOfLines={2}
+              style={[styles.package, { color: colors.muted }]}
+            >
               {loaded.packageName}
-            </Text>
+            </CopyableText>
             <Chip label={loaded.system ? 'System app' : 'User app'} />
           </View>
         </View>
       </Card>
 
-      <SectionHeader title="Details" onInfo={() => setSheetVisible(true)} />
+      <SectionHeader title="Details" copyText={detailsCopy} onInfo={() => setSheetVisible(true)} />
       <Card>
         <View style={styles.cardBody}>
           <CopyRow label="Package" value={loaded.packageName} />
@@ -176,7 +252,7 @@ export function AppDetailScreen({ packageName }: { packageName: string }) {
         </View>
       </Card>
 
-      <SectionHeader title="Storage" />
+      <SectionHeader title="Storage" copyText={storageCopy} />
       <Card>
         <View style={styles.cardBody}>
           {analyzer == null ? (
@@ -232,7 +308,7 @@ export function AppDetailScreen({ packageName }: { packageName: string }) {
         </View>
       </Card>
 
-      <SectionHeader title="Signing" />
+      <SectionHeader title="Signing" copyText={signingCopy} />
       <Card>
         <View style={styles.cardBody}>
           {analyzer == null ? (
@@ -264,7 +340,7 @@ export function AppDetailScreen({ packageName }: { packageName: string }) {
         </View>
       </Card>
 
-      <SectionHeader title="Permissions" />
+      <SectionHeader title="Permissions" copyText={permissionsCopy} />
       <Card>
         <View style={styles.cardBody}>
           {analyzer == null ? (
@@ -298,7 +374,7 @@ export function AppDetailScreen({ packageName }: { packageName: string }) {
         </View>
       </Card>
 
-      <SectionHeader title="Components" />
+      <SectionHeader title="Components" copyText={componentsCopy} />
       <Card>
         <View style={styles.cardBody}>
           {analyzer == null ? (
@@ -375,7 +451,7 @@ function PermissionGroup({
             label={permission.granted ? 'Granted' : 'Not granted'}
             dotColor={permission.granted ? colors.good : colors.critical}
           />
-          <CopyButton value={permission.name} label={`Copy ${permission.name}`} />
+          <CopyButton value={permission.name} label={permission.name} />
         </View>
       ))}
     </View>
@@ -384,6 +460,7 @@ function PermissionGroup({
 
 function ComponentGroup({ title, names }: { title: string; names: string[] }) {
   const { colors } = useTheme();
+  const singular = title === 'Activities' ? 'Activity' : title.slice(0, -1);
   return (
     <View style={styles.group}>
       <Text style={[styles.groupTitle, { color: colors.muted }]}>
@@ -402,10 +479,7 @@ function ComponentGroup({ title, names }: { title: string; names: string[] }) {
                 {name}
               </Text>
             </View>
-            <CopyButton
-              value={name}
-              label={`Copy ${title.slice(0, -1)} ${shortComponentName(name)}`}
-            />
+            <CopyButton value={name} label={`${singular} ${shortComponentName(name)}`} />
           </View>
         ))
       )}

@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   Chip,
+  CopyableText,
   EmptyState,
   InfoSheet,
   Screen,
@@ -69,6 +70,26 @@ export function DataUsageScreen() {
     (topApps?.status === 'ok' && topApps.value.mobileBlocked);
 
   const rangeLabel = USAGE_RANGES.find((option) => option.id === range)?.label ?? '';
+  const totalLabel = `${formatUsageBytes(totalBytes)} · ${
+    activeType === 'wifi' ? 'Wi-Fi' : 'Mobile'
+  } · ${rangeLabel}`;
+  const topAppsCopy =
+    ranking.rows.length > 0
+      ? [
+          ...ranking.rows.map(
+            (row) =>
+              `${row.label}: ${formatUsageBytes(row.totalBytes)} (${appUsageSplit(
+                row,
+                mobileBlocked,
+              )})`,
+          ),
+          ranking.moreApps > 0
+            ? `${ranking.moreApps} more apps · ${formatUsageBytes(ranking.moreBytes)}`
+            : null,
+        ]
+          .filter((line): line is string => line != null)
+          .join('\n')
+      : undefined;
 
   return (
     <Screen
@@ -103,7 +124,11 @@ export function DataUsageScreen() {
         </>
       ) : (
         <>
-          <SectionHeader title="Data usage" onInfo={() => setSheetVisible(true)} />
+          <SectionHeader
+            title="Data usage"
+            copyText={usageValue == null ? undefined : totalLabel}
+            onInfo={() => setSheetVisible(true)}
+          />
           <View style={styles.chips}>
             {USAGE_RANGES.map((option) => (
               <Chip
@@ -146,9 +171,13 @@ export function DataUsageScreen() {
               ) : (
                 <>
                   <View style={styles.totalRow}>
-                    <Text style={[styles.total, { color: colors.text }]}>
+                    <CopyableText
+                      value={formatUsageBytes(totalBytes)}
+                      copyLabel="Data usage"
+                      style={[styles.total, { color: colors.text }]}
+                    >
                       {formatUsageBytes(totalBytes)}
-                    </Text>
+                    </CopyableText>
                     <Text style={[styles.caption, { color: colors.muted }]}>
                       {activeType === 'wifi' ? 'Wi-Fi' : 'Mobile'} · {rangeLabel}
                       {loading ? ' · updating…' : ''}
@@ -189,7 +218,11 @@ export function DataUsageScreen() {
             </View>
           </Card>
 
-          <SectionHeader title="Top apps" onInfo={() => setSheetVisible(true)} />
+          <SectionHeader
+            title="Top apps"
+            copyText={topAppsCopy}
+            onInfo={() => setSheetVisible(true)}
+          />
           <Card>
             <View style={styles.cardBody}>
               {topApps === null ? (
@@ -224,12 +257,21 @@ export function DataUsageScreen() {
                       ]}
                     >
                       <View style={styles.appHead}>
-                        <Text numberOfLines={1} style={[styles.appName, { color: colors.text }]}>
+                        <CopyableText
+                          value={row.label}
+                          copyLabel="App"
+                          numberOfLines={1}
+                          style={[styles.appName, { color: colors.text }]}
+                        >
                           {row.label}
-                        </Text>
-                        <Text style={[styles.appValue, { color: colors.text }]}>
+                        </CopyableText>
+                        <CopyableText
+                          value={formatUsageBytes(row.totalBytes)}
+                          copyLabel={row.label}
+                          style={[styles.appValue, { color: colors.text }]}
+                        >
                           {formatUsageBytes(row.totalBytes)}
-                        </Text>
+                        </CopyableText>
                       </View>
                       <View style={[styles.barTrack, { backgroundColor: colors.surface2 }]}>
                         <View
@@ -242,15 +284,23 @@ export function DataUsageScreen() {
                           ]}
                         />
                       </View>
-                      <Text style={[styles.caption, { color: colors.muted }]}>
+                      <CopyableText
+                        value={appUsageSplit(row, mobileBlocked)}
+                        copyLabel="Usage split"
+                        style={[styles.caption, { color: colors.muted }]}
+                      >
                         {appUsageSplit(row, mobileBlocked)}
-                      </Text>
+                      </CopyableText>
                     </View>
                   ))}
                   {ranking.moreApps > 0 ? (
-                    <Text style={[styles.caption, { color: colors.muted }]}>
+                    <CopyableText
+                      value={`${ranking.moreApps} more apps · ${formatUsageBytes(ranking.moreBytes)}`}
+                      copyLabel="More apps"
+                      style={[styles.caption, { color: colors.muted }]}
+                    >
                       {ranking.moreApps} more apps · {formatUsageBytes(ranking.moreBytes)}
-                    </Text>
+                    </CopyableText>
                   ) : null}
                 </>
               )}

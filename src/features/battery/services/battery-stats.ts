@@ -1,10 +1,6 @@
 import type { BatteryHealth, BatteryPlug, BatteryReading, BatteryStatus } from '@/core/native';
 import { formatTemperature } from '@/core/utils/format-temperature';
-import type {
-  BatteryGraphMetric,
-  BatteryGraphSample,
-  BatteryStat,
-} from '@/features/battery/types';
+import type { BatteryGraphMetric, BatteryGraphSample, BatteryStat } from '@/features/battery/types';
 
 const HEALTH_LABELS: Record<BatteryHealth, string | null> = {
   good: 'Good',
@@ -53,10 +49,7 @@ export function batteryPlugLabel(plugged: BatteryPlug): string | null {
  * (µA × mV = 10⁻⁹ W). Signed: positive while charging, negative while the
  * phone runs on battery. `null` when either reading is missing.
  */
-export function powerWatts(
-  currentNowUa: number | null,
-  voltageMv: number | null,
-): number | null {
+export function powerWatts(currentNowUa: number | null, voltageMv: number | null): number | null {
   if (currentNowUa == null || voltageMv == null) return null;
   if (!Number.isFinite(currentNowUa) || !Number.isFinite(voltageMv)) return null;
   return (currentNowUa * voltageMv) / 1e9;
@@ -109,8 +102,7 @@ export function formatEstimateDuration(milliseconds: number | null): string | nu
 
 /** The numeric series for the chosen graph metric; samples lacking it are skipped. */
 export function batterySeries(samples: BatteryGraphSample[], metric: BatteryGraphMetric): number[] {
-  const key =
-    metric === 'current' ? 'currentMa' : metric === 'power' ? 'watts' : 'temperatureC';
+  const key = metric === 'current' ? 'currentMa' : metric === 'power' ? 'watts' : 'temperatureC';
   const values: number[] = [];
   for (const sample of samples) {
     const value = sample[key];

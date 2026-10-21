@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-na
 
 import { withAlpha } from '@/design-system/color';
 import { Card } from '@/design-system/components';
+import { copyValue } from '@/design-system/copy/copy-value';
 import { Icon, type IconName } from '@/design-system/icon';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography, type AppColors } from '@/design-system/tokens';
@@ -68,11 +69,21 @@ type Props = {
   onPress: () => void;
   children: ReactNode;
   accessibilityLabel: string;
+  /** Plain-text reading copied on long press. */
+  copyText?: string;
   style?: StyleProp<ViewStyle>;
 };
 
 /** The glass shell every tile shares; content height follows the registry size. */
-export function TileCard({ id, size, onPress, children, accessibilityLabel, style }: Props) {
+export function TileCard({
+  id,
+  size,
+  onPress,
+  children,
+  accessibilityLabel,
+  copyText,
+  style,
+}: Props) {
   const { colors } = useTheme();
   const definition = getDashboardTileDefinition(id);
   const tint = tileAccentColor(definition.accent, colors);
@@ -81,8 +92,11 @@ export function TileCard({ id, size, onPress, children, accessibilityLabel, styl
   return (
     <Card
       onPress={onPress}
+      onLongPress={copyText ? () => void copyValue(copyText, definition.title) : undefined}
       accessibilityLabel={accessibilityLabel}
-      accessibilityHint={`Opens ${definition.title}`}
+      accessibilityHint={`Opens ${definition.title}${
+        copyText ? '. Long press to copy this reading' : ''
+      }`}
       style={[{ height, borderColor: withAlpha(tint, 0.2) }, style]}
     >
       <View style={{ height: height - 34, gap: spacing.sm }}>{children}</View>

@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import {
   Button,
   Card,
+  CopyableText,
   EmptyState,
   InfoSheet,
   Screen,
@@ -44,8 +45,15 @@ export function AppAnalyzerScreen() {
   const apps = useMemo(() => (overview?.status === 'ok' ? overview.value : []), [overview]);
   const storageValue = storage?.status === 'ok' ? storage.value : null;
   const sizeBars = useMemo(() => appsBySizeBucket(apps, storageValue), [apps, storageValue]);
+  const targetBars = useMemo(() => appsByTargetSdk(apps), [apps]);
+  const installerBars = useMemo(() => appsByInstaller(apps), [apps]);
+  const installYearBars = useMemo(() => appsByInstallYear(apps), [apps]);
+  const permissionBars = useMemo(() => appsByDangerousPermissions(apps), [apps]);
   const systemCount = apps.filter((app) => app.system).length;
   const userCount = apps.length - systemCount;
+  const overviewCopy = `${apps.length} apps with a launcher icon · ${userCount} user · ${systemCount} system`;
+  const barsCopy = (bars: { label: string; count: number }[]): string | undefined =>
+    bars.length > 0 ? bars.map((bar) => `${bar.label}: ${bar.count}`).join('\n') : undefined;
 
   return (
     <Screen scroll contentStyle={styles.content}>
@@ -59,53 +67,67 @@ export function AppAnalyzerScreen() {
         />
       ) : (
         <>
-          <SectionHeader title="Overview" onInfo={() => setSheetVisible(true)} />
+          <SectionHeader
+            title="Overview"
+            copyText={overviewCopy}
+            onInfo={() => setSheetVisible(true)}
+          />
           <Card>
             <View style={styles.cardBody}>
-              <Text style={[styles.total, { color: colors.text }]}>{apps.length}</Text>
-              <Text style={[styles.caption, { color: colors.muted }]}>
+              <CopyableText
+                value={String(apps.length)}
+                copyLabel="Launcher apps"
+                style={[styles.total, { color: colors.text }]}
+              >
+                {apps.length}
+              </CopyableText>
+              <CopyableText
+                value={overviewCopy}
+                copyLabel="Apps overview"
+                style={[styles.caption, { color: colors.muted }]}
+              >
                 apps with a launcher icon · {userCount} user · {systemCount} system
-              </Text>
+              </CopyableText>
             </View>
           </Card>
 
-          <SectionHeader title="Target SDK" />
+          <SectionHeader title="Target SDK" copyText={barsCopy(targetBars)} />
           <Card>
             <View style={styles.cardBody}>
-              {appsByTargetSdk(apps).length === 0 ? (
+              {targetBars.length === 0 ? (
                 <Text style={[styles.caption, { color: colors.muted }]}>
                   Android did not report a target SDK for these apps.
                 </Text>
               ) : (
-                <HorizontalBars bars={appsByTargetSdk(apps)} />
+                <HorizontalBars bars={targetBars} />
               )}
             </View>
           </Card>
 
-          <SectionHeader title="Installer" />
+          <SectionHeader title="Installer" copyText={barsCopy(installerBars)} />
           <Card>
             <View style={styles.cardBody}>
-              <HorizontalBars bars={appsByInstaller(apps)} />
+              <HorizontalBars bars={installerBars} />
             </View>
           </Card>
 
-          <SectionHeader title="Install year" />
+          <SectionHeader title="Install year" copyText={barsCopy(installYearBars)} />
           <Card>
             <View style={styles.cardBody}>
-              {appsByInstallYear(apps).length === 0 ? (
+              {installYearBars.length === 0 ? (
                 <Text style={[styles.caption, { color: colors.muted }]}>
                   Android did not report any install dates.
                 </Text>
               ) : (
-                <HorizontalBars bars={appsByInstallYear(apps)} />
+                <HorizontalBars bars={installYearBars} />
               )}
             </View>
           </Card>
 
-          <SectionHeader title="Dangerous permissions" />
+          <SectionHeader title="Dangerous permissions" copyText={barsCopy(permissionBars)} />
           <Card>
             <View style={styles.cardBody}>
-              <HorizontalBars bars={appsByDangerousPermissions(apps)} />
+              <HorizontalBars bars={permissionBars} />
               <Text style={[styles.caption, { color: colors.muted }]}>
                 How many dangerous (runtime) permissions each app declares. Open an app’s detail to
                 see the names.
@@ -113,7 +135,7 @@ export function AppAnalyzerScreen() {
             </View>
           </Card>
 
-          <SectionHeader title="Size buckets" />
+          <SectionHeader title="Size buckets" copyText={barsCopy(sizeBars)} />
           <Card>
             <View style={styles.cardBody}>
               {usageAccess === false ? (

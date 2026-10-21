@@ -10,6 +10,8 @@ type Props = {
   children: ReactNode;
   /** Makes the whole card pressable (with scale + haptic feedback). */
   onPress?: () => void;
+  /** Optional long-press action (e.g. copy the card's reading). */
+  onLongPress?: () => void;
   style?: StyleProp<ViewStyle>;
   /** Style for the padded content (height, gaps, alignment). */
   contentStyle?: StyleProp<ViewStyle>;
@@ -22,6 +24,7 @@ type Props = {
 export function Card({
   children,
   onPress,
+  onLongPress,
   style,
   contentStyle,
   accessibilityLabel,
@@ -46,10 +49,12 @@ export function Card({
     </>
   );
 
-  if (onPress) {
+  if (onPress || onLongPress) {
     return (
       <PressableScale
         onPress={onPress}
+        onLongPress={onLongPress}
+        delayLongPress={320}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
         accessibilityHint={accessibilityHint}

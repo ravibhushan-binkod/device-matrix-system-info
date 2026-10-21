@@ -224,7 +224,10 @@ export function getThermalZones(): Result<ThermalZone[]> {
     const raw = module.getThermalZones();
     if (!raw) return unavailable('This device does not expose thermal zones to apps.');
     return ok(
-      raw.map((zone) => ({ name: text(zone.name) ?? 'thermal zone', temperatureC: zone.temperatureC })),
+      raw.map((zone) => ({
+        name: text(zone.name) ?? 'thermal zone',
+        temperatureC: zone.temperatureC,
+      })),
     );
   } catch {
     return unavailable('Reading the thermal zones failed.');

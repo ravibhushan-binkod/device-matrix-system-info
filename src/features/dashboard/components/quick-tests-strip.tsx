@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { PressableScale } from '@/design-system/animations/pressable-scale';
 import { Card, SectionHeader } from '@/design-system/components';
+import { copyValue } from '@/design-system/copy/copy-value';
 import { Icon, type IconName } from '@/design-system/icon';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
@@ -64,12 +65,20 @@ export function QuickTestsStrip() {
   const router = useRouter();
   const { colors } = useTheme();
   const { results } = useHardwareResults();
+  const testsCopy = QUICK_TESTS.map((test) => {
+    const status = testStatus(results, test.resultId);
+    const saved = results[test.resultId];
+    return `${test.title}: ${testStatusLabel(status)}${
+      saved != null ? ` · ${formatTestDate(saved.testedAt)}` : ''
+    }`;
+  }).join('\n');
 
   return (
     <View>
       <View style={styles.header}>
         <SectionHeader
           title="Quick tests"
+          copyText={testsCopy}
           action={<ActionLink label="All tests" onPress={() => router.push('/hardware-tests')} />}
         />
       </View>
@@ -87,8 +96,16 @@ export function QuickTestsStrip() {
             <Card
               key={test.resultId}
               onPress={() => router.push(test.route)}
+              onLongPress={() =>
+                void copyValue(
+                  `${test.title}: ${testStatusLabel(status)}${
+                    saved != null ? ` · ${formatTestDate(saved.testedAt)}` : ''
+                  }`,
+                  'Quick test',
+                )
+              }
               accessibilityLabel={`${test.title} test. ${testStatusLabel(status)}.`}
-              accessibilityHint="Opens the test"
+              accessibilityHint="Opens the test. Long press to copy the saved result."
               style={styles.card}
               contentStyle={styles.cardContent}
             >

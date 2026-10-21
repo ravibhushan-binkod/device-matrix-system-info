@@ -2,8 +2,16 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Share, StyleSheet, Text, View } from 'react-native';
 
-import { Button, Card, EmptyState, Screen, SectionHeader } from '@/design-system/components';
+import {
+  Button,
+  Card,
+  CopyableText,
+  EmptyState,
+  Screen,
+  SectionHeader,
+} from '@/design-system/components';
 import { withAlpha } from '@/design-system/color';
+import { copyValue } from '@/design-system/copy/copy-value';
 import { Icon } from '@/design-system/icon';
 import { useTheme } from '@/design-system/theme';
 import { radius, spacing, typography } from '@/design-system/tokens';
@@ -29,6 +37,13 @@ import type {
   HardwareTestStatus,
 } from '@/features/hardware-tests/types';
 
+function testStatusText(definition: HardwareTestDefinition, status: HardwareTestStatus): string {
+  if (definition.availability !== 'ready') {
+    return definition.availability === 'off' ? 'Off in build' : 'Skipped';
+  }
+  return testStatusLabel(status);
+}
+
 function StatusBadge({
   definition,
   status,
@@ -52,11 +67,7 @@ function StatusBadge({
       : status === 'fail'
         ? withAlpha(colors.critical, 0.14)
         : colors.surface2;
-  const label = unavailable
-    ? definition.availability === 'off'
-      ? 'Off in build'
-      : 'Skipped'
-    : testStatusLabel(status);
+  const label = testStatusText(definition, status);
   const icon = unavailable
     ? 'minus'
     : status === 'pass'
@@ -95,7 +106,18 @@ function TestRow({
           : colors.primary;
 
   return (
-    <Card onPress={onPress}>
+    <Card
+      onPress={onPress}
+      onLongPress={() =>
+        void copyValue(
+          `${definition.shortTitle}: ${testStatusText(definition, status)}${
+            result ? ` · ${formatTestDate(result.testedAt)}` : ''
+          }`,
+          'Hardware test',
+        )
+      }
+      accessibilityHint="Opens the test. Long press to copy the saved result."
+    >
       <View style={styles.row}>
         <View style={[styles.rowIcon, { backgroundColor: withAlpha(accent, 0.12) }]}>
           <Icon name={definition.icon} size={20} color={accent} />
@@ -176,20 +198,44 @@ export function HardwareTestsScreen() {
             size={156}
             thickness={13}
             accessibilityLabel={`${tested} of ${summary.total} hardware checks tested`}
+            onLongPress={() =>
+              void copyValue(
+                `${tested} of ${summary.total} hardware checks tested · ${summary.passed} passed · ${summary.failed} failed · ${summary.untested} untested`,
+                'Hardware checkup',
+              )
+            }
           />
           <View style={styles.stats}>
             <View style={styles.stat}>
-              <Text style={[styles.statValue, { color: colors.good }]}>{summary.passed}</Text>
+              <CopyableText
+                value={String(summary.passed)}
+                copyLabel="Passed tests"
+                style={[styles.statValue, { color: colors.good }]}
+              >
+                {summary.passed}
+              </CopyableText>
               <Text style={[styles.statLabel, { color: colors.muted }]}>Passed</Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
             <View style={styles.stat}>
-              <Text style={[styles.statValue, { color: colors.critical }]}>{summary.failed}</Text>
+              <CopyableText
+                value={String(summary.failed)}
+                copyLabel="Failed tests"
+                style={[styles.statValue, { color: colors.critical }]}
+              >
+                {summary.failed}
+              </CopyableText>
               <Text style={[styles.statLabel, { color: colors.muted }]}>Failed</Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
             <View style={styles.stat}>
-              <Text style={[styles.statValue, { color: colors.text }]}>{summary.untested}</Text>
+              <CopyableText
+                value={String(summary.untested)}
+                copyLabel="Untested checks"
+                style={[styles.statValue, { color: colors.text }]}
+              >
+                {summary.untested}
+              </CopyableText>
               <Text style={[styles.statLabel, { color: colors.muted }]}>Untested</Text>
             </View>
           </View>
@@ -218,9 +264,18 @@ export function HardwareTestsScreen() {
       {HARDWARE_TEST_GROUPS.map((group) => {
         const tests = testsInGroup(group);
         if (tests.length === 0) return null;
+        const groupCopy = tests
+          .map((definition) => {
+            const result = results[definition.id];
+            return `${definition.shortTitle}: ${testStatusText(
+              definition,
+              testStatus(results, definition.id),
+            )}${result ? ` · ${formatTestDate(result.testedAt)}` : ''}`;
+          })
+          .join('\n');
         return (
           <View key={group} style={styles.group}>
-            <SectionHeader title={group} />
+            <SectionHeader title={group} copyText={groupCopy} />
             <View style={styles.rows}>
               {tests.map((definition) => (
                 <TestRow

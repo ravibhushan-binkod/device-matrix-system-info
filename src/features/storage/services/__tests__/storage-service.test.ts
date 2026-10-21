@@ -57,7 +57,9 @@ describe('toStorageOverview', () => {
 
   it('keeps a blocked file system as null', () => {
     const result = toStorageOverview(
-      storage({ internal: { totalBytes: 128_000_000_000, freeBytes: 59_000_000_000, fsType: null } }),
+      storage({
+        internal: { totalBytes: 128_000_000_000, freeBytes: 59_000_000_000, fsType: null },
+      }),
     );
     expect(result.status).toBe('ok');
     if (result.status !== 'ok') return;
@@ -67,7 +69,8 @@ describe('toStorageOverview', () => {
   it('reports unavailable without an internal volume', () => {
     expect(toStorageOverview(storage({ internal: null })).status).toBe('unavailable');
     expect(
-      toStorageOverview(storage({ internal: { totalBytes: 0, freeBytes: 0, fsType: null } })).status,
+      toStorageOverview(storage({ internal: { totalBytes: 0, freeBytes: 0, fsType: null } }))
+        .status,
     ).toBe('unavailable');
   });
 });

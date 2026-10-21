@@ -1,8 +1,8 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import type { DeviceIdentity } from '@/core/native';
 import type { Result } from '@/core/result';
-import { Card } from '@/design-system/components';
+import { Card, CopyableText } from '@/design-system/components';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
 
@@ -37,15 +37,30 @@ export function DeviceSummaryCard({ identity, uptime }: Props) {
   return (
     <Card>
       <View style={styles.stack}>
-        <Text numberOfLines={1} style={[styles.model, { color: colors.text }]}>
+        <CopyableText
+          value={model}
+          copyLabel="Model"
+          numberOfLines={1}
+          style={[styles.model, { color: colors.text }]}
+        >
           {model || NOT_AVAILABLE}
-        </Text>
-        <Text numberOfLines={1} style={[styles.line, { color: colors.muted }]}>
+        </CopyableText>
+        <CopyableText
+          value={android}
+          copyLabel="Android version"
+          numberOfLines={1}
+          style={[styles.line, { color: colors.muted }]}
+        >
           {android ?? NOT_AVAILABLE}
-        </Text>
-        <Text numberOfLines={1} style={[styles.line, { color: colors.muted }]}>
+        </CopyableText>
+        <CopyableText
+          value={up}
+          copyLabel="Uptime"
+          numberOfLines={1}
+          style={[styles.line, { color: colors.muted }]}
+        >
           {up ?? NOT_AVAILABLE}
-        </Text>
+        </CopyableText>
       </View>
     </Card>
   );
