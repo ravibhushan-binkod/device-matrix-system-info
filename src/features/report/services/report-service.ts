@@ -10,11 +10,18 @@ import {
   getWifiInfo,
 } from '@/core/native';
 import { chipsetLabel } from '@/core/utils/chipset';
+import { getActiveUnits } from '@/core/units/active';
+import { formatClockTime, formatTemperature } from '@/core/units/format';
+import type { ResolvedUnits } from '@/core/units/types';
 import { formatByteSize } from '@/core/utils/format-bytes';
 import { formatTimeout } from '@/core/utils/format-duration';
 import { formatFrequencyKhz } from '@/core/utils/format-frequency';
-import { formatTemperature } from '@/core/utils/format-temperature';
-import { buildReportText, type ReportEntry, type ReportSection } from '@/core/utils/report-text';
+import {
+  buildReportText,
+  IDENTIFYING_HIDDEN,
+  type ReportEntry,
+  type ReportSection,
+} from '@/core/utils/report-text';
 import { batteryStatusLabel, buildBatteryStats } from '@/features/battery/services/battery-stats';
 import { HARDWARE_TESTS } from '@/features/hardware-tests/services/test-catalog';
 import {
@@ -76,6 +83,8 @@ export const REPORT_NAME = 'Device Matrix: System Info';
 export const REPORT_UNAVAILABLE_NOTE =
   '"Not available on this device" means Android did not report the value.';
 export const REPORT_ESTIMATE_NOTE = 'Values marked ≈ are estimates.';
+export const REPORT_PRIVACY_NOTE =
+  'Identifying details (Wi-Fi names, BSSID, IP addresses, DNS and the build fingerprint) are left out. Turn on "Include identifying details" to add them to an export.';
 
 const MONTHS = [
   'Jan',
@@ -95,6 +104,30 @@ const MONTHS = [
 /** A group Android could not read — honest, never a guessed value. */
 function unavailableSection(title: string): ReportSection {
   return { title, entries: [{ label: 'Reading', value: null }] };
+}
+
+/**
+ * Entries whose values identify the network or the exact build. They are
+ * replaced with a plain marker unless the user opted in for one export.
+ */
+const SENSITIVE_REPORT_LABELS = new Set([
+  'Fingerprint',
+  'IP address',
+  'Gateway',
+  'DNS',
+  'Network name',
+]);
+
+/** Replaces identifying values with the marker; pure and easy to test. */
+export function maskIdentifyingSections(sections: ReportSection[]): ReportSection[] {
+  return sections.map((section) => ({
+    ...section,
+    entries: section.entries.map((entry) =>
+      entry.value != null && SENSITIVE_REPORT_LABELS.has(entry.label)
+        ? { ...entry, value: IDENTIFYING_HIDDEN }
+        : entry,
+    ),
+  }));
 }
 
 function percentLabel(value: number | null): string | null {
@@ -125,14 +158,14 @@ function systemSections(): ReportSection[] {
   }));
 }
 
-function batterySections(): ReportSection[] {
+function batterySections(units: ResolvedUnits): ReportSection[] {
   const result = getBatteryInfo();
   if (result.status !== 'ok') return [unavailableSection('Battery')];
   const info = result.value;
   const entries: ReportEntry[] = [
     { label: 'Level', value: info.percent === null ? null : `${Math.round(info.percent)}%` },
     { label: 'Status', value: batteryStatusLabel(info.status) },
-    ...buildBatteryStats(info).map((stat) => ({ label: stat.label, value: stat.value })),
+    ...buildBatteryStats(info, units).map((stat) => ({ label: stat.label, value: stat.value })),
     { label: 'Battery saver', value: info.powerSave ? 'On' : 'Off' },
   ];
   return [{ title: 'Battery', entries }];
@@ -198,7 +231,7 @@ function brightnessEntry(brightness: number | null, mode: 'auto' | 'manual' | nu
   return modeLabel ? `${percent}% · ${modeLabel}` : `${percent}%`;
 }
 
-function displaySections(): ReportSection[] {
+function displaySections(units: ResolvedUnits): ReportSection[] {
   const result = readDisplay();
   if (result.status !== 'ok') return [unavailableSection('Display')];
   const info = result.value;
@@ -206,7 +239,7 @@ function displaySections(): ReportSection[] {
     { label: 'Resolution', value: formatResolution(info.widthPx, info.heightPx) },
     {
       label: 'Diagonal',
-      value: formatInches(diagonalInches(info.widthPx, info.heightPx, info.xdpi, info.ydpi)),
+      value: formatInches(diagonalInches(info.widthPx, info.heightPx, info.xdpi, info.ydpi), units),
     },
     { label: 'Density', value: `${info.densityDpi} dpi` },
     { label: 'Refresh rate', value: formatRefreshRate(info.refreshRateHz) },
@@ -289,8 +322,8 @@ function gpuSections(): ReportSection[] {
   ];
 }
 
-function thermalSections(): ReportSection[] {
-  const result = readThermalInfo();
+function thermalSections(units: ResolvedUnits): ReportSection[] {
+  const result = readThermalInfo(units);
   if (result.status !== 'ok') return [unavailableSection('Thermal')];
   const info = result.value;
   return [
@@ -305,7 +338,7 @@ function thermalSections(): ReportSection[] {
           value:
             info.batteryTemperatureC === null
               ? null
-              : formatTemperature(info.batteryTemperatureC, 'C', 1),
+              : formatTemperature(info.batteryTemperatureC, units.temperature, 1),
         },
       ],
     },
@@ -346,7 +379,7 @@ function sensorSections(): ReportSection[] {
   ];
 }
 
-function networkSections(): ReportSection[] {
+function networkSections(units: ResolvedUnits): ReportSection[] {
   const sections: ReportSection[] = [];
 
   const connectivity = getConnectivityInfo();
@@ -388,10 +421,10 @@ function networkSections(): ReportSection[] {
     if (info.ssid) entries.push({ label: 'Network name', value: info.ssid });
     entries.push(
       { label: 'Band', value: wifiBandAndChannelLabel(info.frequencyMhz) },
-      { label: 'Link speed', value: formatLinkSpeed(info.linkSpeedMbps) },
+      { label: 'Link speed', value: formatLinkSpeed(info.linkSpeedMbps, units) },
       {
         label: 'TX / RX speed',
-        value: formatTxRxSpeeds(info.txLinkSpeedMbps, info.rxLinkSpeedMbps),
+        value: formatTxRxSpeeds(info.txLinkSpeedMbps, info.rxLinkSpeedMbps, units),
       },
       { label: 'Channel width', value: wifiChannelWidthLabel(info.channelWidthCode) },
       {
@@ -633,17 +666,25 @@ function pad(value: number): string {
   return String(value).padStart(2, '0');
 }
 
-/** "2026-10-19 07:05" in local time. */
-export function reportTimestamp(now: Date): string {
+/** "2026-10-19 07:05" in local time, honouring the 12/24-hour choice. */
+export function reportTimestamp(
+  now: Date,
+  format: ResolvedUnits['timeFormat'] = getActiveUnits().timeFormat,
+): string {
   const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-  return `${date} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  return `${date} ${formatClockTime(now.getHours(), now.getMinutes(), format)}`;
 }
 
 /** "19 Oct 2026, 07:05" — the PDF's human date line. */
-export function reportDateLabel(now: Date): string {
-  return `${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}, ${pad(
+export function reportDateLabel(
+  now: Date,
+  format: ResolvedUnits['timeFormat'] = getActiveUnits().timeFormat,
+): string {
+  return `${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}, ${formatClockTime(
     now.getHours(),
-  )}:${pad(now.getMinutes())}`;
+    now.getMinutes(),
+    format,
+  )}`;
 }
 
 /** App version from the installed build, e.g. "1.0.0 (1)"; `null` when hidden. */
@@ -660,13 +701,18 @@ export function appVersionLabel(): string | null {
 }
 
 /**
- * Three-line text header: app name + timestamp, the installed version, then
- * the honesty notes shared by the preview and both export formats.
+ * Four-line text header: app name + timestamp, the installed version, the
+ * honesty notes, and — unless the user opted in — the privacy note.
  */
-export function reportHeader(now: Date, version: string | null = appVersionLabel()): string {
+export function reportHeader(
+  now: Date,
+  version: string | null = appVersionLabel(),
+  includeIdentifying = false,
+): string {
   const lines = [`${REPORT_NAME} — ${reportTimestamp(now)}`];
   if (version) lines.push(`App version ${version}`);
   lines.push(`${REPORT_UNAVAILABLE_NOTE} ${REPORT_ESTIMATE_NOTE}`);
+  if (!includeIdentifying) lines.push(REPORT_PRIVACY_NOTE);
   return lines.join('\n');
 }
 
@@ -705,9 +751,11 @@ export function buildReportHtml(
   sections: ReportSection[],
   now: Date = new Date(),
   version: string | null = appVersionLabel(),
+  includeIdentifying = false,
 ): string {
   const body = sections.map(htmlSection).join('\n');
   const versionLine = version == null ? 'Version not reported' : `Version ${escapeHtml(version)}`;
+  const privacyNote = includeIdentifying ? '' : ` ${escapeHtml(REPORT_PRIVACY_NOTE)}`;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -742,7 +790,7 @@ export function buildReportHtml(
 <div class="meta"><span>${versionLine}</span><span>${escapeHtml(reportDateLabel(now))}</span></div>
 <p class="note">Generated on this phone. Nothing was uploaded. ${escapeHtml(
     REPORT_ESTIMATE_NOTE,
-  )} ${escapeHtml(REPORT_UNAVAILABLE_NOTE)}</p>
+  )} ${escapeHtml(REPORT_UNAVAILABLE_NOTE)}${privacyNote}</p>
 ${body}
 <footer>${escapeHtml(REPORT_NAME)} · every reading comes from public Android APIs.</footer>
 </body>
@@ -759,14 +807,26 @@ export type ReportDocument = {
   html: string;
 };
 
+/** Options shared by the preview and both exports. */
+export type ReportBuildOptions = {
+  /** Units to print; defaults to the active (stored) choices. */
+  units?: ResolvedUnits;
+  /**
+   * OFF by default: Wi-Fi names, IP addresses, DNS and the build fingerprint
+   * are replaced with a marker so a shared report does not identify the phone.
+   */
+  includeIdentifying?: boolean;
+};
+
 /** Reads the picked groups in catalog order; only Apps summary is async. */
 export async function buildReportSections(
   selected: readonly ReportGroupId[],
   now: Date = new Date(),
+  units: ResolvedUnits = getActiveUnits(),
 ): Promise<ReportSection[]> {
   const sections: ReportSection[] = [];
   for (const group of selectedReportGroups(selected)) {
-    sections.push(...(await group.build()));
+    sections.push(...(await group.build(units)));
   }
   return sections;
 }
@@ -775,14 +835,17 @@ export async function buildReportSections(
 export async function buildReport(
   selected: readonly ReportGroupId[],
   now: Date = new Date(),
+  options: ReportBuildOptions = {},
 ): Promise<ReportDocument> {
-  const sections = await buildReportSections(selected, now);
+  const { units = getActiveUnits(), includeIdentifying = false } = options;
+  const built = await buildReportSections(selected, now, units);
+  const sections = includeIdentifying ? built : maskIdentifyingSections(built);
   const version = appVersionLabel();
   return {
     generatedAt: now,
     version,
     sections,
-    text: buildReportText(sections, reportHeader(now, version)),
-    html: buildReportHtml(sections, now, version),
+    text: buildReportText(sections, reportHeader(now, version, includeIdentifying)),
+    html: buildReportHtml(sections, now, version, includeIdentifying),
   };
 }

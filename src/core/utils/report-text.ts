@@ -11,6 +11,9 @@ export type ReportSection = {
 
 const NOT_AVAILABLE = 'Not available on this device';
 
+/** Marker that replaces an identifying value in a privacy-safe export. */
+export const IDENTIFYING_HIDDEN = 'Hidden (identifying detail)';
+
 /**
  * Plain-text report: an optional header, then one block per section with the
  * title and one "- Label: value" line per entry.

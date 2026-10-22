@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PressableScale } from '@/design-system/animations/pressable-scale';
 import { copyValue } from '@/design-system/copy/copy-value';
 import { Icon } from '@/design-system/icon';
+import { MASKED_VALUE, useSensitiveValue } from '@/design-system/privacy/sensitive-value';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
 
@@ -12,17 +13,22 @@ type Props = {
   value: string;
   /** Long-press copies the value (default on). */
   copyable?: boolean;
+  /** Mask the value while Settings → Privacy → Hide sensitive values is on. */
+  sensitive?: boolean;
 };
 
 /** The shared marker is not a reading, so it never becomes a copy target. */
 const NOT_AVAILABLE = 'Not available on this device';
 
 /** Label left, value right — long-press copies the value with haptic feedback. */
-export function StatRow({ label, value, copyable = true }: Props) {
+export function StatRow({ label, value, copyable = true, sensitive = false }: Props) {
   const { colors } = useTheme();
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const canCopy = copyable && value.trim().length > 0 && value !== NOT_AVAILABLE;
+  const sensitiveState = useSensitiveValue(sensitive ? value : undefined, label);
+  const hidden = sensitive && sensitiveState.hidden && sensitiveState.hasValue;
+  const shown = hidden ? MASKED_VALUE : value;
+  const canCopy = copyable && !hidden && value.trim().length > 0 && value !== NOT_AVAILABLE;
 
   useEffect(
     () => () => {
@@ -43,11 +49,20 @@ export function StatRow({ label, value, copyable = true }: Props) {
   return (
     <PressableScale
       haptic={false}
+      onPress={hidden ? sensitiveState.reveal : undefined}
       onLongPress={canCopy ? handleLongPress : undefined}
       delayLongPress={320}
       accessibilityRole="text"
-      accessibilityLabel={`${label}: ${value}`}
-      accessibilityHint={canCopy ? 'Long press to copy the value' : undefined}
+      accessibilityLabel={
+        hidden ? `${label}: hidden. Tap to reveal for 10 seconds.` : `${label}: ${value}`
+      }
+      accessibilityHint={
+        hidden
+          ? 'Tap to reveal for 10 seconds'
+          : canCopy
+            ? 'Long press to copy the value'
+            : undefined
+      }
       style={styles.row}
     >
       <Text numberOfLines={1} style={[styles.label, { color: colors.muted }]}>
@@ -56,7 +71,7 @@ export function StatRow({ label, value, copyable = true }: Props) {
       <View style={styles.valueWrap}>
         {copied ? <Icon name="check" size={16} color={colors.good} /> : null}
         <Text numberOfLines={1} style={[styles.value, { color: colors.text }]}>
-          {value}
+          {shown}
         </Text>
       </View>
     </PressableScale>

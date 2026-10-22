@@ -16,7 +16,8 @@ import type { StatusTone } from '@/design-system/status';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography, type AppColors } from '@/design-system/tokens';
 import { ThermalGauge } from '@/design-system/visuals';
-import { formatTemperature } from '@/core/utils/format-temperature';
+import { formatTemperature } from '@/core/units/format';
+import { useFormatters } from '@/core/units/use-formatters';
 import { useThermal } from '@/features/thermal/hooks/use-thermal';
 
 const NOT_AVAILABLE = 'Not available on this device';
@@ -39,7 +40,8 @@ function toneColor(tone: StatusTone, colors: AppColors): string {
 /** Thermal: a headroom-based load gauge, readable zones and the battery temperature. */
 export function ThermalScreen() {
   const { colors } = useTheme();
-  const { info, refreshing, refresh } = useThermal();
+  const { units } = useFormatters();
+  const { info, refreshing, refresh } = useThermal(units);
   const [sheetVisible, setSheetVisible] = useState(false);
 
   const result = info;
@@ -74,7 +76,7 @@ export function ThermalScreen() {
           `Battery temperature: ${
             result.value.batteryTemperatureC == null
               ? NOT_AVAILABLE
-              : formatTemperature(result.value.batteryTemperatureC, 'C', 1)
+              : formatTemperature(result.value.batteryTemperatureC, units.temperature, 1)
           }`,
         ].join('\n')
       : undefined;
@@ -192,7 +194,7 @@ export function ThermalScreen() {
                   value={
                     result.value.batteryTemperatureC == null
                       ? NOT_AVAILABLE
-                      : formatTemperature(result.value.batteryTemperatureC, 'C', 1)
+                      : formatTemperature(result.value.batteryTemperatureC, units.temperature, 1)
                   }
                 />
               </View>

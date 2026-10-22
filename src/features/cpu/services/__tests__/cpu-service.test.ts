@@ -1,10 +1,13 @@
 import type { CpuFrequency, CpuInfo, GpuInfo } from '@/core/native';
 import { ok, unavailable } from '@/core/result';
+import { resolveUnits } from '@/core/units/resolve';
+import { DEFAULT_UNIT_PREFERENCES } from '@/core/units/types';
 import {
   buildCoreBars,
   buildCpuScreenData,
-  coreBarMaxMhz,
+  coreBarMaxKhz,
   formatAbiList,
+  frequencyChartUnit,
   frequencyRange,
   governorSummary,
   groupCoreClusters,
@@ -59,30 +62,49 @@ const gpu: GpuInfo = {
   vulkanCompute: true,
 };
 
+/**
+ * `en-GB` resolves every `system` choice to the metric defaults, so the
+ * frequency rows read in `auto` (GHz for chips that reach a gigahertz).
+ */
+const units = resolveUnits(DEFAULT_UNIT_PREFERENCES, 'en-GB');
+
+describe('frequencyChartUnit', () => {
+  it('honours a forced unit and scales `auto` from the chip top', () => {
+    expect(frequencyChartUnit({ ...units, frequency: 'GHz' }, 900_000)).toBe('GHz');
+    expect(frequencyChartUnit({ ...units, frequency: 'MHz' }, 2_200_000)).toBe('MHz');
+    expect(frequencyChartUnit(units, 2_200_000)).toBe('GHz');
+    expect(frequencyChartUnit(units, 900_000)).toBe('MHz');
+  });
+});
+
 describe('buildCoreBars', () => {
-  it('keeps only readable cores and formats each value', () => {
-    expect(buildCoreBars(cpu())).toEqual([
-      { label: '0', value: 2000, text: '2.00 GHz' },
+  it('keeps only readable cores and formats each value in the chart unit', () => {
+    expect(buildCoreBars(cpu(), 'GHz')).toEqual([
+      { label: '0', value: 2, text: '2.00 GHz' },
+      { label: '2', value: 0.5, text: '0.50 GHz' },
+    ]);
+    expect(buildCoreBars(cpu(), 'MHz')).toEqual([
+      { label: '0', value: 2000, text: '2000 MHz' },
       { label: '2', value: 500, text: '500 MHz' },
     ]);
   });
 
   it('returns no bars when every read is blocked', () => {
     const blocked = cpu({ frequencies: [frequency()] });
-    expect(buildCoreBars(blocked)).toEqual([]);
+    expect(buildCoreBars(blocked, 'GHz')).toEqual([]);
   });
 });
 
-describe('coreBarMaxMhz', () => {
+describe('coreBarMaxKhz', () => {
   it('uses the highest reported maximum', () => {
-    expect(coreBarMaxMhz(cpu())).toBe(2200);
+    expect(coreBarMaxKhz(cpu())).toBe(2_200_000);
   });
 
   it('falls back to the current frequency and then a default', () => {
     const noMax = cpu({ frequencies: [frequency({ currentKhz: 1_800_000 })] });
-    expect(coreBarMaxMhz(noMax)).toBe(1800);
+    expect(coreBarMaxKhz(noMax)).toBe(1_800_000);
     const nothing = cpu({ frequencies: [] });
-    expect(coreBarMaxMhz(nothing)).toBe(100);
+    expect(coreBarMaxKhz(nothing)).toBe(1_000_000);
   });
 });
 
@@ -99,21 +121,26 @@ describe('formatAbiList', () => {
 
 describe('frequencyRange', () => {
   it('formats both bounds', () => {
-    expect(frequencyRange(300_000, 2_200_000)).toBe('300 MHz – 2.20 GHz');
+    expect(frequencyRange(300_000, 2_200_000, units)).toBe('300 MHz – 2.20 GHz');
   });
 
   it('formats a single readable bound', () => {
-    expect(frequencyRange(null, 2_200_000)).toBe('up to 2.20 GHz');
-    expect(frequencyRange(300_000, null)).toBe('from 300 MHz');
+    expect(frequencyRange(null, 2_200_000, units)).toBe('up to 2.20 GHz');
+    expect(frequencyRange(300_000, null, units)).toBe('from 300 MHz');
   });
 
   it('returns null when nothing (or only zeros) was readable', () => {
-    expect(frequencyRange(null, null)).toBeNull();
-    expect(frequencyRange(0, 0)).toBeNull();
+    expect(frequencyRange(null, null, units)).toBeNull();
+    expect(frequencyRange(0, 0, units)).toBeNull();
   });
 
   it('collapses equal bounds', () => {
-    expect(frequencyRange(1_800_000, 1_800_000)).toBe('1.80 GHz');
+    expect(frequencyRange(1_800_000, 1_800_000, units)).toBe('1.80 GHz');
+  });
+
+  it('follows a forced unit', () => {
+    const mhz = { ...units, frequency: 'MHz' as const };
+    expect(frequencyRange(300_000, 2_200_000, mhz)).toBe('300 MHz – 2200 MHz');
   });
 });
 
@@ -188,15 +215,17 @@ describe('governorSummary', () => {
 
 describe('buildCpuScreenData', () => {
   it('maps both readings', () => {
-    const data = buildCpuScreenData(ok(cpu()), ok(gpu));
+    const data = buildCpuScreenData(ok(cpu()), ok(gpu), units);
     expect(data.chipset).toBe('MediaTek Dimensity 7200 Pro');
     expect(data.socManufacturer).toBe('MediaTek');
     expect(data.socModel).toBe('Dimensity 7200 Pro');
+    expect(data.hardware).toBe('mt6789');
     expect(data.cores).toBe(8);
     expect(data.abis).toBe('arm64-v8a · armeabi-v7a · armeabi');
     expect(data.governor).toBe('schedutil');
     expect(data.bars).toHaveLength(2);
-    expect(data.barsMaxMhz).toBe(2200);
+    expect(data.barsMax).toBe(2.2);
+    expect(data.barsUnit).toBe('GHz');
     expect(data.clusters.map((cluster) => cluster.label)).toEqual(['Cluster 1', 'Unknown']);
     expect(data.coreRows[0]).toEqual({
       key: '0',
@@ -220,17 +249,27 @@ describe('buildCpuScreenData', () => {
     expect(data.vulkanCompute).toBe(true);
   });
 
+  it('scales the chart to a forced MHz axis', () => {
+    const mhz = { ...units, frequency: 'MHz' as const };
+    const data = buildCpuScreenData(ok(cpu()), ok(gpu), mhz);
+    expect(data.barsUnit).toBe('MHz');
+    expect(data.barsMax).toBe(2200);
+    expect(data.coreRows[0]?.range).toBe('300 MHz – 2200 MHz');
+  });
+
   it('leaves everything empty when both readings are unavailable', () => {
-    const data = buildCpuScreenData(unavailable('no'), unavailable('no'));
+    const data = buildCpuScreenData(unavailable('no'), unavailable('no'), units);
     expect(data).toEqual({
       chipset: null,
       socManufacturer: null,
       socModel: null,
+      hardware: null,
       cores: null,
       abis: null,
       governor: null,
       bars: [],
-      barsMaxMhz: 100,
+      barsMax: 1,
+      barsUnit: 'GHz',
       clusters: [],
       coreRows: [],
       gpuRenderer: null,

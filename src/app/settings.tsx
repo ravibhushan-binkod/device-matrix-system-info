@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { Link, type Href } from 'expo-router';
+import { Link } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 
@@ -40,10 +40,10 @@ const animationModes: { value: MotionMode; label: string }[] = [
 
 const adsStatusLabels: Record<AdsStatus, string> = {
   idle: 'idle',
-  running: 'starting…',
-  ready: 'ready — banners can load',
-  blocked: 'no consent — banners stay hidden',
-  error: 'unavailable — banners stay hidden',
+  running: 'startingâ€¦',
+  ready: 'ready â€” banners can load',
+  blocked: 'no consent â€” banners stay hidden',
+  error: 'unavailable â€” banners stay hidden',
   disabled: 'disabled',
 };
 
@@ -55,6 +55,8 @@ export default function SettingsScreen() {
   const setAccent = useSettingsStore((state) => state.setAccent);
   const animationMode = useSettingsStore((state) => state.animationMode);
   const setAnimationMode = useSettingsStore((state) => state.setAnimationMode);
+  const hideSensitiveValues = useSettingsStore((state) => state.hideSensitiveValues);
+  const setHideSensitiveValues = useSettingsStore((state) => state.setHideSensitiveValues);
   const motion = useMotionPreference();
   const systemAccents = systemAccentSupported();
   const systemPalette = systemAccents ? getSystemAccentPalette() : null;
@@ -160,9 +162,7 @@ export default function SettingsScreen() {
                 <Text numberOfLines={1} style={[typography.body, { color: colors.text }]}>
                   {definition.shortTitle}
                 </Text>
-                <Text style={[typography.caption, { color: colors.muted }]}>
-                  {definition.size.toUpperCase()} tile
-                </Text>
+                <Text style={[typography.caption, { color: colors.muted }]}>Equal-size tile</Text>
               </View>
               <PressableScale
                 onPress={() => moveTile(tile.id, 'up')}
@@ -173,7 +173,7 @@ export default function SettingsScreen() {
                 hitSlop={6}
                 style={[styles.reorder, index === 0 && styles.reorderDisabled]}
               >
-                <Text style={[styles.reorderText, { color: colors.muted }]}>↑</Text>
+                <Text style={[styles.reorderText, { color: colors.muted }]}>â†‘</Text>
               </PressableScale>
               <PressableScale
                 onPress={() => moveTile(tile.id, 'down')}
@@ -184,7 +184,7 @@ export default function SettingsScreen() {
                 hitSlop={6}
                 style={[styles.reorder, index === tiles.length - 1 && styles.reorderDisabled]}
               >
-                <Text style={[styles.reorderText, { color: colors.muted }]}>↓</Text>
+                <Text style={[styles.reorderText, { color: colors.muted }]}>â†“</Text>
               </PressableScale>
               <Switch
                 value={tile.visible}
@@ -213,32 +213,51 @@ export default function SettingsScreen() {
         </View>
         <Text style={[typography.body, { color: colors.muted }]}>
           {motion.source === 'system'
-            ? 'Android’s Reduce motion setting is on, so Full plays as Reduced. Your choice is saved.'
+            ? 'Androidâ€™s Reduce motion setting is on, so Full plays as Reduced. Your choice is saved.'
             : motion.source === 'performance'
               ? 'Reduced was switched on for this session because the phone dropped frames. Your saved choice is still Full.'
               : animationMode === 'full'
                 ? 'Movement, live loops, parallax and chart drawing are on.'
                 : animationMode === 'reduced'
-                  ? 'Short opacity fades only — live loops, particles and parallax are paused.'
+                  ? 'Short opacity fades only â€” live loops, particles and parallax are paused.'
                   : 'Everything renders immediately, with no animation at all.'}
         </Text>
       </Card>
 
-      <SectionHeader title="More" />
-      <Card>
-        <Text style={[typography.body, { color: colors.muted }]}>
-          Theme, accent, dashboard layout and animation choices are saved on this phone.
+      <SectionHeader title="Readings" />
+      <Card contentStyle={styles.stack}>
+        <Link href={'/units'} style={[styles.linkRow, { color: colors.accent }]}>
+          Units and formats
+        </Link>
+        <Text style={[typography.caption, { color: colors.muted }]}>
+          Temperature, storage, frequency, network speed, screen size, distance, acceleration,
+          pressure, time format and power. Each row starts at â€œSystem defaultâ€ and every screen
+          follows your choice.
         </Text>
       </Card>
 
       <SectionHeader title="Privacy" />
       <Card contentStyle={styles.stack}>
-        <Link href={'/privacy' as Href} style={[styles.devLink, { color: colors.accent }]}>
-          Privacy policy
-        </Link>
+        <View style={styles.switchRow}>
+          <View style={styles.switchCopy}>
+            <Text style={[typography.body, { color: colors.text }]}>Hide sensitive values</Text>
+            <Text style={[typography.caption, { color: colors.muted }]}>
+              Masks Wi-Fi names, BSSID, IP addresses, DNS, the build fingerprint and nearby network
+              names. Tap a value to reveal it for ten seconds.
+            </Text>
+          </View>
+          <Switch
+            value={hideSensitiveValues}
+            onValueChange={setHideSensitiveValues}
+            accessibilityLabel="Hide sensitive values"
+            trackColor={{ false: colors.surface2, true: withAlpha(colors.accent, 0.45) }}
+            thumbColor={hideSensitiveValues ? colors.accent : colors.muted}
+          />
+        </View>
         <Text style={[typography.caption, { color: colors.muted }]}>
-          Readings stay on this phone. Ads are served by Google AdMob and never appear on report,
-          settings or full-screen test screens.
+          Readings stay on this phone. Reports leave identifying details out unless you turn on
+          â€œInclude identifying detailsâ€ for a single export. Ads are served by Google AdMob and
+          never appear on report, settings, permission or full-screen test screens.
         </Text>
         {isEnabled(features.ads) ? (
           <Button
@@ -254,12 +273,31 @@ export default function SettingsScreen() {
         ) : null}
       </Card>
 
-      {isEnabled(features.adDebugTools) ? (
+      <SectionHeader title="About" />
+      <Card contentStyle={styles.stack}>
+        <Link href={'/about'} style={[styles.linkRow, { color: colors.accent }]}>
+          About Device Matrix
+        </Link>
+        <Link href={'/privacy'} style={[styles.linkRow, { color: colors.accent }]}>
+          Privacy policy
+        </Link>
+        <Link href={'/terms'} style={[styles.linkRow, { color: colors.accent }]}>
+          Terms of use
+        </Link>
+        <Link href={'/disclaimer'} style={[styles.linkRow, { color: colors.accent }]}>
+          Disclaimer
+        </Link>
+        <Link href={'/licences'} style={[styles.linkRow, { color: colors.accent }]}>
+          Open-source licences
+        </Link>
+      </Card>
+
+      {__DEV__ && isEnabled(features.adDebugTools) ? (
         <>
           <SectionHeader title="Developer" />
           <Card>
             <Text style={[typography.body, { color: colors.muted }]}>
-              Ads: {adsStatusLabels[adsStatus]}. Test ads only — never tap live ads during
+              Ads: {adsStatusLabels[adsStatus]}. Test ads only â€” never tap live ads during
               development.
             </Text>
             <View style={styles.actions}>
@@ -290,7 +328,7 @@ export default function SettingsScreen() {
                 onPress={() =>
                   void runAdsAction(
                     forceEeaConsentTest,
-                    'EEA test geography enabled — the consent form appears for test devices.',
+                    'EEA test geography enabled â€” the consent form appears for test devices.',
                   )
                 }
               />
@@ -377,6 +415,19 @@ const styles = StyleSheet.create({
   devLink: {
     ...typography.body,
     textDecorationLine: 'underline',
+  },
+  linkRow: {
+    ...typography.body,
+    textDecorationLine: 'underline',
+  },
+  switchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  switchCopy: {
+    flex: 1,
+    gap: 2,
   },
   tileList: {
     gap: spacing.sm,

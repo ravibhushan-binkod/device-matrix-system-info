@@ -130,13 +130,14 @@ describe('buildDeviceSections', () => {
     expect(entry?.value).toBe('Off');
   });
 
-  it('marks the kernel and fingerprint as multiline', () => {
+  it('marks the kernel and fingerprint as multiline, the fingerprint sensitive', () => {
     const sections = buildDeviceSections(emptyInput());
     const kernelSection = sections[3];
     const kernel = kernelSection?.entries.find((entry) => entry.key === 'kernel');
     const fingerprint = kernelSection?.entries.find((entry) => entry.key === 'fingerprint');
     expect(kernel?.multiline).toBe(true);
     expect(fingerprint?.multiline).toBe(true);
+    expect(fingerprint?.sensitive).toBe(true);
   });
 });
 

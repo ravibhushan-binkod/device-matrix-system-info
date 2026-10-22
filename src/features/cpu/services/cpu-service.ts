@@ -1,36 +1,47 @@
 import { getCpuInfo, getGpuInfo } from '@/core/native';
 import type { CpuFrequency, CpuInfo, GpuInfo } from '@/core/native';
 import type { Result } from '@/core/result';
+import { formatFrequencyKhz, frequencyValueKhz } from '@/core/units/format';
+import type { ResolvedUnits } from '@/core/units/types';
 import { chipsetLabel } from '@/core/utils/chipset';
-import { formatFrequencyKhz } from '@/core/utils/format-frequency';
 import type { CpuCluster, CpuCoreRow, CpuFrequencyBar, CpuScreenData } from '@/features/cpu/types';
 
 export function readCpuInfo(): { cpu: Result<CpuInfo>; gpu: Result<GpuInfo> } {
   return { cpu: getCpuInfo(), gpu: getGpuInfo() };
 }
 
+/**
+ * The unit every bar in a chart shares. `auto` picks GHz for chips that reach
+ * a gigahertz, otherwise MHz, so the axis labels always match the values.
+ */
+export function frequencyChartUnit(units: ResolvedUnits, maxKhz: number): 'GHz' | 'MHz' {
+  if (units.frequency === 'GHz') return 'GHz';
+  if (units.frequency === 'MHz') return 'MHz';
+  return maxKhz >= 1_000_000 ? 'GHz' : 'MHz';
+}
+
 /** One bar per core that reports a live frequency; blocked cores are left out. */
-export function buildCoreBars(cpu: CpuInfo): CpuFrequencyBar[] {
+export function buildCoreBars(cpu: CpuInfo, chartUnit: 'GHz' | 'MHz'): CpuFrequencyBar[] {
   const bars: CpuFrequencyBar[] = [];
   for (const core of cpu.frequencies) {
     if (core.currentKhz == null || core.currentKhz <= 0) continue;
     bars.push({
       label: String(core.index),
-      value: core.currentKhz / 1000,
-      text: formatFrequencyKhz(core.currentKhz),
+      value: frequencyValueKhz(core.currentKhz, chartUnit),
+      text: formatFrequencyKhz(core.currentKhz, chartUnit),
     });
   }
   return bars;
 }
 
-/** Highest readable frequency in MHz — scales the bars to the chip's own top. */
-export function coreBarMaxMhz(cpu: CpuInfo): number {
+/** Highest readable frequency in kHz — scales the bars to the chip's own top. */
+export function coreBarMaxKhz(cpu: CpuInfo): number {
   let max = 0;
   for (const core of cpu.frequencies) {
     const candidate = core.maxKhz ?? core.currentKhz ?? 0;
     if (candidate > max) max = candidate;
   }
-  return max > 0 ? max / 1000 : 100;
+  return max > 0 ? max : 1_000_000;
 }
 
 export function formatAbiList(abis: string[]): string | null {
@@ -97,18 +108,27 @@ export function groupCoreClusters(frequencies: CpuFrequency[]): CpuCluster[] {
 }
 
 /** "0.30 GHz – 2.84 GHz" from whatever bounds the device reports. */
-export function frequencyRange(minKhz: number | null, maxKhz: number | null): string | null {
+export function frequencyRange(
+  minKhz: number | null,
+  maxKhz: number | null,
+  units: ResolvedUnits,
+): string | null {
   const min = minKhz != null && minKhz > 0 ? minKhz : null;
   const max = maxKhz != null && maxKhz > 0 ? maxKhz : null;
   if (min == null && max == null) return null;
-  if (min == null) return `up to ${formatFrequencyKhz(max as number)}`;
-  if (max == null) return `from ${formatFrequencyKhz(min)}`;
-  if (min === max) return formatFrequencyKhz(min);
-  return `${formatFrequencyKhz(min)} – ${formatFrequencyKhz(max)}`;
+  const format = (khz: number) => formatFrequencyKhz(khz, units.frequency);
+  if (min == null) return `up to ${format(max as number)}`;
+  if (max == null) return `from ${format(min)}`;
+  if (min === max) return format(min);
+  return `${format(min)} – ${format(max)}`;
 }
 
 /** Per-core rows for the cluster list. */
-export function buildCoreRows(frequencies: CpuFrequency[], clusters: CpuCluster[]): CpuCoreRow[] {
+export function buildCoreRows(
+  frequencies: CpuFrequency[],
+  clusters: CpuCluster[],
+  units: ResolvedUnits,
+): CpuCoreRow[] {
   const clusterOf = new Map<number, string>();
   for (const cluster of clusters) {
     for (const core of cluster.cores) clusterOf.set(core, cluster.label);
@@ -119,8 +139,10 @@ export function buildCoreRows(frequencies: CpuFrequency[], clusters: CpuCluster[
     core: `Core ${core.index}`,
     cluster: clusterOf.get(core.index) ?? null,
     current:
-      core.currentKhz != null && core.currentKhz > 0 ? formatFrequencyKhz(core.currentKhz) : null,
-    range: frequencyRange(core.minKhz, core.maxKhz),
+      core.currentKhz != null && core.currentKhz > 0
+        ? formatFrequencyKhz(core.currentKhz, units.frequency)
+        : null,
+    range: frequencyRange(core.minKhz, core.maxKhz, units),
     governor: core.governor,
   }));
 }
@@ -135,22 +157,30 @@ export function governorSummary(rows: CpuCoreRow[]): string | null {
 }
 
 /** Maps the raw results into the strings the CPU & GPU screen renders. */
-export function buildCpuScreenData(cpu: Result<CpuInfo>, gpu: Result<GpuInfo>): CpuScreenData {
+export function buildCpuScreenData(
+  cpu: Result<CpuInfo>,
+  gpu: Result<GpuInfo>,
+  units: ResolvedUnits,
+): CpuScreenData {
   const cpuInfo = cpu.status === 'ok' ? cpu.value : null;
   const gpuInfo = gpu.status === 'ok' ? gpu.value : null;
 
   const clusters = cpuInfo ? groupCoreClusters(cpuInfo.frequencies) : [];
-  const coreRows = cpuInfo ? buildCoreRows(cpuInfo.frequencies, clusters) : [];
+  const coreRows = cpuInfo ? buildCoreRows(cpuInfo.frequencies, clusters, units) : [];
+  const maxKhz = cpuInfo ? coreBarMaxKhz(cpuInfo) : 1_000_000;
+  const barsUnit = frequencyChartUnit(units, maxKhz);
 
   return {
     chipset: cpuInfo ? chipsetLabel(cpuInfo) : null,
     socManufacturer: cpuInfo?.socManufacturer ?? null,
     socModel: cpuInfo?.socModel ?? null,
+    hardware: cpuInfo?.hardware ?? null,
     cores: cpuInfo ? cpuInfo.cores : null,
     abis: cpuInfo ? formatAbiList(cpuInfo.abis) : null,
     governor: governorSummary(coreRows),
-    bars: cpuInfo ? buildCoreBars(cpuInfo) : [],
-    barsMaxMhz: cpuInfo ? coreBarMaxMhz(cpuInfo) : 100,
+    bars: cpuInfo ? buildCoreBars(cpuInfo, barsUnit) : [],
+    barsMax: frequencyValueKhz(maxKhz, barsUnit),
+    barsUnit,
     clusters,
     coreRows,
     gpuRenderer: gpuInfo?.renderer ?? null,

@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import type { BatteryReading } from '@/core/native';
+import { useFormatters } from '@/core/units/use-formatters';
+import type { ResolvedUnits } from '@/core/units/types';
 import {
   AdSlot,
   Button,
@@ -59,6 +61,33 @@ const GRAPH_METRICS = [
   label: string;
   accessibility: string;
 }[];
+
+/** The graph chips and labels in the units the user picked. */
+function graphMetrics(units: ResolvedUnits) {
+  return GRAPH_METRICS.map((entry) => {
+    if (entry.key === 'power') {
+      return {
+        ...entry,
+        chip: units.power,
+        label: `Live power (${units.power})`,
+        accessibility:
+          units.power === 'mW' ? 'Live power graph, milliwatts' : 'Live power graph, watts',
+      };
+    }
+    if (entry.key === 'temperature') {
+      return {
+        ...entry,
+        chip: `°${units.temperature}`,
+        label: `Live temperature (°${units.temperature})`,
+        accessibility:
+          units.temperature === 'F'
+            ? 'Live temperature graph, fahrenheit'
+            : 'Live temperature graph, celsius',
+      };
+    }
+    return entry;
+  });
+}
 
 /** Battery detail: live gauge, stats grid, saver state, live graph and shortcuts. */
 export function BatteryScreen() {
@@ -138,15 +167,19 @@ type DetailsProps = {
 
 function BatteryDetails({ reading, samples, isPolling, onOpenSaver, onOpenInfo }: DetailsProps) {
   const { colors } = useTheme();
+  const { units } = useFormatters();
   const [metric, setMetric] = useState<BatteryGraphMetric>('current');
-  const stats = buildBatteryStats(reading);
+  const metrics = useMemo(() => graphMetrics(units), [units]);
+  const stats = buildBatteryStats(reading, units);
   const percent = reading.percent;
   const charging = reading.status === 'charging';
   const plug = batteryPlugLabel(reading.plugged);
   const status = batteryStatusLabel(reading.status);
   const series = batterySeries(samples, metric);
   const last = series.length > 0 ? series[series.length - 1] : null;
-  const metricInfo = GRAPH_METRICS.find((entry) => entry.key === metric) ?? GRAPH_METRICS[0];
+  const valueText = last == null ? null : formatGraphValue(metric, last, units);
+  const metricInfo =
+    metrics.find((entry) => entry.key === metric) ?? metrics[0] ?? GRAPH_METRICS[0];
   const statusLine = plug ? `${status} · ${plug}` : status;
   const batteryCopy = [
     percent == null ? null : `Level: ${Math.round(percent)}%`,
@@ -217,9 +250,7 @@ function BatteryDetails({ reading, samples, isPolling, onOpenSaver, onOpenInfo }
         <View style={styles.group}>
           <SectionHeader
             title="Live graph"
-            copyText={
-              last == null ? undefined : `${metricInfo.label}: ${formatGraphValue(metric, last)}`
-            }
+            copyText={valueText == null ? undefined : `${metricInfo.label}: ${valueText}`}
             onInfo={onOpenInfo}
           />
           <Card>
@@ -230,15 +261,15 @@ function BatteryDetails({ reading, samples, isPolling, onOpenSaver, onOpenInfo }
                     {metricInfo.label}
                   </Text>
                   <CopyableText
-                    value={formatGraphValue(metric, last)}
+                    value={valueText}
                     copyLabel={metricInfo.label}
                     style={[styles.cellValue, { color: colors.text }]}
                   >
-                    {formatGraphValue(metric, last)}
+                    {valueText}
                   </CopyableText>
                 </View>
                 <View style={styles.metricRow}>
-                  {GRAPH_METRICS.map((entry) => (
+                  {metrics.map((entry) => (
                     <Chip
                       key={entry.key}
                       label={entry.chip}
@@ -257,7 +288,7 @@ function BatteryDetails({ reading, samples, isPolling, onOpenSaver, onOpenInfo }
             ) : (
               <View style={styles.unavailable}>
                 <View style={styles.metricRow}>
-                  {GRAPH_METRICS.map((entry) => (
+                  {metrics.map((entry) => (
                     <Chip
                       key={entry.key}
                       label={entry.chip}
@@ -274,7 +305,7 @@ function BatteryDetails({ reading, samples, isPolling, onOpenSaver, onOpenInfo }
                   while the screen was open.
                 </Text>
               </View>
-            )}
+            )}{' '}
           </Card>
         </View>
       ) : null}

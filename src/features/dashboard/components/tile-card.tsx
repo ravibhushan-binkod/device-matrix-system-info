@@ -11,14 +11,10 @@ import {
   getDashboardTileDefinition,
   type DashboardTileAccent,
   type DashboardTileId,
-  type DashboardTileSize,
 } from '@/features/dashboard/services/dashboard-tiles';
 
-export const DASHBOARD_TILE_HEIGHTS: Record<DashboardTileSize, number> = {
-  s: 150,
-  m: 190,
-  l: 220,
-};
+/** One height for every dashboard tile; the wide leftover keeps it too. */
+export const DASHBOARD_TILE_HEIGHT = 208;
 
 export function tileAccentColor(accent: DashboardTileAccent, colors: AppColors): string {
   switch (accent) {
@@ -53,7 +49,12 @@ export function TileHeader({ accent, title, icon, trailing }: TileHeaderProps) {
       <View style={[styles.iconBadge, { backgroundColor: withAlpha(tint, 0.13) }]}>
         <Icon name={icon} size={16} color={tint} />
       </View>
-      <Text numberOfLines={1} style={[styles.headerTitle, { color: colors.muted }]}>
+      <Text
+        numberOfLines={1}
+        ellipsizeMode="tail"
+        maxFontSizeMultiplier={1.3}
+        style={[styles.headerTitle, { color: colors.muted }]}
+      >
         {title}
       </Text>
       <View style={styles.headerSpacer} />
@@ -65,7 +66,6 @@ export function TileHeader({ accent, title, icon, trailing }: TileHeaderProps) {
 
 type Props = {
   id: DashboardTileId;
-  size: DashboardTileSize;
   onPress: () => void;
   children: ReactNode;
   accessibilityLabel: string;
@@ -74,20 +74,11 @@ type Props = {
   style?: StyleProp<ViewStyle>;
 };
 
-/** The glass shell every tile shares; content height follows the registry size. */
-export function TileCard({
-  id,
-  size,
-  onPress,
-  children,
-  accessibilityLabel,
-  copyText,
-  style,
-}: Props) {
+/** The glass shell every tile shares; all tiles are the same size. */
+export function TileCard({ id, onPress, children, accessibilityLabel, copyText, style }: Props) {
   const { colors } = useTheme();
   const definition = getDashboardTileDefinition(id);
   const tint = tileAccentColor(definition.accent, colors);
-  const height = DASHBOARD_TILE_HEIGHTS[size];
 
   return (
     <Card
@@ -97,14 +88,19 @@ export function TileCard({
       accessibilityHint={`Opens ${definition.title}${
         copyText ? '. Long press to copy this reading' : ''
       }`}
-      style={[{ height, borderColor: withAlpha(tint, 0.2) }, style]}
+      contentStyle={styles.inner}
+      style={[{ height: DASHBOARD_TILE_HEIGHT, borderColor: withAlpha(tint, 0.2) }, style]}
     >
-      <View style={{ height: height - 34, gap: spacing.sm }}>{children}</View>
+      {children}
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
+  inner: {
+    flex: 1,
+    gap: spacing.sm,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

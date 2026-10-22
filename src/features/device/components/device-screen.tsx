@@ -3,6 +3,7 @@ import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import {
   AdSlot,
+  BrandLogo,
   Button,
   Card,
   CopyableText,
@@ -13,10 +14,13 @@ import {
   StatRow,
 } from '@/design-system/components';
 import { copyValue } from '@/design-system/copy/copy-value';
+import { MASKED_VALUE } from '@/design-system/privacy/sensitive-value';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
+import { useSettingsStore } from '@/state/settings-store';
 import { useDevice } from '@/features/device/hooks/use-device';
-import type { DeviceInfoEntry, DeviceInfoSection } from '@/features/device/types';
+import { readDeviceInfo } from '@/features/device/services/device-service';
+import type { DeviceBranding, DeviceInfoEntry, DeviceInfoSection } from '@/features/device/types';
 
 const NOT_AVAILABLE = 'Not available on this device';
 
@@ -34,6 +38,7 @@ const DEVICE_SHEET = {
 export function DeviceScreen() {
   const { colors } = useTheme();
   const { info, refreshing, refresh } = useDevice();
+  const hideSensitiveValues = useSettingsStore((state) => state.hideSensitiveValues);
   const [sheetVisible, setSheetVisible] = useState(false);
 
   return (
@@ -52,13 +57,24 @@ export function DeviceScreen() {
     >
       {info ? (
         <>
+          <BrandHeader branding={info.branding} />
           {info.sections.map((section, index) => (
             <Fragment key={section.key}>
               {index === 2 ? <AdSlot placement="device-sections" /> : null}
-              <SectionCard section={section} onInfo={() => setSheetVisible(true)} />
+              <SectionCard
+                section={section}
+                hideSensitive={hideSensitiveValues}
+                onInfo={() => setSheetVisible(true)}
+              />
             </Fragment>
           ))}
-          <CopyAllButton report={info.report} />
+          <CopyAllButton includeIdentifying={!hideSensitiveValues} />
+          {hideSensitiveValues ? (
+            <Text style={[styles.note, { color: colors.muted }]}>
+              “Hide sensitive values” is on, so the fingerprint is replaced in the copied text.
+              Turning it off in Settings → Privacy includes it again.
+            </Text>
+          ) : null}
         </>
       ) : (
         <DeviceSkeleton />
@@ -74,16 +90,75 @@ export function DeviceScreen() {
   );
 }
 
-function sectionCopyText(section: DeviceInfoSection): string {
+function sectionCopyText(section: DeviceInfoSection, hideSensitive: boolean): string {
   return section.entries
-    .map((entry) => `${entry.label}: ${entry.value ?? NOT_AVAILABLE}`)
+    .map((entry) => {
+      const value =
+        hideSensitive && entry.sensitive && entry.value != null
+          ? MASKED_VALUE
+          : (entry.value ?? NOT_AVAILABLE);
+      return `${entry.label}: ${value}`;
+    })
     .join('\n');
 }
 
-function SectionCard({ section, onInfo }: { section: DeviceInfoSection; onInfo: () => void }) {
+/**
+ * The Device/OS header: the phone maker's mark and the OS mark, both drawn
+ * from what Android reported. Renders nothing on a device that reports no
+ * identifiable maker instead of guessing.
+ */
+function BrandHeader({ branding }: { branding: DeviceBranding }) {
+  const { colors } = useTheme();
+  if (branding.phone == null && branding.platform == null) return null;
+
+  return (
+    <Card>
+      <View style={styles.brandRow}>
+        {branding.phone ? (
+          <View style={styles.brandItem}>
+            <BrandLogo mark={branding.phone} size={30} color={colors.accent} />
+            <Text
+              numberOfLines={1}
+              maxFontSizeMultiplier={1.3}
+              style={[styles.brandName, { color: colors.text }]}
+            >
+              {branding.phone.name}
+            </Text>
+          </View>
+        ) : null}
+        {branding.platform ? (
+          <View style={styles.brandItem}>
+            <BrandLogo mark={branding.platform} size={22} color={colors.accent} />
+            <Text
+              numberOfLines={1}
+              maxFontSizeMultiplier={1.3}
+              style={[styles.brandName, { color: colors.muted }]}
+            >
+              {branding.platform.name}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+    </Card>
+  );
+}
+
+function SectionCard({
+  section,
+  hideSensitive,
+  onInfo,
+}: {
+  section: DeviceInfoSection;
+  hideSensitive: boolean;
+  onInfo: () => void;
+}) {
   return (
     <View style={styles.group}>
-      <SectionHeader title={section.title} copyText={sectionCopyText(section)} onInfo={onInfo} />
+      <SectionHeader
+        title={section.title}
+        copyText={sectionCopyText(section, hideSensitive)}
+        onInfo={onInfo}
+      />
       <Card>
         <View style={styles.cardBody}>
           {section.entries.map((entry) =>
@@ -95,6 +170,7 @@ function SectionCard({ section, onInfo }: { section: DeviceInfoSection; onInfo: 
                 label={entry.label}
                 value={entry.value ?? NOT_AVAILABLE}
                 copyable={entry.value != null}
+                sensitive={entry.sensitive === true}
               />
             ),
           )}
@@ -113,6 +189,7 @@ function BlockRow({ entry }: { entry: DeviceInfoEntry }) {
       <CopyableText
         value={entry.value}
         copyLabel={entry.label}
+        sensitive={entry.sensitive === true}
         style={[styles.blockValue, { color: entry.value ? colors.text : colors.muted }]}
       >
         {entry.value ?? NOT_AVAILABLE}
@@ -121,12 +198,19 @@ function BlockRow({ entry }: { entry: DeviceInfoEntry }) {
   );
 }
 
-function CopyAllButton({ report }: { report: string }) {
+/**
+ * Reads the sections again at press time so the copied text matches the
+ * current "Hide sensitive values" choice: a masked screen never copies the
+ * fingerprint.
+ */
+function CopyAllButton({ includeIdentifying }: { includeIdentifying: boolean }) {
   return (
     <Button
       title="Copy all"
       icon="copy"
-      onPress={() => void copyValue(report, 'All device details')}
+      onPress={() =>
+        void copyValue(readDeviceInfo({ includeIdentifying }).report, 'All device details')
+      }
     />
   );
 }
@@ -156,6 +240,24 @@ const styles = StyleSheet.create({
   cardBody: {
     gap: spacing.sm,
   },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: spacing.md,
+  },
+  brandItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    flexShrink: 1,
+  },
+  brandName: {
+    ...typography.body,
+    fontFamily: 'Inter_600SemiBold',
+    flexShrink: 1,
+  },
   group: {
     gap: spacing.sm,
   },
@@ -168,6 +270,10 @@ const styles = StyleSheet.create({
   },
   blockValue: {
     ...typography.mono,
+  },
+  note: {
+    ...typography.caption,
+    paddingHorizontal: spacing.xs,
   },
   skeletonStack: {
     gap: spacing.lg,

@@ -1,5 +1,6 @@
 import type { BatteryHealth, BatteryPlug, BatteryReading, BatteryStatus } from '@/core/native';
-import { formatTemperature } from '@/core/utils/format-temperature';
+import { formatPower, formatTemperature } from '@/core/units/format';
+import type { ResolvedUnits } from '@/core/units/types';
 import type { BatteryGraphMetric, BatteryGraphSample, BatteryStat } from '@/features/battery/types';
 
 const HEALTH_LABELS: Record<BatteryHealth, string | null> = {
@@ -111,20 +112,24 @@ export function batterySeries(samples: BatteryGraphSample[], metric: BatteryGrap
   return values;
 }
 
-/** Formatted read-out for the live graph header. */
-export function formatGraphValue(metric: BatteryGraphMetric, value: number): string {
+/** Formatted read-out for the live graph header, in the user's units. */
+export function formatGraphValue(
+  metric: BatteryGraphMetric,
+  value: number,
+  units: ResolvedUnits,
+): string {
   switch (metric) {
     case 'current':
       return `${Math.round(value)} mA`;
     case 'power':
-      return `${value.toFixed(1)} W`;
+      return formatPower(value, units.power, 1);
     case 'temperature':
-      return formatTemperature(value, 'C', 1);
+      return formatTemperature(value, units.temperature, 1);
   }
 }
 
 /** Rows for the stats grid — anything Android did not report is left out. */
-export function buildBatteryStats(reading: BatteryReading): BatteryStat[] {
+export function buildBatteryStats(reading: BatteryReading, units: ResolvedUnits): BatteryStat[] {
   const stats: BatteryStat[] = [];
 
   const health = HEALTH_LABELS[reading.health];
@@ -134,7 +139,7 @@ export function buildBatteryStats(reading: BatteryReading): BatteryStat[] {
     stats.push({
       key: 'temperature',
       label: 'Temperature',
-      value: formatTemperature(reading.temperatureC, 'C', 1),
+      value: formatTemperature(reading.temperatureC, units.temperature, 1),
     });
   }
 
@@ -159,7 +164,7 @@ export function buildBatteryStats(reading: BatteryReading): BatteryStat[] {
 
   const watts = powerWatts(reading.currentNowUa, reading.voltageMv);
   if (watts != null) {
-    stats.push({ key: 'power', label: 'Power', value: `${watts.toFixed(1)} W` });
+    stats.push({ key: 'power', label: 'Power', value: formatPower(watts, units.power, 1) });
   }
 
   const capacityMah = estimateCapacityMah(reading.chargeCounterUah, reading.percent);

@@ -10,11 +10,11 @@ import { useFirstContentProbe, useScrollFrameProbe } from '@/dev/frame-time-prob
 import { Icon } from '@/design-system/icon';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
-import { AllSectionsGrid } from '@/features/dashboard/components/all-sections-grid';
 import { DeviceFactsRow } from '@/features/dashboard/components/device-facts-row';
 import { HeroCard } from '@/features/dashboard/components/hero-card';
 import { HomeSkeleton } from '@/features/dashboard/components/home-skeleton';
 import { QuickTestsStrip } from '@/features/dashboard/components/quick-tests-strip';
+import { SectionCarousels } from '@/features/dashboard/components/section-carousels';
 import { TileGrid } from '@/features/dashboard/components/tile-grid';
 import { TipsCarousel } from '@/features/dashboard/components/tips-carousel';
 import { TodayUsageCard } from '@/features/dashboard/components/today-usage-card';
@@ -126,7 +126,7 @@ export function HomeScreen() {
               <AdSlot placement="home-end" />
             </View>
             <DeviceFactsRow summary={summary} />
-            <AllSectionsGrid />
+            <SectionCarousels />
           </>
         )}
       </Animated.ScrollView>

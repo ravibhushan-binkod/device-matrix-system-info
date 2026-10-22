@@ -1,4 +1,6 @@
 import type { BatteryReading } from '@/core/native';
+import { resolveUnits } from '@/core/units/resolve';
+import { DEFAULT_UNIT_PREFERENCES, type ResolvedUnits } from '@/core/units/types';
 import {
   batteryPlugLabel,
   batterySeries,
@@ -11,6 +13,9 @@ import {
   powerWatts,
 } from '@/features/battery/services/battery-stats';
 import type { BatteryGraphSample } from '@/features/battery/types';
+
+/** Metric resolution, so the assertions do not depend on the machine's locale. */
+const units: ResolvedUnits = resolveUnits(DEFAULT_UNIT_PREFERENCES, 'en-GB');
 
 function reading(overrides: Partial<BatteryReading> = {}): BatteryReading {
   return {
@@ -102,15 +107,15 @@ describe('batterySeries', () => {
   });
 
   it('formats the latest value per metric', () => {
-    expect(formatGraphValue('current', 676.4)).toBe('676 mA');
-    expect(formatGraphValue('power', 2.62)).toBe('2.6 W');
-    expect(formatGraphValue('temperature', 38.44)).toBe('38.4 °C');
+    expect(formatGraphValue('current', 676.4, units)).toBe('676 mA');
+    expect(formatGraphValue('power', 2.62, units)).toBe('2.6 W');
+    expect(formatGraphValue('temperature', 38.44, units)).toBe('38.4 °C');
   });
 });
 
 describe('buildBatteryStats', () => {
   it('builds every row for a charging reading', () => {
-    const stats = buildBatteryStats(reading());
+    const stats = buildBatteryStats(reading(), units);
     expect(stats).toEqual([
       { key: 'health', label: 'Health', value: 'Good' },
       { key: 'temperature', label: 'Temperature', value: '38.0 °C' },
@@ -128,6 +133,7 @@ describe('buildBatteryStats', () => {
   it('shows a negative power while discharging and no time to full', () => {
     const stats = buildBatteryStats(
       reading({ status: 'discharging', plugged: 'none', currentNowUa: -220_400 }),
+      units,
     );
     expect(stats).toContainEqual({ key: 'plug', label: 'Plug type', value: 'Unplugged' });
     expect(stats).toContainEqual({ key: 'current', label: 'Current', value: '-220 mA' });
@@ -148,6 +154,7 @@ describe('buildBatteryStats', () => {
         percent: null,
         cycleCount: null,
       }),
+      units,
     );
     expect(stats).toEqual([]);
   });

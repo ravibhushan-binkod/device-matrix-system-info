@@ -8,6 +8,7 @@ import { accents } from '@/design-system/tokens';
 const THEME_KEY = 'settings.themeMode';
 const ACCENT_KEY = 'settings.accent';
 const ANIMATION_KEY = 'settings.animationMode';
+const HIDE_SENSITIVE_KEY = 'settings.hideSensitiveValues';
 
 function readThemeMode(): ThemeMode {
   const stored = getString(THEME_KEY);
@@ -25,15 +26,23 @@ function readAnimationMode(): MotionMode {
   return stored === 'full' || stored === 'reduced' || stored === 'off' ? stored : 'full';
 }
 
+/** Masking is the safe default: only an explicit "false" turns it off. */
+function readHideSensitiveValues(): boolean {
+  return getString(HIDE_SENSITIVE_KEY) !== 'false';
+}
+
 type SettingsState = {
   themeMode: ThemeMode;
   accent: AccentChoice;
   animationMode: MotionMode;
+  /** Mask SSID, BSSID, IPs, gateway, DNS, fingerprint and nearby network names. */
+  hideSensitiveValues: boolean;
   /** Session-only: the low-end frame probe asked for Reduced. */
   autoReduced: boolean;
   setThemeMode: (mode: ThemeMode) => void;
   setAccent: (accent: AccentChoice) => void;
   setAnimationMode: (mode: MotionMode) => void;
+  setHideSensitiveValues: (value: boolean) => void;
   markAutoReduced: () => void;
 };
 
@@ -42,6 +51,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   themeMode: readThemeMode(),
   accent: readAccent(),
   animationMode: readAnimationMode(),
+  hideSensitiveValues: readHideSensitiveValues(),
   autoReduced: false,
   setThemeMode: (themeMode) => {
     setString(THEME_KEY, themeMode);
@@ -54,6 +64,10 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setAnimationMode: (animationMode) => {
     setString(ANIMATION_KEY, animationMode);
     set({ animationMode, autoReduced: false });
+  },
+  setHideSensitiveValues: (hideSensitiveValues) => {
+    setString(HIDE_SENSITIVE_KEY, hideSensitiveValues ? 'true' : 'false');
+    set({ hideSensitiveValues });
   },
   markAutoReduced: () => set({ autoReduced: true }),
 }));

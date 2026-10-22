@@ -3,6 +3,7 @@ import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import {
   AdSlot,
+  BrandLogo,
   Card,
   Chip,
   CopyableText,
@@ -15,7 +16,13 @@ import {
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
 import { CoreBars } from '@/design-system/visuals';
-import { formatFrequencyKhz } from '@/core/utils/format-frequency';
+import {
+  detectGpuBrand,
+  detectSocBrand,
+  type BrandMark,
+  type BrandInput,
+} from '@/core/brand/detect-brand';
+import { formatFrequencyKhz, useFormatters, type ResolvedUnits } from '@/core/units';
 import { useCpu } from '@/features/cpu/hooks/use-cpu';
 import { buildCpuScreenData } from '@/features/cpu/services/cpu-service';
 import type { CpuCluster, CpuCoreRow } from '@/features/cpu/types';
@@ -42,9 +49,25 @@ const SHEETS = {
 /** CPU & GPU: chipset, ABIs, clusters, live per-core frequency and the GL/Vulkan identity. */
 export function CpuScreen() {
   const { colors } = useTheme();
+  const formatters = useFormatters();
   const { cpu, gpu, refreshing, refresh } = useCpu();
   const [sheet, setSheet] = useState<keyof typeof SHEETS | null>(null);
-  const data = cpu && gpu ? buildCpuScreenData(cpu, gpu) : null;
+  const data = cpu && gpu ? buildCpuScreenData(cpu, gpu, formatters.units) : null;
+
+  const brandInput: BrandInput = {
+    manufacturer: null,
+    brand: null,
+    socManufacturer: data?.socManufacturer ?? null,
+    socModel: data?.socModel ?? null,
+    hardware: data?.hardware ?? null,
+    gpuRenderer: data?.gpuRenderer ?? null,
+    gpuVendor: data?.gpuVendor ?? null,
+    androidVersion: null,
+  };
+  const socMark: BrandMark | null = data
+    ? detectSocBrand({ ...brandInput, chipset: data.chipset })
+    : null;
+  const gpuMark: BrandMark | null = data ? detectGpuBrand(brandInput) : null;
 
   const gpuHasValue =
     data != null &&
@@ -106,13 +129,16 @@ export function CpuScreen() {
             <SectionHeader title="Chipset" copyText={chipsetCopy} onInfo={() => setSheet('cpu')} />
             <Card>
               <View style={styles.cardBody}>
-                <CopyableText
-                  value={data.chipset}
-                  copyLabel="Chipset"
-                  style={[styles.cardTitle, { color: colors.text }]}
-                >
-                  {data.chipset ?? NOT_AVAILABLE}
-                </CopyableText>
+                <View style={styles.brandTitleRow}>
+                  <BrandLogo mark={socMark} size={26} color={colors.accent} />
+                  <CopyableText
+                    value={data.chipset}
+                    copyLabel="Chipset"
+                    style={[styles.cardTitle, styles.brandTitle, { color: colors.text }]}
+                  >
+                    {data.chipset ?? NOT_AVAILABLE}
+                  </CopyableText>
+                </View>
                 {data.socManufacturer ? (
                   <StatRow label="Manufacturer" value={data.socManufacturer} />
                 ) : null}
@@ -137,8 +163,8 @@ export function CpuScreen() {
                   <View style={styles.coreGroup}>
                     <CoreBars
                       bars={data.bars}
-                      max={data.barsMaxMhz}
-                      accessibilityLabel="CPU core frequency, MHz"
+                      max={data.barsMax}
+                      accessibilityLabel={`CPU core frequency, ${data.barsUnit}`}
                     />
                     <Text style={[styles.caption, { color: colors.muted }]}>
                       Live · updates every 3 s
@@ -155,7 +181,11 @@ export function CpuScreen() {
                   </View>
                 )}
                 {data.clusters.length > 0 ? (
-                  <ClusterList clusters={data.clusters} rows={data.coreRows} />
+                  <ClusterList
+                    clusters={data.clusters}
+                    rows={data.coreRows}
+                    units={formatters.units}
+                  />
                 ) : null}
               </View>
             </Card>
@@ -167,6 +197,14 @@ export function CpuScreen() {
               <View style={styles.cardBody}>
                 {gpuHasValue ? (
                   <>
+                    {gpuMark ? (
+                      <View style={styles.brandTitleRow}>
+                        <BrandLogo mark={gpuMark} size={22} color={colors.violet} />
+                        <Text style={[styles.caption, { color: colors.muted, flexShrink: 1 }]}>
+                          {gpuMark.name}
+                        </Text>
+                      </View>
+                    ) : null}
                     <StatRow label="Renderer" value={data.gpuRenderer ?? NOT_AVAILABLE} />
                     <StatRow label="Vendor" value={data.gpuVendor ?? NOT_AVAILABLE} />
                     <StatRow label="OpenGL ES" value={data.glEsVersion ?? NOT_AVAILABLE} />
@@ -229,14 +267,23 @@ function coreRowText(row: CpuCoreRow): string {
   return parts.length > 0 ? `${row.core} · ${parts.join(' · ')}` : `${row.core} · ${NOT_AVAILABLE}`;
 }
 
-function ClusterList({ clusters, rows }: { clusters: CpuCluster[]; rows: CpuCoreRow[] }) {
+function ClusterList({
+  clusters,
+  rows,
+  units,
+}: {
+  clusters: CpuCluster[];
+  rows: CpuCoreRow[];
+  units: ResolvedUnits;
+}) {
   const { colors } = useTheme();
 
   return (
     <View style={styles.clusters}>
       {clusters.map((cluster) => {
         const clusterRows = rows.filter((row) => cluster.cores.includes(Number(row.key)));
-        const maxText = cluster.maxKhz != null ? formatFrequencyKhz(cluster.maxKhz) : null;
+        const maxText =
+          cluster.maxKhz != null ? formatFrequencyKhz(cluster.maxKhz, units.frequency) : null;
         return (
           <View key={cluster.key} style={styles.cluster}>
             <View style={styles.clusterHeader}>
@@ -299,6 +346,14 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     ...typography.title,
+  },
+  brandTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  brandTitle: {
+    flexShrink: 1,
   },
   coreGroup: {
     gap: spacing.md,

@@ -12,8 +12,6 @@ export type DashboardTileId =
   | 'camera'
   | 'connectivity';
 
-export type DashboardTileSize = 's' | 'm' | 'l';
-
 export type DashboardTileAccent = 'primary' | 'accent' | 'violet' | 'good' | 'warning';
 
 export type DashboardTileDefinition = {
@@ -22,8 +20,6 @@ export type DashboardTileDefinition = {
   /** Short label used by the settings reorder list. */
   shortTitle: string;
   icon: IconName;
-  /** Default grid size; the registry is the single source for the layout. */
-  size: DashboardTileSize;
   accent: DashboardTileAccent;
   /** The detail screen this tile opens. */
   route:
@@ -44,13 +40,17 @@ export type DashboardTilePreference = {
   visible: boolean;
 };
 
+/**
+ * Every visible tile is the same width and height. The grid is a fixed
+ * two-column layout; when the count is odd the single leftover tile spans the
+ * full width at the same height and lays its content out horizontally.
+ */
 export type DashboardTilePlacement = {
   id: DashboardTileId;
-  size: DashboardTileSize;
   width: 'full' | 'half';
 };
 
-/** Each inner array is one visual row. Full-size tiles always get their own row. */
+/** Each inner array is one visual row of one or two tiles. */
 export type DashboardTileRow = DashboardTilePlacement[];
 
 export const DASHBOARD_TILE_DEFINITIONS: readonly DashboardTileDefinition[] = [
@@ -59,7 +59,6 @@ export const DASHBOARD_TILE_DEFINITIONS: readonly DashboardTileDefinition[] = [
     title: 'Processor',
     shortTitle: 'CPU',
     icon: 'cpu',
-    size: 'l',
     accent: 'accent',
     route: '/cpu',
   },
@@ -68,7 +67,6 @@ export const DASHBOARD_TILE_DEFINITIONS: readonly DashboardTileDefinition[] = [
     title: 'Memory',
     shortTitle: 'RAM',
     icon: 'memory',
-    size: 'm',
     accent: 'violet',
     route: '/memory',
   },
@@ -77,7 +75,6 @@ export const DASHBOARD_TILE_DEFINITIONS: readonly DashboardTileDefinition[] = [
     title: 'Storage',
     shortTitle: 'Storage',
     icon: 'storage',
-    size: 'm',
     accent: 'primary',
     route: '/storage',
   },
@@ -86,7 +83,6 @@ export const DASHBOARD_TILE_DEFINITIONS: readonly DashboardTileDefinition[] = [
     title: 'Battery',
     shortTitle: 'Battery',
     icon: 'battery',
-    size: 'm',
     accent: 'good',
     route: '/battery',
   },
@@ -95,7 +91,6 @@ export const DASHBOARD_TILE_DEFINITIONS: readonly DashboardTileDefinition[] = [
     title: 'Thermal',
     shortTitle: 'Thermal',
     icon: 'thermometer',
-    size: 's',
     accent: 'warning',
     route: '/thermal',
   },
@@ -104,7 +99,6 @@ export const DASHBOARD_TILE_DEFINITIONS: readonly DashboardTileDefinition[] = [
     title: 'Display',
     shortTitle: 'Display',
     icon: 'display',
-    size: 's',
     accent: 'primary',
     route: '/display',
   },
@@ -113,7 +107,6 @@ export const DASHBOARD_TILE_DEFINITIONS: readonly DashboardTileDefinition[] = [
     title: 'Network',
     shortTitle: 'Network',
     icon: 'wifi',
-    size: 'm',
     accent: 'accent',
     route: '/network',
   },
@@ -122,7 +115,6 @@ export const DASHBOARD_TILE_DEFINITIONS: readonly DashboardTileDefinition[] = [
     title: 'Sensors',
     shortTitle: 'Sensors',
     icon: 'sensors',
-    size: 'm',
     accent: 'violet',
     route: '/sensors',
   },
@@ -131,7 +123,6 @@ export const DASHBOARD_TILE_DEFINITIONS: readonly DashboardTileDefinition[] = [
     title: 'Camera',
     shortTitle: 'Camera',
     icon: 'camera',
-    size: 's',
     accent: 'primary',
     route: '/camera',
   },
@@ -140,7 +131,6 @@ export const DASHBOARD_TILE_DEFINITIONS: readonly DashboardTileDefinition[] = [
     title: 'Connectivity',
     shortTitle: 'Connectivity',
     icon: 'bluetooth',
-    size: 'l',
     accent: 'accent',
     route: '/connectivity',
   },
@@ -242,30 +232,41 @@ export function moveDashboardTile(
   return next;
 }
 
+export type EqualTilePlacement<T> = {
+  item: T;
+  width: 'full' | 'half';
+};
+
+/**
+ * The pure visible-items-to-rows rule used by the dashboard (and unit-tested
+ * for 0–12 items): items pair up into two-column rows, and a single leftover
+ * item becomes one full-width row. No other row shapes exist and no row is
+ * ever left empty.
+ */
+export function layoutEqualTileRows<T>(items: readonly T[]): EqualTilePlacement<T>[][] {
+  const rows: EqualTilePlacement<T>[][] = [];
+  for (let index = 0; index < items.length; index += 2) {
+    const first = items[index];
+    if (first === undefined) break;
+    const second = items[index + 1];
+    if (second === undefined) {
+      rows.push([{ item: first, width: 'full' }]);
+    } else {
+      rows.push([
+        { item: first, width: 'half' },
+        { item: second, width: 'half' },
+      ]);
+    }
+  }
+  return rows;
+}
+
 /** Builds the visual row order from the preferences. Hidden tiles are skipped. */
 export function layoutDashboardTileRows(tiles: DashboardTilePreference[]): DashboardTileRow[] {
-  const rows: DashboardTileRow[] = [];
-  let halfRow: DashboardTilePlacement[] = [];
-
-  const flushHalf = () => {
-    if (halfRow.length > 0) {
-      rows.push(halfRow);
-      halfRow = [];
-    }
-  };
-
-  for (const preference of tiles) {
-    if (!preference.visible) continue;
-    const definition = DEFINITION_BY_ID.get(preference.id);
-    if (!definition) continue;
-    if (definition.size === 'l') {
-      flushHalf();
-      rows.push([{ id: definition.id, size: definition.size, width: 'full' }]);
-      continue;
-    }
-    halfRow.push({ id: definition.id, size: definition.size, width: 'half' });
-    if (halfRow.length === 2) flushHalf();
-  }
-  flushHalf();
-  return rows;
+  const visible = tiles
+    .filter((tile) => tile.visible && DEFINITION_BY_ID.has(tile.id))
+    .map((tile) => tile.id);
+  return layoutEqualTileRows(visible).map((row) =>
+    row.map((placement) => ({ id: placement.item, width: placement.width })),
+  );
 }

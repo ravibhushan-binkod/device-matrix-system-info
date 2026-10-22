@@ -135,11 +135,25 @@ listing, and replace `<contact>` before publishing.
 > microphone or overlay permissions, and never scans for or connects to
 > Bluetooth devices.
 >
-> **Data you create.** Theme and dashboard choices, saved hardware-test
-> results and your ads consent state are stored only on your phone. Clearing
-> the app's data or uninstalling the app removes them. A report you create is
-> built on the phone; text leaves only when you tap Copy or Share, and a PDF
-> leaves only through Android's share sheet.
+> **Data you create.** Theme, accent and unit choices, dashboard choices, saved
+> hardware-test results and your ads consent state are stored only on your
+> phone. Clearing the app's data or uninstalling the app removes them. A report
+> you create is built on the phone; text leaves only when you tap Copy or Share,
+> and a PDF leaves only through Android's share sheet.
+>
+> **Sensitive values.** Wi-Fi network names, BSSID, IP addresses, DNS servers
+> and the build fingerprint are masked by default; you can reveal one value for
+> ten seconds by tapping it. Reports leave identifying details out unless you
+> turn on "Include identifying details" for a single export. The app's own code
+> never reads the IMEI, serial number, Android ID, advertising ID, phone number,
+> MAC address or precise location.
+>
+> **Home-screen widget (optional).** If you add the Device Matrix widget, it
+> reads the battery, memory and storage values on your phone and shows them in
+> your launcher. Nothing leaves the device.
+>
+> **Audience.** The app is aimed at users aged 13 and over; it is not directed
+> at children under 13.
 >
 > Questions: <contact>.
 

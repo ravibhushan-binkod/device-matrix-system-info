@@ -56,7 +56,12 @@ function Navigator() {
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+        <Stack.Screen name="units" options={{ title: 'Units and formats' }} />
+        <Stack.Screen name="about" options={{ title: 'About' }} />
         <Stack.Screen name="privacy" options={{ title: 'Privacy policy' }} />
+        <Stack.Screen name="terms" options={{ title: 'Terms of use' }} />
+        <Stack.Screen name="disclaimer" options={{ title: 'Disclaimer' }} />
+        <Stack.Screen name="licences" options={{ title: 'Open-source licences' }} />
         <Stack.Screen name="battery" options={{ title: 'Battery' }} />
         <Stack.Screen name="device" options={{ title: 'Device & OS' }} />
         <Stack.Screen name="cpu" options={{ title: 'CPU & GPU' }} />

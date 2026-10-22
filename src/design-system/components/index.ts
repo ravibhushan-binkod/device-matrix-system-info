@@ -1,5 +1,6 @@
 export { AdSlot } from './ad-slot';
 export { AppBar } from './app-bar';
+export { BrandLogo } from './brand-logo';
 export { Button } from './button';
 export { Card } from './card';
 export { Chip } from './chip';
@@ -15,6 +16,7 @@ export { PermissionRationaleSheet } from './permission-rationale-sheet';
 export { PlaceholderScreen } from './placeholder-screen';
 export { Screen } from './screen';
 export { SectionHeader } from './section-header';
+export { SensitiveValue } from './sensitive-value';
 export { Skeleton } from './skeleton';
 export { StatRow } from './stat-row';
 export { TipCard } from './tip-card';

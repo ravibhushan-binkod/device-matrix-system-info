@@ -7,11 +7,12 @@ import { useParallaxStyle } from '@/design-system/animations/collapsing-header';
 import { PressableScale } from '@/design-system/animations/pressable-scale';
 import { withAlpha } from '@/design-system/color';
 import { Icon } from '@/design-system/icon';
-import { CopyableText, InfoSheet } from '@/design-system/components';
+import { BrandLogo, CopyableText, InfoSheet } from '@/design-system/components';
 import { copyValue } from '@/design-system/copy/copy-value';
 import { useTheme } from '@/design-system/theme';
 import { radius, spacing, typography } from '@/design-system/tokens';
 import { Ring } from '@/design-system/visuals';
+import { detectPhoneBrand, detectPlatformBrand } from '@/core/brand/detect-brand';
 import type { DashboardSummary, HealthCheckState } from '@/features/dashboard/types';
 
 type Props = {
@@ -83,6 +84,22 @@ export function HeroCard({ summary, scrollY }: Props) {
   const score = summary.health.score;
   const tint = score != null ? healthColor(score, colors) : colors.muted;
 
+  /** Phone maker and OS marks for the hero; both are pure string lookups. */
+  const marks = useMemo(() => {
+    const device = identity.status === 'ok' ? identity.value : null;
+    const input = {
+      manufacturer: device?.brand ?? null,
+      brand: device?.brand ?? null,
+      socManufacturer: null,
+      socModel: null,
+      hardware: null,
+      gpuRenderer: null,
+      gpuVendor: null,
+      androidVersion: device?.androidVersion ?? null,
+    };
+    return { phone: detectPhoneBrand(input), platform: detectPlatformBrand(input) };
+  }, [identity]);
+
   const paragraphs = useMemo(() => {
     const read = summary.health.availableChecks;
     const checks = summary.health.checks
@@ -110,7 +127,10 @@ export function HeroCard({ summary, scrollY }: Props) {
       <View style={styles.body}>
         <View style={styles.top}>
           <View style={styles.copy}>
-            <Text style={[styles.overline, { color: colors.accent }]}>DEVICE MATRIX</Text>
+            <View style={styles.overlineRow}>
+              <BrandLogo mark={marks.phone} size={18} color={colors.accent} />
+              <Text style={[styles.overline, { color: colors.accent }]}>DEVICE MATRIX</Text>
+            </View>
             <CopyableText
               value={deviceName}
               copyLabel="Device"
@@ -120,6 +140,7 @@ export function HeroCard({ summary, scrollY }: Props) {
               {deviceName}
             </CopyableText>
             <View style={styles.chips}>
+              <BrandLogo mark={marks.platform} size={18} color={colors.accent} />
               <StatChip label={android} tone={colors.accent} />
               <StatChip
                 label={patch != null ? `Patch ${patch}` : 'Patch not reported'}
@@ -232,12 +253,18 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_600SemiBold',
     letterSpacing: 2,
   },
+  overlineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   name: {
     ...typography.display,
   },
   chips: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    alignItems: 'center',
     gap: spacing.xs,
     marginTop: 2,
   },

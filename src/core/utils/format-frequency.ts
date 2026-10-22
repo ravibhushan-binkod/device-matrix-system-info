@@ -1,7 +1,10 @@
-/** kHz → human frequency string, e.g. `2_200_000` → "2.20 GHz", `300_000` → "300 MHz". */
+import { getActiveUnits } from '@/core/units/active';
+import { formatFrequencyKhz as formatFrequencyKhzIn } from '@/core/units/format';
+
+/**
+ * kHz → human frequency string in the active unit: "2.20 GHz", "300 MHz" or
+ * "500 kHz" when the user chose the automatic scale.
+ */
 export function formatFrequencyKhz(khz: number, digits = 2): string {
-  if (!Number.isFinite(khz) || khz <= 0) return '—';
-  if (khz >= 1_000_000) return `${(khz / 1_000_000).toFixed(digits)} GHz`;
-  if (khz >= 1_000) return `${Math.round(khz / 1_000)} MHz`;
-  return `${Math.round(khz)} kHz`;
+  return formatFrequencyKhzIn(khz, getActiveUnits().frequency, digits);
 }

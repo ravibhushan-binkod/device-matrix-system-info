@@ -3,6 +3,7 @@ import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import type { DisplayInfo } from '@/core/native';
 import type { SystemSettingsTarget } from '@/core/system-settings';
+import { useFormatters } from '@/core/units/use-formatters';
 import { formatTimeout } from '@/core/utils/format-duration';
 import {
   AdSlot,
@@ -104,8 +105,12 @@ type DetailsProps = {
 };
 
 function DisplayDetails({ colors, info, onOpenSettings, onOpenInfo, notice }: DetailsProps) {
+  const { units } = useFormatters();
   const resolution = formatResolution(info.widthPx, info.heightPx);
-  const size = formatInches(diagonalInches(info.widthPx, info.heightPx, info.xdpi, info.ydpi));
+  const size = formatInches(
+    diagonalInches(info.widthPx, info.heightPx, info.xdpi, info.ydpi),
+    units,
+  );
   const modes = buildModeRows(info, info.supportedModes.length);
   const hdr = hdrLabel(info.isHdr, info.hdrTypes);
   const wideGamut = wideGamutLabel(info.isWideColorGamut);
