@@ -4,12 +4,12 @@ import { StyleSheet, View, type LayoutChangeEvent } from 'react-native';
 import {
   Easing,
   useDerivedValue,
-  useReducedMotion,
   useSharedValue,
   withDelay,
   withTiming,
 } from 'react-native-reanimated';
 
+import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 import { Chip } from '@/design-system/components/chip';
 import { withAlpha } from '@/design-system/color';
 import { useTheme } from '@/design-system/theme';
@@ -70,7 +70,8 @@ function Segment({ x, width, height, color, delay, reduced }: SegmentProps) {
 /** Segmented usage bar (apps / media / other / free) with staggered fill. */
 export function StorageBar({ segments, total, height = 14, showLegend = true }: Props) {
   const { colors } = useTheme();
-  const reduced = useReducedMotion();
+  const { animate } = useMotionPreference();
+  const reduced = !animate;
   const [width, setWidth] = useState(0);
 
   const sum = segments.reduce((acc, segment) => acc + Math.max(0, segment.value), 0);

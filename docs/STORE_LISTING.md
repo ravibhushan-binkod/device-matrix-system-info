@@ -96,11 +96,11 @@ flow is required).
 
 Publish this at a stable URL (for example
 `https://<your-domain>/device-matrix/privacy`), link it from the Play Console
-listing, and replace `<contact>` and the date before publishing.
+listing, and replace `<contact>` before publishing.
 
 > **Device Matrix: System Info — Privacy Policy**
 >
-> Last updated: <date>
+> Last updated: 21 October 2026
 >
 > Device Matrix reads information about your device — model, OS, CPU, memory,
 > storage, battery, thermal, display, camera and sensor capabilities, network
@@ -114,20 +114,32 @@ listing, and replace `<contact>` and the date before publishing.
 > location as described in Google's own policies. Where required by law (for
 > example in the EEA and the UK), the app asks for your consent through
 > Google's consent form before any ad is requested; you can change or withdraw
-> that choice at any time from the app's Settings. How Google uses data:
+> that choice at any time from Settings → Privacy → Ad privacy options. How
+> Google uses data:
 > https://policies.google.com/technologies/partner-sites and
 > https://policies.google.com/privacy. You can reset or delete your Android
 > advertising ID in Settings → Privacy → Ads.
 >
-> **Permissions.** Internet and network state are used for ads. Location is
-> only requested when you open Wi-Fi details (Android hides the network name),
-> Bluetooth state when you open the Bluetooth card, and Usage Access only when
-> you enable the Apps tab's usage insights. The app never asks for contacts,
-> SMS, camera, microphone or overlay permissions.
+> **Permissions.** Internet and network state are used for ads; vibration is
+> used for haptic feedback. Set-alarm is used only when you create an alarm or
+> timer, NFC is read-only and used only when you open that information, and
+> modify-audio-settings is used only by the earpiece test.
 >
-> **Data you create.** Theme settings and your ads consent choice are stored
-> only on your phone. Clearing the app's data or uninstalling the app removes
-> them.
+> Location is requested only when you open Wi-Fi details or the Wi-Fi analyzer,
+> because Android treats Wi-Fi network names and nearby-network scans as
+> location data. Nearby Wi-Fi Devices is used only for the Android 13+
+> nearby-network list, and Bluetooth Connect is requested only to read whether
+> Bluetooth is on. Usage Access is optional and is opened from Android's
+> special-access settings; it is used only for the Apps tab's sizes, screen
+> time and permission analysis. The app never asks for contacts, SMS, camera,
+> microphone or overlay permissions, and never scans for or connects to
+> Bluetooth devices.
+>
+> **Data you create.** Theme and dashboard choices, saved hardware-test
+> results and your ads consent state are stored only on your phone. Clearing
+> the app's data or uninstalling the app removes them. A report you create is
+> built on the phone; text leaves only when you tap Copy or Share, and a PDF
+> leaves only through Android's share sheet.
 >
 > Questions: <contact>.
 

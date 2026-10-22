@@ -6,12 +6,14 @@ import { PressableScale } from '@/design-system/animations/pressable-scale';
 import {
   AdSlot,
   Card,
+  CopyableText,
   EmptyState,
   InfoSheet,
   Screen,
   SectionHeader,
   Skeleton,
 } from '@/design-system/components';
+import { copyValue } from '@/design-system/copy/copy-value';
 import { Icon } from '@/design-system/icon';
 import { useTheme } from '@/design-system/theme';
 import { radius, spacing, typography } from '@/design-system/tokens';
@@ -63,13 +65,32 @@ export function SensorsScreen() {
         />
       ) : (
         <>
-          <SectionHeader title="All sensors" onInfo={() => setSheetVisible(true)} />
+          <SectionHeader
+            title="All sensors"
+            copyText={
+              data.all.length > 0
+                ? data.all
+                    .map(
+                      (row) =>
+                        `${row.label}: ${row.vendor.length > 0 ? row.vendor : row.name}${
+                          row.wakeUp ? ' · Wake-up' : ''
+                        }`,
+                    )
+                    .join('\n')
+                : undefined
+            }
+            onInfo={() => setSheetVisible(true)}
+          />
           <SearchField value={query} onChangeText={setQuery} />
-          <Text style={[styles.count, { color: colors.muted }]}>
+          <CopyableText
+            value={data.all.length > 0 ? data.all.map((row) => row.label).join('\n') : undefined}
+            copyLabel="Sensor list"
+            style={[styles.count, { color: colors.muted }]}
+          >
             {data.filtered.length === data.all.length
               ? `${data.all.length} sensors`
               : `${data.filtered.length} of ${data.all.length} sensors`}
-          </Text>
+          </CopyableText>
           {data.filtered.length === 0 ? (
             <Card>
               <Text style={[styles.emptyText, { color: colors.muted }]}>
@@ -89,7 +110,10 @@ export function SensorsScreen() {
                           params: { type: String(row.type) },
                         })
                       }
+                      onLongPress={() => void copyValue(row.label, 'Sensor')}
+                      delayLongPress={320}
                       accessibilityRole="button"
+                      accessibilityHint="Long press to copy the sensor name"
                       style={[
                         styles.row,
                         index > 0

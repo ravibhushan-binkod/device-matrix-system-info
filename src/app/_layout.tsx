@@ -15,8 +15,11 @@ import {
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
+import { AutoReduceMotion } from '@/design-system/animations/auto-reduce-motion';
+import { CopyToast } from '@/design-system/components/copy-toast';
 import { ThemeProvider, useTheme } from '@/design-system/theme';
 import { useAdsBootstrap } from '@/core/ads/hooks/use-ads-bootstrap';
 import { useSettingsStore } from '@/state/settings-store';
@@ -53,6 +56,7 @@ function Navigator() {
       >
         <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="settings" options={{ title: 'Settings' }} />
+        <Stack.Screen name="privacy" options={{ title: 'Privacy policy' }} />
         <Stack.Screen name="battery" options={{ title: 'Battery' }} />
         <Stack.Screen name="device" options={{ title: 'Device & OS' }} />
         <Stack.Screen name="cpu" options={{ title: 'CPU & GPU' }} />
@@ -76,6 +80,8 @@ function Navigator() {
         <Stack.Screen name="timer" options={{ title: 'Timer' }} />
         <Stack.Screen name="touch-test" options={{ title: 'Touch test', headerShown: false }} />
         <Stack.Screen name="screen-test" options={{ title: 'Screen test', headerShown: false }} />
+        <Stack.Screen name="hardware-tests/index" options={{ title: 'Hardware tests' }} />
+        <Stack.Screen name="hardware-tests/[test]" options={{ title: 'Hardware test' }} />
         <Stack.Screen name="dev/gallery" options={{ title: 'Dev Gallery' }} />
         <Stack.Screen name="dev/support-matrix" options={{ title: 'Support matrix' }} />
       </Stack>
@@ -110,7 +116,11 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider mode={themeMode} accent={accent}>
-        <Navigator />
+        <AutoReduceMotion />
+        <View style={{ flex: 1 }}>
+          <Navigator />
+          <CopyToast />
+        </View>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

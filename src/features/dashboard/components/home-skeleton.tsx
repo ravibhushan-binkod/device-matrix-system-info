@@ -1,38 +1,33 @@
 import { StyleSheet, View } from 'react-native';
 
-import { Card, Skeleton } from '@/design-system/components';
+import { Shimmer } from '@/design-system/animations/shimmer';
 import { spacing } from '@/design-system/tokens';
 
-/** Shimmer placeholders for the summary card and the rings row. */
+/** Shimmer placeholders for the hero and the first tile rows. */
 export function HomeSkeleton() {
   return (
     <View style={styles.root}>
-      <Card>
-        <View style={styles.stack}>
-          <Skeleton width="62%" height={20} />
-          <Skeleton width="45%" height={14} />
-          <Skeleton width="52%" height={14} />
+      <Shimmer height={340} />
+      <View style={styles.rows}>
+        <Shimmer width="38%" height={14} />
+        <Shimmer height={220} />
+        <View style={styles.pair}>
+          <Shimmer width="48%" height={190} />
+          <Shimmer width="48%" height={190} />
         </View>
-      </Card>
-      <Card>
-        <View style={styles.rings}>
-          <Skeleton width={88} height={88} round />
-          <Skeleton width={88} height={88} round />
-          <Skeleton width={88} height={88} round />
-        </View>
-      </Card>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   root: {
-    gap: spacing.lg,
+    gap: spacing.xl,
   },
-  stack: {
-    gap: spacing.sm,
+  rows: {
+    gap: spacing.md,
   },
-  rings: {
+  pair: {
     flexDirection: 'row',
     justifyContent: 'space-between',
   },

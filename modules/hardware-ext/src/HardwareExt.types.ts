@@ -128,3 +128,22 @@ export type NativeTorchResult = {
 export type NativeVibrationInfo = {
   hasVibrator: boolean;
 };
+
+export type NativeAudioOutput = {
+  /** "wired-headset" | "usb-audio" | "bluetooth" | "earpiece" | "speaker" | "unknown" */
+  route: string;
+  headsetConnected: boolean;
+  usbAudioConnected: boolean;
+  earpieceAvailable: boolean;
+  /** Audio device labels Android reports as connected outputs. */
+  devices: string[];
+};
+
+export type NativeToneResult = {
+  ok: boolean;
+  /** "blocked" | "no-earpiece" | "failed" | null */
+  reason: string | null;
+  /** The output route Android reported after the tone started. */
+  output: string | null;
+  earpieceAvailable: boolean;
+};

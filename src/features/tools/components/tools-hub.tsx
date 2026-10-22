@@ -7,6 +7,9 @@ import { withAlpha } from '@/design-system/color';
 import { Icon, type IconName } from '@/design-system/icon';
 import { useTheme } from '@/design-system/theme';
 import { radius, spacing, typography } from '@/design-system/tokens';
+import { features, isEnabled } from '@/core/features';
+import { useHardwareResults } from '@/features/hardware-tests/hooks/use-hardware-results';
+import { summarizeResults } from '@/features/hardware-tests/services/results-service';
 import { useTorch } from '@/features/tools/hooks/use-torch';
 import {
   readVibrationSupport,
@@ -47,6 +50,8 @@ export function ToolsHub() {
   const router = useRouter();
   const { colors } = useTheme();
   const torch = useTorch();
+  const { results } = useHardwareResults();
+  const hardwareSummary = summarizeResults(results);
   const [hasVibrator] = useState<boolean | null>(() => {
     const result = readVibrationSupport();
     return result.status === 'ok' ? result.value : false;
@@ -83,6 +88,22 @@ export function ToolsHub() {
 
   return (
     <Screen scroll contentStyle={styles.content}>
+      {isEnabled(features.hardwareTests) ? (
+        <>
+          <SectionHeader title="Guided checkup" />
+          <ToolRow
+            icon="wrench"
+            title="Hardware tests"
+            subtitle={
+              hardwareSummary.passed + hardwareSummary.failed === 0
+                ? `${hardwareSummary.total} checks for a used phone · start here`
+                : `${hardwareSummary.passed} passed · ${hardwareSummary.failed} failed · ${hardwareSummary.untested} untested`
+            }
+            onPress={() => router.push('/hardware-tests')}
+          />
+        </>
+      ) : null}
+
       <SectionHeader title="Clock" />
       <ToolRow
         icon="alarm"

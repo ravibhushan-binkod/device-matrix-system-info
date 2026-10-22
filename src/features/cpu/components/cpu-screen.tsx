@@ -5,6 +5,7 @@ import {
   AdSlot,
   Card,
   Chip,
+  CopyableText,
   InfoSheet,
   Screen,
   SectionHeader,
@@ -53,6 +54,38 @@ export function CpuScreen() {
       data.glEsVersion != null ||
       data.vulkanVersion != null);
 
+  const chipsetCopy = data
+    ? [
+        data.chipset ? `Chipset: ${data.chipset}` : null,
+        data.socManufacturer ? `Manufacturer: ${data.socManufacturer}` : null,
+        data.socModel ? `Model: ${data.socModel}` : null,
+        data.cores == null ? null : `Cores: ${data.cores}`,
+        data.abis ? `ABIs: ${data.abis}` : null,
+        data.governor ? `Governor: ${data.governor}` : null,
+      ]
+        .filter((line): line is string => line != null)
+        .join('\n')
+    : undefined;
+  const coresCopy =
+    data && data.coreRows.length > 0
+      ? data.coreRows.map((row) => coreRowText(row)).join('\n')
+      : undefined;
+  const gpuCopy = data
+    ? [
+        data.gpuRenderer ? `Renderer: ${data.gpuRenderer}` : null,
+        data.gpuVendor ? `Vendor: ${data.gpuVendor}` : null,
+        data.glVersion ? `OpenGL: ${data.glVersion}` : null,
+        data.glEsVersion ? `OpenGL ES: ${data.glEsVersion}` : null,
+        data.vulkanVersion ? `Vulkan: ${data.vulkanVersion}` : null,
+        data.vulkanLevel == null ? null : `Vulkan level: ${data.vulkanLevel}`,
+        data.vulkanCompute == null
+          ? null
+          : `Vulkan compute: ${data.vulkanCompute ? 'Supported' : 'Not supported'}`,
+      ]
+        .filter((line): line is string => line != null)
+        .join('\n')
+    : undefined;
+
   return (
     <Screen
       scroll
@@ -70,12 +103,16 @@ export function CpuScreen() {
       {data ? (
         <>
           <View style={styles.group}>
-            <SectionHeader title="Chipset" onInfo={() => setSheet('cpu')} />
+            <SectionHeader title="Chipset" copyText={chipsetCopy} onInfo={() => setSheet('cpu')} />
             <Card>
               <View style={styles.cardBody}>
-                <Text style={[styles.cardTitle, { color: colors.text }]}>
+                <CopyableText
+                  value={data.chipset}
+                  copyLabel="Chipset"
+                  style={[styles.cardTitle, { color: colors.text }]}
+                >
                   {data.chipset ?? NOT_AVAILABLE}
-                </Text>
+                </CopyableText>
                 {data.socManufacturer ? (
                   <StatRow label="Manufacturer" value={data.socManufacturer} />
                 ) : null}
@@ -83,18 +120,9 @@ export function CpuScreen() {
                 <StatRow
                   label="Cores"
                   value={data.cores == null ? NOT_AVAILABLE : String(data.cores)}
-                  copyable={false}
                 />
-                <StatRow
-                  label="ABIs"
-                  value={data.abis ?? NOT_AVAILABLE}
-                  copyable={data.abis != null}
-                />
-                <StatRow
-                  label="Governor"
-                  value={data.governor ?? NOT_AVAILABLE}
-                  copyable={data.governor != null}
-                />
+                <StatRow label="ABIs" value={data.abis ?? NOT_AVAILABLE} />
+                <StatRow label="Governor" value={data.governor ?? NOT_AVAILABLE} />
               </View>
             </Card>
           </View>
@@ -102,7 +130,7 @@ export function CpuScreen() {
           <AdSlot placement="cpu-mid" />
 
           <View style={styles.group}>
-            <SectionHeader title="Clusters & cores" />
+            <SectionHeader title="Clusters & cores" copyText={coresCopy} />
             <Card>
               <View style={styles.cardBody}>
                 {data.bars.length > 0 ? (
@@ -134,37 +162,18 @@ export function CpuScreen() {
           </View>
 
           <View style={styles.group}>
-            <SectionHeader title="GPU" onInfo={() => setSheet('gpu')} />
+            <SectionHeader title="GPU" copyText={gpuCopy} onInfo={() => setSheet('gpu')} />
             <Card>
               <View style={styles.cardBody}>
                 {gpuHasValue ? (
                   <>
-                    <StatRow
-                      label="Renderer"
-                      value={data.gpuRenderer ?? NOT_AVAILABLE}
-                      copyable={data.gpuRenderer != null}
-                    />
-                    <StatRow
-                      label="Vendor"
-                      value={data.gpuVendor ?? NOT_AVAILABLE}
-                      copyable={data.gpuVendor != null}
-                    />
-                    <StatRow
-                      label="OpenGL ES"
-                      value={data.glEsVersion ?? NOT_AVAILABLE}
-                      copyable={data.glEsVersion != null}
-                    />
-                    <StatRow
-                      label="Vulkan"
-                      value={data.vulkanVersion ?? NOT_AVAILABLE}
-                      copyable={data.vulkanVersion != null}
-                    />
+                    <StatRow label="Renderer" value={data.gpuRenderer ?? NOT_AVAILABLE} />
+                    <StatRow label="Vendor" value={data.gpuVendor ?? NOT_AVAILABLE} />
+                    <StatRow label="OpenGL ES" value={data.glEsVersion ?? NOT_AVAILABLE} />
+                    <StatRow label="Vulkan" value={data.vulkanVersion ?? NOT_AVAILABLE} />
                     <StatRow
                       label="Vulkan level"
-                      value={
-                        data.vulkanLevel == null ? NOT_AVAILABLE : `Level ${data.vulkanLevel}`
-                      }
-                      copyable={false}
+                      value={data.vulkanLevel == null ? NOT_AVAILABLE : `Level ${data.vulkanLevel}`}
                     />
                     <StatRow
                       label="Vulkan compute"
@@ -175,14 +184,17 @@ export function CpuScreen() {
                             ? 'Supported'
                             : 'Not supported'
                       }
-                      copyable={false}
                     />
                     {data.glVersion ? (
                       <View style={styles.block}>
                         <Text style={[styles.caption, { color: colors.muted }]}>OpenGL</Text>
-                        <Text style={[styles.blockValue, { color: colors.text }]}>
+                        <CopyableText
+                          value={data.glVersion}
+                          copyLabel="OpenGL version"
+                          style={[styles.blockValue, { color: colors.text }]}
+                        >
                           {data.glVersion}
-                        </Text>
+                        </CopyableText>
                       </View>
                     ) : null}
                   </>
@@ -214,9 +226,7 @@ function coreRowText(row: CpuCoreRow): string {
   const parts = [row.current, row.range, row.governor].filter(
     (part): part is string => part != null,
   );
-  return parts.length > 0
-    ? `${row.core} · ${parts.join(' · ')}`
-    : `${row.core} · ${NOT_AVAILABLE}`;
+  return parts.length > 0 ? `${row.core} · ${parts.join(' · ')}` : `${row.core} · ${NOT_AVAILABLE}`;
 }
 
 function ClusterList({ clusters, rows }: { clusters: CpuCluster[]; rows: CpuCoreRow[] }) {
@@ -236,11 +246,19 @@ function ClusterList({ clusters, rows }: { clusters: CpuCluster[]; rows: CpuCore
                 {maxText ? ` · up to ${maxText}` : ''}
               </Text>
             </View>
-            {clusterRows.map((row) => (
-              <Text key={row.key} style={[styles.coreValue, { color: colors.muted }]}>
-                {coreRowText(row)}
-              </Text>
-            ))}
+            {clusterRows.map((row) => {
+              const text = coreRowText(row);
+              return (
+                <CopyableText
+                  key={row.key}
+                  value={text}
+                  copyLabel={row.core}
+                  style={[styles.coreValue, { color: colors.muted }]}
+                >
+                  {text}
+                </CopyableText>
+              );
+            })}
           </View>
         );
       })}

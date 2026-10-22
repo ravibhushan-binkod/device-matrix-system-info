@@ -1,6 +1,7 @@
 import {
   AlarmClock,
   Battery,
+  BatteryCharging,
   Bluetooth,
   Camera,
   Check,
@@ -8,18 +9,23 @@ import {
   Clock,
   Copy,
   Cpu,
+  Ear,
   FileText,
+  FingerprintPattern,
   Flashlight,
   Gauge,
   HardDrive,
+  Headphones,
   House,
   Info,
   LayoutGrid,
   Lightbulb,
   MemoryStick,
+  Mic,
   Minus,
   MonitorSmartphone,
   Moon,
+  Move3d,
   Nfc,
   Palette,
   Pause,
@@ -28,15 +34,18 @@ import {
   Plus,
   Pointer,
   Radar,
+  RefreshCw,
   Search,
   Settings,
   Share2,
   Signal,
+  Speaker,
   Sun,
   Thermometer,
   Timer,
   TriangleAlert,
   Vibrate,
+  Volume2,
   Wifi,
   Wrench,
   X,
@@ -54,17 +63,22 @@ export const iconMap = {
   battery: Battery,
   bluetooth: Bluetooth,
   camera: Camera,
+  charging: BatteryCharging,
   check: Check,
   'chevron-right': ChevronRight,
   clock: Clock,
   copy: Copy,
   cpu: Cpu,
   display: MonitorSmartphone,
+  earpiece: Ear,
   flashlight: Flashlight,
+  fingerprint: FingerprintPattern,
   gauge: Gauge,
+  headphones: Headphones,
   home: House,
   info: Info,
   memory: MemoryStick,
+  microphone: Mic,
   minus: Minus,
   moon: Moon,
   nfc: Nfc,
@@ -74,26 +88,31 @@ export const iconMap = {
   plus: Plus,
   pointer: Pointer,
   report: FileText,
+  refresh: RefreshCw,
   search: Search,
   sensors: Radar,
   settings: Settings,
   share: Share2,
   signal: Signal,
+  speaker: Speaker,
   storage: HardDrive,
   sun: Sun,
   thermometer: Thermometer,
+  tilt: Move3d,
   timer: Timer,
   tips: Lightbulb,
   tools: Wrench,
   vibrate: Vibrate,
+  volume: Volume2,
   wifi: Wifi,
+  wrench: Wrench,
   x: X,
   zap: Zap,
 } as const;
 
 export type IconName = keyof typeof iconMap;
 
-export type IconSize = 16 | 20 | 24;
+export type IconSize = 16 | 20 | 24 | 32 | 40 | 48 | 56 | 60;
 
 type Props = {
   name: IconName;
@@ -103,7 +122,9 @@ type Props = {
 };
 
 /**
- * The one icon component in the app: consistent 2 px stroke, 16/20/24 dp.
+ * The one icon component in the app: consistent 2 px stroke. 16/20/24 dp are
+ * the normal UI sizes; larger sizes are reserved for empty states and hero
+ * visuals.
  */
 export function Icon({ name, size = 20, color }: Props) {
   const { colors } = useTheme();

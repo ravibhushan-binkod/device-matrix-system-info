@@ -36,7 +36,16 @@ describe('tokens', () => {
     expect(typography.mono.fontSize).toBe(13);
   });
 
-  it('exposes the four accent choices', () => {
-    expect(Object.keys(accents).sort()).toEqual(['blue', 'cyan', 'green', 'violet']);
+  it('exposes eight accent choices', () => {
+    expect(Object.keys(accents).sort()).toEqual([
+      'amber',
+      'blue',
+      'cyan',
+      'green',
+      'indigo',
+      'rose',
+      'teal',
+      'violet',
+    ]);
   });
 });

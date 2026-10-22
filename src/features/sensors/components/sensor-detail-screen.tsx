@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import {
   Card,
+  CopyableText,
   EmptyState,
   InfoSheet,
   Screen,
@@ -58,6 +59,26 @@ export function SensorDetailScreen({ type }: { type: number | null }) {
     ? fifoLabel(descriptor.fifoMaxEventCount, descriptor.fifoReservedEventCount)
     : null;
 
+  const magnitude = latest == null ? null : formatSensorValue(latest);
+  const detailsCopy = descriptor
+    ? [
+        `Type: ${descriptor.stringType ?? NOT_AVAILABLE}`,
+        `Vendor: ${descriptor.vendor.length > 0 ? descriptor.vendor : NOT_AVAILABLE}`,
+        `Version: ${descriptor.version}`,
+        `Range: ${
+          descriptor.maxRange > 0 ? formatSensorValue(descriptor.maxRange) : NOT_AVAILABLE
+        }`,
+        `Resolution: ${
+          descriptor.resolution > 0 ? formatSensorValue(descriptor.resolution) : NOT_AVAILABLE
+        }`,
+        `Power: ${formatSensorPower(descriptor.powerMa) ?? NOT_AVAILABLE}`,
+        `Sampling rate: ${samplingRate ?? NOT_AVAILABLE}`,
+        `FIFO: ${fifo ?? NOT_AVAILABLE}`,
+        `Reporting mode: ${reportingModeLabel(descriptor.reportingMode) ?? NOT_AVAILABLE}`,
+        `Wake-up: ${descriptor.isWakeUp ? 'Yes' : 'No'}`,
+      ].join('\n')
+    : undefined;
+
   if (type == null) {
     return (
       <Screen scroll contentStyle={styles.content}>
@@ -89,8 +110,20 @@ export function SensorDetailScreen({ type }: { type: number | null }) {
       ) : (
         <>
           <View style={styles.head}>
-            <Text style={[styles.title, { color: colors.text }]}>{sensorLabel(descriptor)}</Text>
-            <Text style={[styles.caption, { color: colors.muted }]}>{descriptor.name}</Text>
+            <CopyableText
+              value={sensorLabel(descriptor)}
+              copyLabel="Sensor"
+              style={[styles.title, { color: colors.text }]}
+            >
+              {sensorLabel(descriptor)}
+            </CopyableText>
+            <CopyableText
+              value={descriptor.name}
+              copyLabel="Sensor name"
+              style={[styles.caption, { color: colors.muted }]}
+            >
+              {descriptor.name}
+            </CopyableText>
           </View>
 
           <Card>
@@ -106,12 +139,7 @@ export function SensorDetailScreen({ type }: { type: number | null }) {
               ) : values ? (
                 <>
                   {values.map((value) => (
-                    <StatRow
-                      key={value.key}
-                      label={value.label}
-                      value={value.value}
-                      copyable={false}
-                    />
+                    <StatRow key={value.key} label={value.label} value={value.value} />
                   ))}
                   {streaming ? (
                     <Text style={[styles.caption, { color: colors.muted }]}>
@@ -131,9 +159,13 @@ export function SensorDetailScreen({ type }: { type: number | null }) {
             <Card>
               <View style={styles.cardBody}>
                 <Text style={[styles.sectionTitle, { color: colors.muted }]}>Magnitude</Text>
-                <Text style={[styles.graphValue, { color: colors.text }]}>
-                  {latest == null ? '—' : formatSensorValue(latest)}
-                </Text>
+                <CopyableText
+                  value={magnitude}
+                  copyLabel="Sensor magnitude"
+                  style={[styles.graphValue, { color: colors.text }]}
+                >
+                  {magnitude ?? '—'}
+                </CopyableText>
                 <LiveGraph
                   data={samples}
                   paused={!streaming}
@@ -144,26 +176,24 @@ export function SensorDetailScreen({ type }: { type: number | null }) {
           )}
 
           <View style={styles.group}>
-            <SectionHeader title="Details" onInfo={() => setSheetVisible(true)} />
+            <SectionHeader
+              title="Details"
+              copyText={detailsCopy}
+              onInfo={() => setSheetVisible(true)}
+            />
             <Card>
               <View style={styles.cardBody}>
-                <StatRow
-                  label="Type"
-                  value={descriptor.stringType ?? NOT_AVAILABLE}
-                  copyable={descriptor.stringType != null}
-                />
+                <StatRow label="Type" value={descriptor.stringType ?? NOT_AVAILABLE} />
                 <StatRow
                   label="Vendor"
                   value={descriptor.vendor.length > 0 ? descriptor.vendor : NOT_AVAILABLE}
-                  copyable={descriptor.vendor.length > 0}
                 />
-                <StatRow label="Version" value={String(descriptor.version)} copyable={false} />
+                <StatRow label="Version" value={String(descriptor.version)} />
                 <StatRow
                   label="Range"
                   value={
                     descriptor.maxRange > 0 ? formatSensorValue(descriptor.maxRange) : NOT_AVAILABLE
                   }
-                  copyable={false}
                 />
                 <StatRow
                   label="Resolution"
@@ -172,29 +202,18 @@ export function SensorDetailScreen({ type }: { type: number | null }) {
                       ? formatSensorValue(descriptor.resolution)
                       : NOT_AVAILABLE
                   }
-                  copyable={false}
                 />
                 <StatRow
                   label="Power"
                   value={formatSensorPower(descriptor.powerMa) ?? NOT_AVAILABLE}
-                  copyable={false}
                 />
-                <StatRow
-                  label="Sampling rate"
-                  value={samplingRate ?? NOT_AVAILABLE}
-                  copyable={false}
-                />
-                <StatRow label="FIFO" value={fifo ?? NOT_AVAILABLE} copyable={false} />
+                <StatRow label="Sampling rate" value={samplingRate ?? NOT_AVAILABLE} />
+                <StatRow label="FIFO" value={fifo ?? NOT_AVAILABLE} />
                 <StatRow
                   label="Reporting mode"
                   value={reportingModeLabel(descriptor.reportingMode) ?? NOT_AVAILABLE}
-                  copyable={false}
                 />
-                <StatRow
-                  label="Wake-up"
-                  value={descriptor.isWakeUp ? 'Yes' : 'No'}
-                  copyable={false}
-                />
+                <StatRow label="Wake-up" value={descriptor.isWakeUp ? 'Yes' : 'No'} />
               </View>
             </Card>
           </View>

@@ -1,14 +1,9 @@
 import { Canvas, Circle, LinearGradient, Path, Skia, vec } from '@shopify/react-native-skia';
 import { useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import {
-  Easing,
-  useDerivedValue,
-  useReducedMotion,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import { Easing, useDerivedValue, useSharedValue, withTiming } from 'react-native-reanimated';
 
+import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 import { withAlpha } from '@/design-system/color';
 import { clamp01, statusColor } from '@/design-system/status';
 import { useTheme } from '@/design-system/theme';
@@ -39,7 +34,7 @@ export function ThermalGauge({
   accessibilityLabel,
 }: Props) {
   const { colors } = useTheme();
-  const reduced = useReducedMotion();
+  const { animate } = useMotionPreference();
   const ratio = clamp01(max === min ? 0 : (value - min) / (max - min));
   const tint = statusColor(ratio, colors, 0.5, 0.8);
 
@@ -49,13 +44,13 @@ export function ThermalGauge({
   const radius = size / 2 - thickness / 2;
   const needleLength = radius - 10;
 
-  const position = useSharedValue(reduced ? ratio : 0);
+  const position = useSharedValue(animate ? 0 : ratio);
 
   useEffect(() => {
-    position.value = reduced
-      ? ratio
-      : withTiming(ratio, { duration: 600, easing: Easing.out(Easing.cubic) });
-  }, [position, ratio, reduced]);
+    position.value = animate
+      ? withTiming(ratio, { duration: 600, easing: Easing.out(Easing.cubic) })
+      : ratio;
+  }, [animate, position, ratio]);
 
   const arcRect = useMemo(
     () => ({

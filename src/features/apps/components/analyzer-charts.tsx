@@ -3,10 +3,11 @@ import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 import Animated, {
   Easing,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
+
+import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 
 import { useTheme } from '@/design-system/theme';
 import { radius, spacing, typography } from '@/design-system/tokens';
@@ -40,7 +41,8 @@ export function HorizontalBars({
 
 function HorizontalBar({ bar, value }: { bar: AppChartBar; value: string }) {
   const { colors } = useTheme();
-  const reduced = useReducedMotion();
+  const { animate } = useMotionPreference();
+  const reduced = !animate;
   const [trackWidth, setTrackWidth] = useState(0);
   const progress = useSharedValue(reduced ? bar.share : 0);
 
@@ -112,7 +114,8 @@ export function VerticalBars({
 
 function VerticalBar({ bar, value }: { bar: ScreenTimeBar; value: string }) {
   const { colors } = useTheme();
-  const reduced = useReducedMotion();
+  const { animate } = useMotionPreference();
+  const reduced = !animate;
   const progress = useSharedValue(reduced ? bar.share : 0);
 
   useEffect(() => {

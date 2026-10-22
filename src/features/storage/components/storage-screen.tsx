@@ -7,6 +7,7 @@ import {
   Button,
   Card,
   Chip,
+  CopyableText,
   InfoSheet,
   PermissionBanner,
   Screen,
@@ -26,7 +27,7 @@ const NOT_AVAILABLE = 'Not available on this device';
 const STORAGE_SHEET = {
   title: 'Storage: what this means',
   paragraphs: [
-    "The bar uses Android's own numbers: used = total − free. With Usage Access granted, \"apps\" is the sum Android reports for every installed app, and \"other\" is everything left — system files, media, and data Android does not attribute to an app.",
+    'The bar uses Android\'s own numbers: used = total − free. With Usage Access granted, "apps" is the sum Android reports for every installed app, and "other" is everything left — system files, media, and data Android does not attribute to an app.',
     'Media sizes need photo and video access, which Device Matrix does not ask for, so media is counted inside "other".',
     'The file-system type (f2fs, ext4, erofs…) is read from the kernel mount table when the device allows it.',
     "Clearing the cache only ever touches this app's own cache folder — never other apps' data.",
@@ -54,6 +55,29 @@ export function StorageScreen() {
   const overview =
     info == null ? null : info.status === 'ok' ? toStorageOverview(info.value) : info;
   const volumes = info?.status === 'ok' ? buildVolumeRows(info.value) : [];
+
+  const usedSummary =
+    overview?.status === 'ok'
+      ? `${Math.round(overview.value.percent)}% used · ${formatByteSize(
+          overview.value.totalBytes - overview.value.usedBytes,
+        )} free${overview.value.fsType ? ` · ${overview.value.fsType}` : ''}`
+      : null;
+  const internalCopy =
+    overview?.status === 'ok'
+      ? [
+          usedSummary,
+          breakdown == null ? null : `Apps: ${formatByteSize(breakdown.appsBytes)}`,
+          breakdown == null ? null : `Other: ${formatByteSize(breakdown.otherBytes)}`,
+        ]
+          .filter((line): line is string => line != null)
+          .join('\n')
+      : undefined;
+  const volumesCopy =
+    volumes.length > 0
+      ? volumes.map((volume) => `${volume.label}: ${volume.value ?? NOT_AVAILABLE}`).join('\n')
+      : undefined;
+  const cacheValue =
+    cacheSize == null ? null : cacheSize.status === 'ok' ? formatByteSize(cacheSize.value) : null;
 
   const confirmClear = () => {
     const size = cacheSize?.status === 'ok' ? formatByteSize(cacheSize.value) : null;
@@ -86,7 +110,11 @@ export function StorageScreen() {
       ) : (
         <>
           <View style={styles.group}>
-            <SectionHeader title="Internal storage" onInfo={() => setSheetVisible(true)} />
+            <SectionHeader
+              title="Internal storage"
+              copyText={internalCopy}
+              onInfo={() => setSheetVisible(true)}
+            />
             <Card>
               <View style={styles.cardBody}>
                 {overview.status === 'ok' ? (
@@ -122,11 +150,13 @@ export function StorageScreen() {
                       }
                       total={overview.value.totalBytes}
                     />
-                    <Text style={[styles.caption, { color: colors.muted }]}>
-                      {Math.round(overview.value.percent)}% used ·{' '}
-                      {formatByteSize(overview.value.totalBytes - overview.value.usedBytes)} free
-                      {overview.value.fsType ? ` · ${overview.value.fsType}` : ''}
-                    </Text>
+                    <CopyableText
+                      value={usedSummary}
+                      copyLabel="Internal storage"
+                      style={[styles.caption, { color: colors.muted }]}
+                    >
+                      {usedSummary}
+                    </CopyableText>
                     {breakdownLoading && breakdown == null ? (
                       <Text style={[styles.caption, { color: colors.muted }]}>
                         Reading app sizes…
@@ -153,19 +183,31 @@ export function StorageScreen() {
           <AdSlot placement="storage-top" />
 
           <View style={styles.group}>
-            <SectionHeader title="Volumes" onInfo={() => setSheetVisible(true)} />
+            <SectionHeader
+              title="Volumes"
+              copyText={volumesCopy}
+              onInfo={() => setSheetVisible(true)}
+            />
             <Card>
               <View style={styles.cardBody}>
                 {volumes.length > 0 ? (
                   volumes.map((volume) => (
                     <View key={volume.key} style={styles.volumeRow}>
                       <View style={styles.volumeLabels}>
-                        <Text numberOfLines={1} style={[styles.volumeLabel, { color: colors.text }]}>
+                        <Text
+                          numberOfLines={1}
+                          style={[styles.volumeLabel, { color: colors.text }]}
+                        >
                           {volume.label}
                         </Text>
-                        <Text numberOfLines={1} style={[styles.caption, { color: colors.muted }]}>
+                        <CopyableText
+                          value={volume.value}
+                          copyLabel={volume.label}
+                          numberOfLines={1}
+                          style={[styles.caption, { color: colors.muted }]}
+                        >
                           {volume.value ?? NOT_AVAILABLE}
-                        </Text>
+                        </CopyableText>
                       </View>
                       {volume.removable ? <Chip label="Removable" /> : null}
                     </View>
@@ -180,20 +222,14 @@ export function StorageScreen() {
           </View>
 
           <View style={styles.group}>
-            <SectionHeader title="Tools" onInfo={() => setSheetVisible(true)} />
+            <SectionHeader
+              title="Tools"
+              copyText={cacheValue == null ? undefined : `This app's cache: ${cacheValue}`}
+              onInfo={() => setSheetVisible(true)}
+            />
             <Card>
               <View style={styles.cardBody}>
-                <StatRow
-                  label="This app's cache"
-                  value={
-                    cacheSize == null
-                      ? NOT_AVAILABLE
-                      : cacheSize.status === 'ok'
-                        ? formatByteSize(cacheSize.value)
-                        : NOT_AVAILABLE
-                  }
-                  copyable={false}
-                />
+                <StatRow label="This app's cache" value={cacheValue ?? NOT_AVAILABLE} />
                 <View style={styles.actions}>
                   <Button
                     title="Clear app cache"

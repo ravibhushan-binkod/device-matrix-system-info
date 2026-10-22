@@ -10,11 +10,12 @@ import {
 import Animated, {
   Easing,
   useAnimatedStyle,
-  useReducedMotion,
   useSharedValue,
   withRepeat,
   withTiming,
 } from 'react-native-reanimated';
+
+import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 
 import { useTheme } from '@/design-system/theme';
 import { useScreenFocused } from '@/design-system/hooks/use-screen-focused';
@@ -31,7 +32,8 @@ const STRIPE_WIDTH = 140;
 /** Shimmer placeholder for loading content. Static when reduce-motion is on. */
 export function Skeleton({ width = '100%', height = 16, round = false, style }: Props) {
   const { scheme, colors } = useTheme();
-  const reduced = useReducedMotion();
+  const { animate } = useMotionPreference();
+  const reduced = !animate;
   const focused = useScreenFocused();
   const [trackWidth, setTrackWidth] = useState(0);
   const progress = useSharedValue(0);

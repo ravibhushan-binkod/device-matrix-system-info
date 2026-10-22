@@ -122,6 +122,11 @@ export async function forceEeaConsentTest(): Promise<void> {
   await bootstrapAds();
 }
 
+/** Opens Google's privacy options form when the region requires one. */
+export async function showPrivacyOptions(): Promise<void> {
+  await AdsConsent.showPrivacyOptionsForm();
+}
+
 /** Opens Google's in-app Ad Inspector (test devices only). */
 export async function openAdInspector(): Promise<void> {
   await mobileAds().openAdInspector();

@@ -77,8 +77,10 @@ function cpuSection(): MatrixSection {
   const data = buildCpuScreenData(cpu, gpu);
   const entries: MatrixEntry[] = [];
 
-  if (cpu.status !== 'ok') entries.push(entry('cpu-root', 'CPU · all readings', null, resultNote(cpu)));
-  if (gpu.status !== 'ok') entries.push(entry('gpu-root', 'GPU · all readings', null, resultNote(gpu)));
+  if (cpu.status !== 'ok')
+    entries.push(entry('cpu-root', 'CPU · all readings', null, resultNote(cpu)));
+  if (gpu.status !== 'ok')
+    entries.push(entry('gpu-root', 'GPU · all readings', null, resultNote(gpu)));
 
   entries.push(
     entry('cpu-chipset', 'CPU · Chipset', data.chipset),
@@ -138,7 +140,9 @@ function thermalSection(): MatrixSection {
 
   if (info.zones.length > 0) {
     for (const zone of info.zones) {
-      entries.push(entry(`thermal-zone-${zone.key}`, `Thermal zone · ${zone.name}`, zone.temperature));
+      entries.push(
+        entry(`thermal-zone-${zone.key}`, `Thermal zone · ${zone.name}`, zone.temperature),
+      );
     }
   } else {
     entries.push(
@@ -164,7 +168,11 @@ function batterySection(): MatrixSection {
   const stats = new Map(buildBatteryStats(reading).map((stat) => [stat.key, stat.value]));
 
   const entries: MatrixEntry[] = [
-    entry('battery-level', 'Battery · Level', reading.percent == null ? null : `${reading.percent}%`),
+    entry(
+      'battery-level',
+      'Battery · Level',
+      reading.percent == null ? null : `${reading.percent}%`,
+    ),
     entry('battery-status', 'Battery · Status', batteryStatusLabel(reading.status)),
     entry('battery-plug', 'Battery · Plug', batteryPlugLabel(reading.plugged)),
     entry('battery-health', 'Battery · Health', batteryHealthLabel(reading.health)),
@@ -245,7 +253,9 @@ async function storageSection(): Promise<MatrixSection> {
       );
     } else {
       const reason =
-        overview.status === 'unavailable' ? overview.reason : `Permission needed: ${overview.permission}`;
+        overview.status === 'unavailable'
+          ? overview.reason
+          : `Permission needed: ${overview.permission}`;
       entries.push(entry('storage-overview', 'Storage · Overview', null, reason));
     }
 
@@ -261,7 +271,11 @@ async function storageSection(): Promise<MatrixSection> {
   entries.push(
     access.status !== 'ok'
       ? entry('storage-usage-access', 'Storage · Usage access', null, resultNote(access))
-      : entry('storage-usage-access', 'Storage · Usage access', granted ? 'Granted' : 'Not granted'),
+      : entry(
+          'storage-usage-access',
+          'Storage · Usage access',
+          granted ? 'Granted' : 'Not granted',
+        ),
   );
 
   if (!granted) {
@@ -284,17 +298,13 @@ async function storageSection(): Promise<MatrixSection> {
       entry('storage-breakdown', 'Storage · Apps / other split', null, resultNote(stats)),
     );
   } else if (overview == null) {
-    entries.push(
-      entry('storage-breakdown', 'Storage · Apps / other split', null, NOT_REPORTED),
-    );
+    entries.push(entry('storage-breakdown', 'Storage · Apps / other split', null, NOT_REPORTED));
   } else if (overview.status !== 'ok') {
     const reason =
       overview.status === 'unavailable'
         ? overview.reason
         : `Permission needed: ${overview.permission}`;
-    entries.push(
-      entry('storage-breakdown', 'Storage · Apps / other split', null, reason),
-    );
+    entries.push(entry('storage-breakdown', 'Storage · Apps / other split', null, reason));
   } else {
     const breakdown = buildStorageBreakdown(
       overview.value.totalBytes,
@@ -307,9 +317,7 @@ async function storageSection(): Promise<MatrixSection> {
         entry('storage-other', 'Storage · Other', formatByteSize(breakdown.otherBytes)),
       );
     } else {
-      entries.push(
-        entry('storage-breakdown', 'Storage · Apps / other split', null, NOT_REPORTED),
-      );
+      entries.push(entry('storage-breakdown', 'Storage · Apps / other split', null, NOT_REPORTED));
     }
   }
 
@@ -325,13 +333,21 @@ function displaySection(): MatrixSection {
   const info = result.value;
   const modes = buildModeRows(info, 12);
   const entries: MatrixEntry[] = [
-    entry('display-resolution', 'Display · Resolution', formatResolution(info.widthPx, info.heightPx)),
+    entry(
+      'display-resolution',
+      'Display · Resolution',
+      formatResolution(info.widthPx, info.heightPx),
+    ),
     entry(
       'display-size',
       'Display · Physical size',
       formatInches(diagonalInches(info.widthPx, info.heightPx, info.xdpi, info.ydpi)),
     ),
-    entry('display-density', 'Display · Density', `${info.densityDpi} dpi · ${info.density.toFixed(2)}×`),
+    entry(
+      'display-density',
+      'Display · Density',
+      `${info.densityDpi} dpi · ${info.density.toFixed(2)}×`,
+    ),
     entry('display-refresh', 'Display · Refresh rate', formatRefreshRate(info.refreshRateHz)),
     entry(
       'display-modes',
@@ -339,14 +355,22 @@ function displaySection(): MatrixSection {
       modes.rows.length > 0 ? `${info.supportedModes.length} modes` : null,
     ),
     entry('display-hdr', 'Display · HDR', hdrLabel(info.isHdr, info.hdrTypes)),
-    entry('display-wide-gamut', 'Display · Wide color gamut', wideGamutLabel(info.isWideColorGamut)),
+    entry(
+      'display-wide-gamut',
+      'Display · Wide color gamut',
+      wideGamutLabel(info.isWideColorGamut),
+    ),
     entry('display-cutout', 'Display · Cutout', cutoutLabel(info.cutout)),
     entry(
       'display-brightness',
       'Display · Brightness',
       brightnessPercent(info.brightness) == null ? null : `${brightnessPercent(info.brightness)}%`,
     ),
-    entry('display-brightness-mode', 'Display · Brightness mode', brightnessModeLabel(info.brightnessMode)),
+    entry(
+      'display-brightness-mode',
+      'Display · Brightness mode',
+      brightnessModeLabel(info.brightnessMode),
+    ),
     entry(
       'display-timeout',
       'Display · Screen timeout',
@@ -370,7 +394,9 @@ function cameraSection(): MatrixSection {
   );
 
   if (entries.length === 0) {
-    entries.push(entry('camera-none', 'Camera · all readings', null, 'Android did not report any cameras.'));
+    entries.push(
+      entry('camera-none', 'Camera · all readings', null, 'Android did not report any cameras.'),
+    );
   }
 
   return { key: 'camera', title: 'Camera', entries };
@@ -425,10 +451,30 @@ function knownGapsSection(): MatrixSection {
     key: 'gaps',
     title: 'Known gaps',
     entries: [
-      entry('gap-ram-type', 'RAM type & speed', null, 'No public Android API reports RAM type or speed.'),
-      entry('gap-treble', 'Treble support', null, 'Only shell/adb can read it; no public API exposes it.'),
-      entry('gap-dynamic', 'Dynamic partitions', null, 'Only shell/adb can read it; no public API exposes it.'),
-      entry('gap-seamless', 'Seamless updates', null, 'Only shell/adb can read it; no public API exposes it.'),
+      entry(
+        'gap-ram-type',
+        'RAM type & speed',
+        null,
+        'No public Android API reports RAM type or speed.',
+      ),
+      entry(
+        'gap-treble',
+        'Treble support',
+        null,
+        'Only shell/adb can read it; no public API exposes it.',
+      ),
+      entry(
+        'gap-dynamic',
+        'Dynamic partitions',
+        null,
+        'Only shell/adb can read it; no public API exposes it.',
+      ),
+      entry(
+        'gap-seamless',
+        'Seamless updates',
+        null,
+        'Only shell/adb can read it; no public API exposes it.',
+      ),
     ],
   };
 }

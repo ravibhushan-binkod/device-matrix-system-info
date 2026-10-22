@@ -145,7 +145,8 @@ export function sensorFrequencyHz(minDelayUs: number): number | null {
  */
 export function samplingRateLabel(minDelayUs: number, maxDelayUs: number | null): string | null {
   const fastest = sensorFrequencyHz(minDelayUs);
-  const slowestRaw = maxDelayUs != null && maxDelayUs > 0 ? Math.round(1_000_000 / maxDelayUs) : null;
+  const slowestRaw =
+    maxDelayUs != null && maxDelayUs > 0 ? Math.round(1_000_000 / maxDelayUs) : null;
   const slowest = slowestRaw != null && slowestRaw > 0 ? slowestRaw : null;
   if (fastest == null && slowest == null) return null;
   if (fastest == null) return `from ${slowest} Hz`;

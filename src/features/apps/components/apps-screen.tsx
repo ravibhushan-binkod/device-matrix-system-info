@@ -6,6 +6,7 @@ import {
   AdSlot,
   Card,
   Chip,
+  CopyableText,
   EmptyState,
   InfoSheet,
   PermissionBanner,
@@ -86,6 +87,10 @@ export function AppsScreen() {
     () => selectApps(all, { query, filter, sort }, sizes),
     [all, query, filter, sort, sizes],
   );
+  const installedCopy =
+    visible.length > 0
+      ? visible.map((app) => `${app.label} (${app.packageName})`).join('\n')
+      : undefined;
 
   const explore: ExploreTarget[] = [
     {
@@ -202,12 +207,17 @@ export function AppsScreen() {
 
       <SectionHeader
         title="Installed apps"
+        copyText={installedCopy}
         onInfo={() => setSheetVisible(true)}
         action={
           apps?.status === 'ok' ? (
-            <Text style={[styles.count, { color: colors.muted }]}>
+            <CopyableText
+              value={`${visible.length} of ${all.length}`}
+              copyLabel="App count"
+              style={[styles.count, { color: colors.muted }]}
+            >
               {visible.length} of {all.length}
-            </Text>
+            </CopyableText>
           ) : null
         }
       />

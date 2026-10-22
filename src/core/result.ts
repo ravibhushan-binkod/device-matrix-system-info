@@ -27,6 +27,16 @@ export function isOk<T>(result: Result<T>): result is { readonly status: 'ok'; r
   return result.status === 'ok';
 }
 
+/**
+ * Human-readable reason for a non-ok result. UI code uses this instead of
+ * assuming every failure is `unavailable` (a denied permission has no reason
+ * string, only the permission name).
+ */
+export function failureMessage(result: Result<unknown>): string {
+  if (result.status === 'ok') return '';
+  return result.status === 'denied' ? `Permission needed: ${result.permission}` : result.reason;
+}
+
 /** Transforms the value of an `ok` result; other states pass through unchanged. */
 export function mapResult<T, U>(result: Result<T>, fn: (value: T) => U): Result<U> {
   return result.status === 'ok' ? ok(fn(result.value)) : result;

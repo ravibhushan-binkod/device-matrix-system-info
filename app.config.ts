@@ -31,6 +31,9 @@ const config: ExpoConfig = {
       'android.permission.SET_ALARM',
       'android.permission.VIBRATE',
       'android.permission.NFC',
+      // Normal permission for the earpiece check: Android needs it to switch
+      // audio to communication mode and back. It is auto-granted at install.
+      'android.permission.MODIFY_AUDIO_SETTINGS',
       // Runtime/optional — only requested when the matching feature is used.
       'android.permission.ACCESS_FINE_LOCATION', // Wi-Fi name (SSID) + nearby-network scan
       'android.permission.NEARBY_WIFI_DEVICES', // Wi-Fi scan list on Android 13+

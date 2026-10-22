@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import {
   Card,
   Chip,
+  CopyableText,
   EmptyState,
   InfoSheet,
   PermissionBanner,
@@ -12,6 +13,7 @@ import {
   Skeleton,
 } from '@/design-system/components';
 import { PressableScale } from '@/design-system/animations/pressable-scale';
+import { copyValue } from '@/design-system/copy/copy-value';
 import { Icon } from '@/design-system/icon';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
@@ -48,6 +50,18 @@ export function PermissionAnalyzerScreen() {
     );
   };
 
+  const rowsCopy =
+    rows.length > 0
+      ? rows
+          .map(
+            (row) =>
+              `${row.label} (${row.packageName}): ${row.requested
+                .map(shortPermissionName)
+                .join(', ')} · ${row.grantedCount} of ${row.requestedCount} granted`,
+          )
+          .join('\n')
+      : undefined;
+
   return (
     <Screen scroll contentStyle={styles.content}>
       <SectionHeader title="Permission" onInfo={() => setSheetVisible(true)} />
@@ -72,9 +86,16 @@ export function PermissionAnalyzerScreen() {
 
       <SectionHeader
         title={`Apps requesting ${group?.label ?? 'this permission'}`}
+        copyText={rowsCopy}
         action={
           reading?.status === 'ok' ? (
-            <Text style={[styles.count, { color: colors.muted }]}>{rows.length}</Text>
+            <CopyableText
+              value={String(rows.length)}
+              copyLabel="App count"
+              style={[styles.count, { color: colors.muted }]}
+            >
+              {rows.length}
+            </CopyableText>
           ) : null
         }
       />
@@ -106,10 +127,13 @@ export function PermissionAnalyzerScreen() {
               <PressableScale
                 key={row.packageName}
                 onPress={() => openInfo(row.packageName)}
+                onLongPress={() => void copyValue(row.packageName, row.label)}
+                delayLongPress={320}
                 accessibilityRole="button"
                 accessibilityLabel={`${row.label}, ${
                   row.granted ? 'granted' : 'not granted'
                 }. Opens the system App info screen.`}
+                accessibilityHint="Long press to copy the package name"
                 style={[
                   styles.row,
                   index > 0

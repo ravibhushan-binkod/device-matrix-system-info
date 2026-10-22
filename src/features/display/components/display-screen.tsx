@@ -9,6 +9,7 @@ import {
   Button,
   Card,
   Chip,
+  CopyableText,
   EmptyState,
   InfoSheet,
   Screen,
@@ -112,42 +113,79 @@ function DisplayDetails({ colors, info, onOpenSettings, onOpenInfo, notice }: De
   const brightness = brightnessPercent(info.brightness);
   const brightnessMode = brightnessModeLabel(info.brightnessMode);
   const timeout = info.screenTimeoutMs == null ? null : formatTimeout(info.screenTimeoutMs);
+  const refresh = formatRefreshRate(info.refreshRateHz);
+
+  const panelCopy = [
+    resolution ? `Resolution: ${resolution}` : null,
+    size ? `Size: ${size}` : null,
+    `Density: ${info.densityDpi} dpi · ${info.density.toFixed(2)}×`,
+    wideGamut ? `Colour gamut: ${wideGamut}` : null,
+    cutout ? `Cutout: ${cutout}` : null,
+  ]
+    .filter((line): line is string => line != null)
+    .join('\n');
+  const refreshCopy = [
+    refresh ? `Refresh rate: ${refresh}` : null,
+    ...modes.rows.map((mode) => mode.label),
+    modes.hiddenCount > 0 ? `+${modes.hiddenCount} more` : null,
+  ]
+    .filter((line): line is string => line != null)
+    .join('\n');
+  const brightnessCopy = [
+    brightness == null ? null : `Brightness: ${brightness}%`,
+    brightnessMode ? `Brightness mode: ${brightnessMode}` : null,
+    timeout ? `Screen timeout: ${timeout}` : null,
+  ]
+    .filter((line): line is string => line != null)
+    .join('\n');
 
   return (
     <View style={styles.sections}>
       <View style={styles.group}>
-        <SectionHeader title="Panel" onInfo={onOpenInfo} />
+        <SectionHeader title="Panel" copyText={panelCopy} onInfo={onOpenInfo} />
         <Card>
           <View style={styles.cardBody}>
-            <Text style={[styles.cardTitle, { color: colors.text }]}>
+            <CopyableText
+              value={resolution}
+              copyLabel="Resolution"
+              style={[styles.cardTitle, { color: colors.text }]}
+            >
               {resolution ?? NOT_AVAILABLE}
-            </Text>
-            <StatRow label="Size" value={size ?? NOT_AVAILABLE} copyable={false} />
+            </CopyableText>
+            <StatRow label="Size" value={size ?? NOT_AVAILABLE} />
             <StatRow
               label="Density"
               value={`${info.densityDpi} dpi · ${info.density.toFixed(2)}×`}
-              copyable={false}
             />
-            <StatRow label="Color" value={wideGamut ?? NOT_AVAILABLE} copyable={false} />
-            <StatRow label="Cutout" value={cutout ?? NOT_AVAILABLE} copyable={false} />
+            <StatRow label="Color" value={wideGamut ?? NOT_AVAILABLE} />
+            <StatRow label="Cutout" value={cutout ?? NOT_AVAILABLE} />
           </View>
         </Card>
       </View>
 
       <View style={styles.group}>
-        <SectionHeader title="Refresh rate" onInfo={onOpenInfo} />
+        <SectionHeader title="Refresh rate" copyText={refreshCopy} onInfo={onOpenInfo} />
         <Card>
           <View style={styles.cardBody}>
-            <Text style={[styles.cardTitle, { color: colors.text }]}>
-              {formatRefreshRate(info.refreshRateHz) ?? NOT_AVAILABLE}
-            </Text>
+            <CopyableText
+              value={refresh}
+              copyLabel="Refresh rate"
+              style={[styles.cardTitle, { color: colors.text }]}
+            >
+              {refresh ?? NOT_AVAILABLE}
+            </CopyableText>
             {modes.rows.length > 0 ? (
               <View style={styles.modeList}>
                 <Text style={[styles.caption, { color: colors.muted }]}>Supported modes</Text>
                 {modes.rows.map((mode) => (
-                  <Text key={mode.key} style={[styles.modeRow, { color: colors.text }]}>
+                  <CopyableText
+                    key={mode.key}
+                    value={mode.label}
+                    copyLabel="Display mode"
+                    style={[styles.modeRow, { color: colors.text }]}
+                  >
                     {mode.label}
-                  </Text>
+                  </CopyableText>
                 ))}
                 {modes.hiddenCount > 0 ? (
                   <Text style={[styles.caption, { color: colors.muted }]}>
@@ -163,10 +201,20 @@ function DisplayDetails({ colors, info, onOpenSettings, onOpenInfo, notice }: De
       <AdSlot placement="display-mid" />
 
       <View style={styles.group}>
-        <SectionHeader title="HDR" onInfo={onOpenInfo} />
+        <SectionHeader
+          title="HDR"
+          copyText={hdr == null ? undefined : `HDR: ${hdr}`}
+          onInfo={onOpenInfo}
+        />
         <Card>
           <View style={styles.cardBody}>
-            <Text style={[styles.cardTitle, { color: colors.text }]}>{hdr ?? NOT_AVAILABLE}</Text>
+            <CopyableText
+              value={hdr}
+              copyLabel="HDR"
+              style={[styles.cardTitle, { color: colors.text }]}
+            >
+              {hdr ?? NOT_AVAILABLE}
+            </CopyableText>
             {info.hdrTypes.length > 1 ? (
               <View style={styles.chips}>
                 {info.hdrTypes.map((type) => (
@@ -179,20 +227,15 @@ function DisplayDetails({ colors, info, onOpenSettings, onOpenInfo, notice }: De
       </View>
 
       <View style={styles.group}>
-        <SectionHeader title="Brightness & timeout" onInfo={onOpenInfo} />
+        <SectionHeader title="Brightness & timeout" copyText={brightnessCopy} onInfo={onOpenInfo} />
         <Card>
           <View style={styles.cardBody}>
             <StatRow
               label="Brightness"
               value={brightness == null ? NOT_AVAILABLE : `${brightness}%`}
-              copyable={false}
             />
-            <StatRow
-              label="Brightness mode"
-              value={brightnessMode ?? NOT_AVAILABLE}
-              copyable={false}
-            />
-            <StatRow label="Screen timeout" value={timeout ?? NOT_AVAILABLE} copyable={false} />
+            <StatRow label="Brightness mode" value={brightnessMode ?? NOT_AVAILABLE} />
+            <StatRow label="Screen timeout" value={timeout ?? NOT_AVAILABLE} />
           </View>
         </Card>
       </View>

@@ -19,7 +19,10 @@ describe('features', () => {
     expect(isEnabled(features.speedTest)).toBe(false);
     expect(isEnabled(features.nfcTools)).toBe(false);
     expect(isEnabled(features.localHistory)).toBe(false);
-    expect(isEnabled(features.pdfReport)).toBe(false);
+  });
+
+  it('enables the PDF report from phase 13H', () => {
+    expect(isEnabled(features.pdfReport)).toBe(true);
   });
 
   it('keeps interstitials off until they are reviewed', () => {

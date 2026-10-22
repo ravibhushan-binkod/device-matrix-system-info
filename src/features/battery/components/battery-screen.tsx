@@ -7,6 +7,7 @@ import {
   Button,
   Card,
   Chip,
+  CopyableText,
   EmptyState,
   InfoSheet,
   Screen,
@@ -146,6 +147,16 @@ function BatteryDetails({ reading, samples, isPolling, onOpenSaver, onOpenInfo }
   const series = batterySeries(samples, metric);
   const last = series.length > 0 ? series[series.length - 1] : null;
   const metricInfo = GRAPH_METRICS.find((entry) => entry.key === metric) ?? GRAPH_METRICS[0];
+  const statusLine = plug ? `${status} · ${plug}` : status;
+  const batteryCopy = [
+    percent == null ? null : `Level: ${Math.round(percent)}%`,
+    `Status: ${status}`,
+    plug ? `Plug type: ${plug}` : null,
+    `Battery saver: ${reading.powerSave ? 'On' : 'Off'}`,
+  ]
+    .filter((line): line is string => line != null)
+    .join('\n');
+  const statsCopy = stats.map((stat) => `${stat.label}: ${stat.value}`).join('\n');
 
   const saverChip = (
     <Chip
@@ -158,15 +169,19 @@ function BatteryDetails({ reading, samples, isPolling, onOpenSaver, onOpenInfo }
   return (
     <View style={styles.sections}>
       <View style={styles.group}>
-        <SectionHeader title="Battery" onInfo={onOpenInfo} />
+        <SectionHeader title="Battery" copyText={batteryCopy} onInfo={onOpenInfo} />
         <Card>
           <View style={styles.gauge}>
             {percent != null ? (
               <>
                 <BatteryGauge value={percent} charging={charging} width={240} height={104} />
-                <Text style={[styles.caption, { color: colors.muted }]}>
-                  {plug ? `${status} · ${plug}` : status}
-                </Text>
+                <CopyableText
+                  value={statusLine}
+                  copyLabel="Battery status"
+                  style={[styles.caption, { color: colors.muted }]}
+                >
+                  {statusLine}
+                </CopyableText>
               </>
             ) : null}
             {saverChip}
@@ -178,13 +193,19 @@ function BatteryDetails({ reading, samples, isPolling, onOpenSaver, onOpenInfo }
 
       {stats.length > 0 ? (
         <View style={styles.group}>
-          <SectionHeader title="Stats" onInfo={onOpenInfo} />
+          <SectionHeader title="Stats" copyText={statsCopy} onInfo={onOpenInfo} />
           <Card>
             <View style={styles.grid}>
               {stats.map((stat) => (
                 <View key={stat.key} style={styles.cell}>
                   <Text style={[styles.cellLabel, { color: colors.muted }]}>{stat.label}</Text>
-                  <Text style={[styles.cellValue, { color: colors.text }]}>{stat.value}</Text>
+                  <CopyableText
+                    value={stat.value}
+                    copyLabel={stat.label}
+                    style={[styles.cellValue, { color: colors.text }]}
+                  >
+                    {stat.value}
+                  </CopyableText>
                 </View>
               ))}
             </View>
@@ -194,7 +215,13 @@ function BatteryDetails({ reading, samples, isPolling, onOpenSaver, onOpenInfo }
 
       {samples.length >= 2 ? (
         <View style={styles.group}>
-          <SectionHeader title="Live graph" onInfo={onOpenInfo} />
+          <SectionHeader
+            title="Live graph"
+            copyText={
+              last == null ? undefined : `${metricInfo.label}: ${formatGraphValue(metric, last)}`
+            }
+            onInfo={onOpenInfo}
+          />
           <Card>
             {series.length >= 2 && last != null ? (
               <>
@@ -202,9 +229,13 @@ function BatteryDetails({ reading, samples, isPolling, onOpenSaver, onOpenInfo }
                   <Text style={[styles.cellLabel, { color: colors.muted }]}>
                     {metricInfo.label}
                   </Text>
-                  <Text style={[styles.cellValue, { color: colors.text }]}>
+                  <CopyableText
+                    value={formatGraphValue(metric, last)}
+                    copyLabel={metricInfo.label}
+                    style={[styles.cellValue, { color: colors.text }]}
+                  >
                     {formatGraphValue(metric, last)}
-                  </Text>
+                  </CopyableText>
                 </View>
                 <View style={styles.metricRow}>
                   {GRAPH_METRICS.map((entry) => (

@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
-import Animated, { FadeInDown, useReducedMotion } from 'react-native-reanimated';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
-import { durations, staggerMs } from '@/design-system/animations/motion';
+import { durations, staggerDelay } from '@/design-system/animations/motion';
+import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 
 type Props = {
   /** Position in the list — drives the stagger delay. */
@@ -10,19 +11,20 @@ type Props = {
 };
 
 /**
- * List item entrance: fade + slide down, staggered by index.
- * Skipped entirely when the system reduce-motion setting is on.
+ * List item entrance: fade + slide down, staggered by index. Reduced keeps a
+ * short fade without movement; Off mounts immediately.
  */
 export function StaggerItem({ index = 0, children }: Props) {
-  const reduced = useReducedMotion();
+  const { level } = useMotionPreference();
 
-  if (reduced) {
+  if (level === 'off') {
     return <>{children}</>;
   }
 
-  return (
-    <Animated.View entering={FadeInDown.delay(index * staggerMs).duration(durations.normal)}>
-      {children}
-    </Animated.View>
-  );
+  const entering =
+    level === 'reduced'
+      ? FadeIn.duration(durations.fast)
+      : FadeInDown.delay(staggerDelay(index)).duration(durations.normal);
+
+  return <Animated.View entering={entering}>{children}</Animated.View>;
 }

@@ -5,6 +5,7 @@ import {
   AdSlot,
   Card,
   Chip,
+  CopyableText,
   EmptyState,
   InfoSheet,
   Screen,
@@ -12,6 +13,7 @@ import {
   Skeleton,
   StatRow,
 } from '@/design-system/components';
+import { copyValue } from '@/design-system/copy/copy-value';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
 import { useCamera } from '@/features/camera/hooks/use-camera';
@@ -22,7 +24,7 @@ const NOT_AVAILABLE = 'Not available on this device';
 const CAMERA_SHEET = {
   title: 'Camera: what this means',
   paragraphs: [
-    "Every row comes from Android's camera2 characteristics — the same data the system camera app reads. When a brand hides a value, the row says \"Not available on this device\"; nothing is guessed.",
+    'Every row comes from Android\'s camera2 characteristics — the same data the system camera app reads. When a brand hides a value, the row says "Not available on this device"; nothing is guessed.',
     'Several lenses can sit behind one logical camera, and Android 9+ lists them under "Physical lenses". "Max resolution" is the largest JPEG the camera reports, and megapixels come from that number.',
     'The 35 mm equivalent is computed from the lens focal length and the physical sensor size (a full-frame sensor is 43.27 mm diagonally). "Min focus" comes from the lens dioptre value — 0 dioptres means fixed focus.',
     'Device Matrix never asks for the camera permission, so this screen only reports capabilities — it cannot take pictures.',
@@ -39,10 +41,26 @@ export function CameraScreen() {
   const [sheetVisible, setSheetVisible] = useState(false);
 
   const entries = cameras?.status === 'ok' ? buildCameraEntries(cameras.value) : null;
+  const camerasCopy =
+    entries && entries.length > 0
+      ? entries
+          .map((entry) =>
+            [
+              entry.title,
+              ...entry.chips,
+              ...entry.specs.map((spec) => `${spec.label}: ${spec.value ?? NOT_AVAILABLE}`),
+            ].join('\n'),
+          )
+          .join('\n\n')
+      : undefined;
 
   return (
     <Screen scroll contentStyle={styles.content}>
-      <SectionHeader title="Cameras & lenses" onInfo={() => setSheetVisible(true)} />
+      <SectionHeader
+        title="Cameras & lenses"
+        copyText={camerasCopy}
+        onInfo={() => setSheetVisible(true)}
+      />
 
       {cameras === null ? (
         <CameraSkeleton />
@@ -51,11 +69,21 @@ export function CameraScreen() {
           <Fragment key={entry.key}>
             <Card>
               <View style={styles.cardBody}>
-                <Text style={[styles.cardTitle, { color: colors.text }]}>{entry.title}</Text>
+                <CopyableText
+                  value={entry.title}
+                  copyLabel="Camera"
+                  style={[styles.cardTitle, { color: colors.text }]}
+                >
+                  {entry.title}
+                </CopyableText>
                 {entry.chips.length > 0 ? (
                   <View style={styles.chips}>
                     {entry.chips.map((chip) => (
-                      <Chip key={chip} label={chip} />
+                      <Chip
+                        key={chip}
+                        label={chip}
+                        onLongPress={() => void copyValue(chip, entry.title)}
+                      />
                     ))}
                   </View>
                 ) : null}
@@ -66,21 +94,22 @@ export function CameraScreen() {
                         <Text style={[styles.blockLabel, { color: colors.muted }]}>
                           {spec.label}
                         </Text>
-                        <Text
+                        <CopyableText
+                          value={spec.value}
+                          copyLabel={spec.label}
                           style={[
                             styles.blockValue,
                             { color: spec.value ? colors.text : colors.muted },
                           ]}
                         >
                           {spec.value ?? NOT_AVAILABLE}
-                        </Text>
+                        </CopyableText>
                       </View>
                     ) : (
                       <StatRow
                         key={spec.key}
                         label={spec.label}
                         value={spec.value ?? NOT_AVAILABLE}
-                        copyable={spec.value != null && spec.key === 'id'}
                       />
                     ),
                   )}

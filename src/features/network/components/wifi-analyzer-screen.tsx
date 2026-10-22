@@ -6,6 +6,7 @@ import {
   Button,
   Card,
   Chip,
+  CopyableText,
   EmptyState,
   InfoSheet,
   OpenSettingsDialog,
@@ -118,6 +119,19 @@ export function WifiAnalyzerScreen() {
   const showNamesBanner =
     !showScanBanner && !namesGranted && location.state !== 'checking' && networks.length > 0;
 
+  const scanCopy = [
+    age === null ? 'No scan yet' : `Last scan ${age}`,
+    `${networks.length} networks visible`,
+  ].join(' · ');
+  const networksCopy =
+    visible.length > 0
+      ? visible.map((network) => formatNetworkLine(network)).join('\n')
+      : undefined;
+  const channelCopy = [
+    `2.4 GHz: ${networks.filter((network) => network.band === '2.4').length} networks`,
+    `5 GHz: ${networks.filter((network) => network.band === '5').length} networks`,
+  ].join('\n');
+
   return (
     <Screen
       scroll
@@ -132,7 +146,7 @@ export function WifiAnalyzerScreen() {
       }
       contentStyle={styles.content}
     >
-      <SectionHeader title="Scan" onInfo={() => setInfoVisible(true)} />
+      <SectionHeader title="Scan" copyText={scanCopy} onInfo={() => setInfoVisible(true)} />
       <Card>
         <View style={styles.cardBody}>
           {showScanBanner ? (
@@ -170,9 +184,13 @@ export function WifiAnalyzerScreen() {
               onPress={scan}
               style={styles.scanButton}
             />
-            <Text style={[styles.age, { color: colors.muted }]}>
+            <CopyableText
+              value={age === null ? 'No scan yet' : `Last scan ${age}`}
+              copyLabel="Last scan"
+              style={[styles.age, { color: colors.muted }]}
+            >
               {age === null ? 'No scan yet' : `Last scan ${age}`}
-            </Text>
+            </CopyableText>
           </View>
           {notice ? (
             <Text style={[styles.caption, { color: colors.warning }]}>{notice}</Text>
@@ -204,21 +222,37 @@ export function WifiAnalyzerScreen() {
         )
       ) : (
         <>
-          <SectionHeader title="Channel overlap" onInfo={() => setInfoVisible(true)} />
+          <SectionHeader
+            title="Channel overlap"
+            copyText={channelCopy}
+            onInfo={() => setInfoVisible(true)}
+          />
           <Card>
             <View style={styles.cardBody}>
-              <Text style={[styles.bandTitle, { color: colors.muted }]}>
+              <CopyableText
+                value={`2.4 GHz · ${
+                  networks.filter((network) => network.band === '2.4').length
+                } networks`}
+                copyLabel="2.4 GHz networks"
+                style={[styles.bandTitle, { color: colors.muted }]}
+              >
                 2.4 GHz · {networks.filter((network) => network.band === '2.4').length} networks
-              </Text>
+              </CopyableText>
               <ChannelGraph networks={networks} band="2.4" />
-              <Text style={[styles.bandTitle, { color: colors.muted }]}>
+              <CopyableText
+                value={`5 GHz · ${
+                  networks.filter((network) => network.band === '5').length
+                } networks`}
+                copyLabel="5 GHz networks"
+                style={[styles.bandTitle, { color: colors.muted }]}
+              >
                 5 GHz · {networks.filter((network) => network.band === '5').length} networks
-              </Text>
+              </CopyableText>
               <ChannelGraph networks={networks} band="5" />
             </View>
           </Card>
 
-          <SectionHeader title="Nearby networks" />
+          <SectionHeader title="Nearby networks" copyText={networksCopy} />
           <View style={styles.filters}>
             {BAND_FILTERS.map((option) => (
               <Chip
@@ -239,11 +273,19 @@ export function WifiAnalyzerScreen() {
               />
             ))}
           </View>
-          <Text style={[styles.caption, { color: colors.muted }]}>
+          <CopyableText
+            value={
+              visible.length === networks.length
+                ? `${networks.length} networks`
+                : `${visible.length} of ${networks.length} networks`
+            }
+            copyLabel="Network count"
+            style={[styles.caption, { color: colors.muted }]}
+          >
             {visible.length === networks.length
               ? `${networks.length} networks`
               : `${visible.length} of ${networks.length} networks`}
-          </Text>
+          </CopyableText>
           {visible.length === 0 ? (
             <Card>
               <Text style={[styles.emptyText, { color: colors.muted }]}>
@@ -316,6 +358,24 @@ function networkKey(network: AnalyzerNetwork, index: number): string {
   return `${network.bssid ?? network.ssid ?? 'hidden'}-${network.frequencyMhz}-${index}`;
 }
 
+function formatNetworkLine(network: AnalyzerNetwork): string {
+  const band = network.band === 'other' ? 'Unknown band' : `${network.band} GHz`;
+  const channel = network.channel === null ? null : `channel ${network.channel}`;
+  return [
+    network.ssid ?? HIDDEN_SSID_LABEL,
+    `${network.rssiDbm} dBm`,
+    [band, channel, network.channelWidth].filter(Boolean).join(' · '),
+    network.security,
+    network.standard ?? null,
+    network.bssid ? shortenBssid(network.bssid) : null,
+    formatDistance(network.distanceMeters)
+      ? `${formatDistance(network.distanceMeters)} estimated`
+      : null,
+  ]
+    .filter((part): part is string => part != null)
+    .join(' · ');
+}
+
 function NetworkRow({ network, divided }: { network: AnalyzerNetwork; divided: boolean }) {
   const { colors } = useTheme();
   const distance = formatDistance(network.distanceMeters);
@@ -346,19 +406,46 @@ function NetworkRow({ network, divided }: { network: AnalyzerNetwork; divided: b
     >
       <SignalBars level={network.bars} />
       <View style={styles.rowBody}>
-        <Text numberOfLines={1} style={[styles.rowTitle, { color: colors.text }]}>
+        <CopyableText
+          value={network.ssid}
+          copyLabel="Network name"
+          numberOfLines={1}
+          style={[styles.rowTitle, { color: colors.text }]}
+        >
           {network.ssid ?? HIDDEN_SSID_LABEL}
-        </Text>
-        <Text numberOfLines={1} style={[styles.caption, { color: colors.muted }]}>
+        </CopyableText>
+        <CopyableText
+          value={details}
+          copyLabel="Network details"
+          numberOfLines={1}
+          style={[styles.caption, { color: colors.muted }]}
+        >
           {details}
-        </Text>
-        <Text numberOfLines={1} style={[styles.caption, { color: colors.muted }]}>
+        </CopyableText>
+        <CopyableText
+          value={link}
+          copyLabel="Band and channel"
+          numberOfLines={1}
+          style={[styles.caption, { color: colors.muted }]}
+        >
           {link}
-        </Text>
+        </CopyableText>
       </View>
       <View style={styles.rowValues}>
-        <Text style={[styles.value, { color: colors.text }]}>{network.rssiDbm} dBm</Text>
-        <Text style={[styles.value, { color: colors.text }]}>{distance ?? '—'}</Text>
+        <CopyableText
+          value={`${network.rssiDbm} dBm`}
+          copyLabel="Signal"
+          style={[styles.value, { color: colors.text }]}
+        >
+          {network.rssiDbm} dBm
+        </CopyableText>
+        <CopyableText
+          value={distance}
+          copyLabel="Estimated distance"
+          style={[styles.value, { color: colors.text }]}
+        >
+          {distance ?? '—'}
+        </CopyableText>
         {distance ? <Text style={[styles.caption, { color: colors.muted }]}>Estimated</Text> : null}
       </View>
     </View>

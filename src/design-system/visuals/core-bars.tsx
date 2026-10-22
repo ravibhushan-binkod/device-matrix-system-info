@@ -1,14 +1,10 @@
 import { Canvas, LinearGradient, RoundedRect, vec } from '@shopify/react-native-skia';
 import { useEffect } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import {
-  useDerivedValue,
-  useReducedMotion,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
+import { useDerivedValue, useSharedValue, withSpring } from 'react-native-reanimated';
 
 import { springs } from '@/design-system/animations/motion';
+import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 import { withAlpha } from '@/design-system/color';
 import { clamp01 } from '@/design-system/status';
 import { useTheme } from '@/design-system/theme';
@@ -70,7 +66,8 @@ export function CoreBars({
   accessibilityLabel = 'Cores',
 }: Props) {
   const { colors } = useTheme();
-  const reduced = useReducedMotion();
+  const { animate } = useMotionPreference();
+  const reduced = !animate;
   const tint = color ?? colors.accent;
 
   const values = bars.map((bar) => bar.value);

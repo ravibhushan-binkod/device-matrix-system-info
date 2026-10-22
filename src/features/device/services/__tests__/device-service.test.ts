@@ -48,7 +48,12 @@ function emptyInput(overrides: Partial<DeviceInfoInput> = {}): DeviceInfoInput {
 describe('buildDeviceSections', () => {
   it('builds the four sections in order', () => {
     const sections = buildDeviceSections(emptyInput());
-    expect(sections.map((section) => section.key)).toEqual(['device', 'android', 'system', 'kernel']);
+    expect(sections.map((section) => section.key)).toEqual([
+      'device',
+      'android',
+      'system',
+      'kernel',
+    ]);
     expect(sections[0]?.title).toBe('Device');
     expect(sections[1]?.title).toBe('Android');
     expect(sections[2]?.title).toBe('System');

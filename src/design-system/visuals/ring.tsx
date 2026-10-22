@@ -6,12 +6,13 @@ import {
   runOnJS,
   useAnimatedReaction,
   useDerivedValue,
-  useReducedMotion,
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
 
 import { durations } from '@/design-system/animations/motion';
+import { PressableScale } from '@/design-system/animations/pressable-scale';
+import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 import { withAlpha } from '@/design-system/color';
 import { clamp01, statusColor } from '@/design-system/status';
 import { useTheme } from '@/design-system/theme';
@@ -25,8 +26,12 @@ type Props = {
   thickness?: number;
   /** Overrides the automatic good → warning → critical colour. */
   color?: string;
+  /** Replaces the counted number in the centre (e.g. "—" when unavailable). */
+  displayValue?: string;
   /** Spoken label for TalkBack; defaults to `label`. */
   accessibilityLabel?: string;
+  /** Optional long-press action (e.g. copy the numeric reading). */
+  onLongPress?: () => void;
 };
 
 /**
@@ -41,18 +46,20 @@ export function Ring({
   size = 168,
   thickness = 14,
   color,
+  displayValue,
   accessibilityLabel,
+  onLongPress,
 }: Props) {
   const { colors } = useTheme();
-  const reduced = useReducedMotion();
+  const { animate } = useMotionPreference();
   const ratio = clamp01(max === 0 ? 0 : value / max);
   const tint = color ?? statusColor(ratio, colors);
 
-  const progress = useSharedValue(reduced ? ratio : 0);
+  const progress = useSharedValue(animate ? 0 : ratio);
   const mounted = useRef(false);
 
   useEffect(() => {
-    if (reduced) {
+    if (!animate) {
       progress.value = ratio;
       return;
     }
@@ -61,9 +68,9 @@ export function Ring({
       easing: Easing.out(Easing.cubic),
     });
     mounted.current = true;
-  }, [progress, ratio, reduced]);
+  }, [animate, progress, ratio]);
 
-  const [display, setDisplay] = useState(reduced ? Math.round(value) : 0);
+  const [display, setDisplay] = useState(animate ? 0 : Math.round(value));
 
   useAnimatedReaction(
     () => Math.round(progress.value * max),
@@ -94,16 +101,8 @@ export function Ring({
     return path;
   });
 
-  return (
-    <View
-      accessible
-      accessibilityRole="progressbar"
-      accessibilityLabel={accessibilityLabel ?? label ?? 'Gauge'}
-      accessibilityValue={{
-        text: max === 100 ? `${Math.round(value)} percent` : `${Math.round(value)} of ${max}`,
-      }}
-      style={[styles.root, { width: size, height: size }]}
-    >
+  const body = (
+    <>
       <Canvas style={{ width: size, height: size }}>
         <Path
           path={trackPath}
@@ -116,9 +115,41 @@ export function Ring({
         </Path>
       </Canvas>
       <View style={styles.center} pointerEvents="none">
-        <Text style={[styles.value, { color: colors.text }]}>{display}</Text>
+        <Text style={[styles.value, { color: colors.text }]}>{displayValue ?? display}</Text>
         {label ? <Text style={[styles.label, { color: colors.muted }]}>{label}</Text> : null}
       </View>
+    </>
+  );
+  const accessibilityValueText =
+    max === 100 ? `${Math.round(value)} percent` : `${Math.round(value)} of ${max}`;
+
+  if (onLongPress) {
+    return (
+      <PressableScale
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityLabel={accessibilityLabel ?? label ?? 'Gauge'}
+        accessibilityValue={{ text: accessibilityValueText }}
+        accessibilityHint="Long press to copy this value"
+        haptic={false}
+        onLongPress={onLongPress}
+        delayLongPress={320}
+        style={[styles.root, { width: size, height: size }]}
+      >
+        {body}
+      </PressableScale>
+    );
+  }
+
+  return (
+    <View
+      accessible
+      accessibilityRole="progressbar"
+      accessibilityLabel={accessibilityLabel ?? label ?? 'Gauge'}
+      accessibilityValue={{ text: accessibilityValueText }}
+      style={[styles.root, { width: size, height: size }]}
+    >
+      {body}
     </View>
   );
 }

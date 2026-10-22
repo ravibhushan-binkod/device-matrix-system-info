@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { InstalledApp } from '@/core/native';
 import { formatByteSize } from '@/core/utils/format-bytes';
 import { PressableScale } from '@/design-system/animations/pressable-scale';
+import { copyValue } from '@/design-system/copy/copy-value';
 import { Icon } from '@/design-system/icon';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
@@ -30,10 +31,13 @@ export function AppRow({ app, sizeBytes, cacheBytes, onPress }: Props) {
   return (
     <PressableScale
       onPress={onPress}
+      onLongPress={() => void copyValue(app.packageName, app.label)}
+      delayLongPress={320}
       accessibilityRole="button"
       accessibilityLabel={`${app.label}${version ? `, version ${version}` : ''}, installed ${
         installed ?? 'not reported'
       }, installer ${installer}${sizeBytes != null ? `, size ${size}` : ''}`}
+      accessibilityHint="Long press to copy the package name"
       style={styles.row}
     >
       <AppIcon icon={app.icon} label={app.label} size={44} />

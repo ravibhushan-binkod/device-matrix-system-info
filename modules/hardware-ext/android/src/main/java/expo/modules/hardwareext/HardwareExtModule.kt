@@ -7,6 +7,11 @@ import android.graphics.Rect
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.hardware.camera2.CameraMetadata
+import android.media.AudioAttributes
+import android.media.AudioDeviceInfo
+import android.media.AudioFormat
+import android.media.AudioManager
+import android.media.AudioTrack
 import android.media.MediaRecorder
 import android.opengl.EGL14
 import android.opengl.EGLConfig
@@ -18,11 +23,14 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.provider.Settings
 import android.util.DisplayMetrics
+import android.util.Log
 import android.view.Display
 import android.view.WindowManager
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import java.io.File
+import kotlin.math.PI
+import kotlin.math.sin
 
 /**
  * Hardware readings that Build, Expo packages and react-native-device-info
@@ -61,8 +69,22 @@ class HardwareExtModule : Module() {
       vibrationInfo()
     }
 
+    Function("getAudioOutput") {
+      audioOutput()
+    }
+
+    Function("startTone") { route: String, channel: String, durationMs: Int ->
+      startTone(route, channel, durationMs)
+    }
+
+    Function("stopTone") {
+      stopToneInternal()
+      true
+    }
+
     OnDestroy {
       unregisterTorchCallback()
+      stopToneInternal()
     }
   }
 
@@ -168,6 +190,263 @@ class HardwareExtModule : Module() {
       false
     }
     return mapOf("hasVibrator" to hasVibrator)
+  }
+
+  /* ------------------------------------------------------------------ audio */
+
+  private var toneTrack: AudioTrack? = null
+  private var toneHandler: Handler? = null
+  private var savedAudioMode: Int? = null
+  private var savedSpeakerphone: Boolean? = null
+
+  /**
+   * Plays a 440 Hz stereo tone for the requested duration, then stops. The
+   * left/right balance is done by zeroing one channel, so no audio permission
+   * is needed. The earpiece route uses Android's communication mode (the
+   * normal MODIFY_AUDIO_SETTINGS permission) and restores the previous mode
+   * and speakerphone state when the test ends.
+   */
+  private fun startTone(route: String, channel: String, durationMs: Int): Map<String, Any?> {
+    stopToneInternal()
+    val context = appContext.reactContext ?: return toneFailure("failed")
+    val audio = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager
+      ?: return toneFailure("failed")
+    val earpiece = route == "earpiece"
+    val hasEarpiece = audioHasType(audio, AudioDeviceInfo.TYPE_BUILTIN_EARPIECE)
+    if (earpiece && !hasEarpiece) return toneFailure("no-earpiece")
+
+    val frames = (TONE_SAMPLE_RATE * (durationMs.coerceIn(1_000, 15_000) / 1_000.0)).toInt()
+    val samples = ShortArray(frames * 2)
+    val amplitude = (Short.MAX_VALUE * 0.22).toInt()
+    val step = 2.0 * PI * 440.0 / TONE_SAMPLE_RATE
+    for (index in 0 until frames) {
+      val sample = (sin(step * index) * amplitude).toInt().toShort()
+      when (channel) {
+        "left" -> {
+          samples[index * 2] = sample
+          samples[index * 2 + 1] = 0
+        }
+        "right" -> {
+          samples[index * 2] = 0
+          samples[index * 2 + 1] = sample
+        }
+        else -> {
+          samples[index * 2] = sample
+          samples[index * 2 + 1] = sample
+        }
+      }
+    }
+
+    val attributes = AudioAttributes.Builder()
+      .setUsage(
+        if (earpiece) AudioAttributes.USAGE_VOICE_COMMUNICATION else AudioAttributes.USAGE_MEDIA
+      )
+      .setContentType(
+        if (earpiece) AudioAttributes.CONTENT_TYPE_SPEECH else AudioAttributes.CONTENT_TYPE_MUSIC
+      )
+      .build()
+    val format = AudioFormat.Builder()
+      .setSampleRate(TONE_SAMPLE_RATE)
+      .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+      .setChannelMask(AudioFormat.CHANNEL_OUT_STEREO)
+      .build()
+
+    return try {
+      if (earpiece) {
+        savedAudioMode = audio.mode
+        @Suppress("DEPRECATION")
+        savedSpeakerphone = audio.isSpeakerphoneOn
+        audio.mode = AudioManager.MODE_IN_COMMUNICATION
+        @Suppress("DEPRECATION")
+        audio.isSpeakerphoneOn = false
+      }
+
+      val track = AudioTrack.Builder()
+        .setAudioAttributes(attributes)
+        .setAudioFormat(format)
+        .setTransferMode(AudioTrack.MODE_STATIC)
+        .setBufferSizeInBytes(samples.size * 2)
+        .build()
+
+      if (
+        track.state != AudioTrack.STATE_INITIALIZED &&
+        track.state != AudioTrack.STATE_NO_STATIC_DATA
+      ) {
+        track.release()
+        restoreAudio(audio)
+        return toneFailure("failed")
+      }
+
+      val wantedType = if (earpiece) {
+        AudioDeviceInfo.TYPE_BUILTIN_EARPIECE
+      } else {
+        AudioDeviceInfo.TYPE_BUILTIN_SPEAKER
+      }
+      try {
+        audio.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+          .firstOrNull { it.type == wantedType }
+          ?.let { track.preferredDevice = it }
+      } catch (_: Exception) {
+        // Keep Android's default route; the screen still reports what it sees.
+      }
+
+      val written = track.write(samples, 0, samples.size)
+      if (written != samples.size) {
+        track.release()
+        restoreAudio(audio)
+        return toneFailure("failed")
+      }
+      track.play()
+      toneTrack = track
+
+      val handler = Handler(Looper.getMainLooper())
+      toneHandler = handler
+      handler.postDelayed(
+        { stopToneInternal() },
+        durationMs.coerceIn(1_000, 15_000).toLong()
+      )
+
+      mapOf(
+        "ok" to true,
+        "reason" to null,
+        "output" to audioOutputRoute(audio),
+        "earpieceAvailable" to hasEarpiece
+      )
+    } catch (_: SecurityException) {
+      stopToneInternal()
+      toneFailure("blocked")
+    } catch (error: Exception) {
+      Log.w("HardwareExt", "startTone failed", error)
+      stopToneInternal()
+      toneFailure("failed")
+    }
+  }
+
+  private fun toneFailure(reason: String): Map<String, Any?> = mapOf(
+    "ok" to false,
+    "reason" to reason,
+    "output" to null,
+    "earpieceAvailable" to false
+  )
+
+  private fun stopToneInternal() {
+    toneHandler?.removeCallbacksAndMessages(null)
+    toneHandler = null
+    val track = toneTrack
+    toneTrack = null
+    if (track != null) {
+      try {
+        if (track.playState == AudioTrack.PLAYSTATE_PLAYING) track.stop()
+      } catch (_: Exception) {
+        // Already stopped.
+      }
+      try {
+        track.release()
+      } catch (_: Exception) {
+        // Already released.
+      }
+    }
+    val context = appContext.reactContext ?: return
+    val audio = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return
+    restoreAudio(audio)
+  }
+
+  private fun restoreAudio(audio: AudioManager) {
+    val mode = savedAudioMode
+    val speaker = savedSpeakerphone
+    savedAudioMode = null
+    savedSpeakerphone = null
+    try {
+      if (mode != null) audio.mode = mode
+    } catch (_: Exception) {
+      // The app may be leaving; Android restores audio focus itself.
+    }
+    try {
+      @Suppress("DEPRECATION")
+      if (speaker != null) audio.isSpeakerphoneOn = speaker
+    } catch (_: Exception) {
+      // Same as above.
+    }
+  }
+
+  private fun audioOutput(): Map<String, Any?>? {
+    val context = appContext.reactContext ?: return null
+    val audio = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return null
+    return try {
+      val devices = audio.getDevices(AudioManager.GET_DEVICES_OUTPUTS)
+      mapOf(
+        "route" to audioOutputRoute(audio),
+        "headsetConnected" to devices.any {
+          it.type == AudioDeviceInfo.TYPE_WIRED_HEADSET ||
+            it.type == AudioDeviceInfo.TYPE_WIRED_HEADPHONES
+        },
+        "usbAudioConnected" to devices.any {
+          it.type == AudioDeviceInfo.TYPE_USB_HEADSET ||
+            it.type == AudioDeviceInfo.TYPE_USB_DEVICE ||
+            it.type == AudioDeviceInfo.TYPE_USB_ACCESSORY
+        },
+        "earpieceAvailable" to devices.any { it.type == AudioDeviceInfo.TYPE_BUILTIN_EARPIECE },
+        "devices" to devices.map { audioDeviceLabel(it.type) }.distinct()
+      )
+    } catch (_: Exception) {
+      mapOf(
+        "route" to "unknown",
+        "headsetConnected" to false,
+        "usbAudioConnected" to false,
+        "earpieceAvailable" to false,
+        "devices" to emptyList<String>()
+      )
+    }
+  }
+
+  private fun audioHasType(audio: AudioManager, type: Int): Boolean = try {
+    audio.getDevices(AudioManager.GET_DEVICES_OUTPUTS).any { it.type == type }
+  } catch (_: Exception) {
+    false
+  }
+
+  private fun audioOutputRoute(audio: AudioManager): String = try {
+    val types = audio.getDevices(AudioManager.GET_DEVICES_OUTPUTS).map { it.type }
+    when {
+      types.any {
+        it == AudioDeviceInfo.TYPE_WIRED_HEADSET || it == AudioDeviceInfo.TYPE_WIRED_HEADPHONES
+      } -> "wired-headset"
+      types.any {
+        it == AudioDeviceInfo.TYPE_USB_HEADSET ||
+          it == AudioDeviceInfo.TYPE_USB_DEVICE ||
+          it == AudioDeviceInfo.TYPE_USB_ACCESSORY
+      } -> "usb-audio"
+      types.any {
+        it == AudioDeviceInfo.TYPE_BLUETOOTH_A2DP ||
+          it == AudioDeviceInfo.TYPE_BLUETOOTH_SCO ||
+          (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && (
+            it == AudioDeviceInfo.TYPE_BLE_HEADSET || it == AudioDeviceInfo.TYPE_BLE_SPEAKER
+            ))
+      } -> "bluetooth"
+      types.contains(AudioDeviceInfo.TYPE_BUILTIN_EARPIECE) -> "earpiece"
+      else -> "speaker"
+    }
+  } catch (_: Exception) {
+    "unknown"
+  }
+
+  private fun audioDeviceLabel(type: Int): String = when (type) {
+    AudioDeviceInfo.TYPE_BUILTIN_SPEAKER -> "speaker"
+    AudioDeviceInfo.TYPE_BUILTIN_EARPIECE -> "earpiece"
+    AudioDeviceInfo.TYPE_WIRED_HEADSET -> "wired-headset"
+    AudioDeviceInfo.TYPE_WIRED_HEADPHONES -> "wired-headphones"
+    AudioDeviceInfo.TYPE_USB_HEADSET -> "usb-headset"
+    AudioDeviceInfo.TYPE_USB_DEVICE -> "usb-device"
+    AudioDeviceInfo.TYPE_USB_ACCESSORY -> "usb-accessory"
+    AudioDeviceInfo.TYPE_BLUETOOTH_A2DP -> "bluetooth-a2dp"
+    AudioDeviceInfo.TYPE_BLUETOOTH_SCO -> "bluetooth-sco"
+    AudioDeviceInfo.TYPE_BLE_HEADSET -> "ble-headset"
+    AudioDeviceInfo.TYPE_BLE_SPEAKER -> "ble-speaker"
+    else -> "other"
+  }
+
+  private companion object {
+    const val TONE_SAMPLE_RATE = 44_100
   }
 
   private fun cpuInfo(): Map<String, Any?> {

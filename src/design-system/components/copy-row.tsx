@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { CopyButton } from '@/design-system/components/copy-button';
+import { CopyableText } from '@/design-system/components/copyable-text';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
 
@@ -23,7 +24,9 @@ export function CopyRow({ label, value, mono = true, multiline = false }: Props)
         {label}
       </Text>
       <View style={styles.valueWrap}>
-        <Text
+        <CopyableText
+          value={value}
+          copyLabel={label}
           numberOfLines={multiline ? undefined : 2}
           style={[
             mono ? styles.mono : styles.valueText,
@@ -32,8 +35,8 @@ export function CopyRow({ label, value, mono = true, multiline = false }: Props)
           ]}
         >
           {value}
-        </Text>
-        <CopyButton value={value} label={`Copy ${label}`} />
+        </CopyableText>
+        <CopyButton value={value} label={label} />
       </View>
     </View>
   );
