@@ -3,14 +3,129 @@
     <receiver
       android:name="expo.modules.homewidget.DeviceMatrixWidgetProvider"
       android:exported="false"
-      android:label="@string/widget_title">
+      android:label="@string/widget_ram_compact">
       <intent-filter>
         <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-        <action android:name="com.binkod.devicematrix.widget.REFRESH" />
       </intent-filter>
       <meta-data
         android:name="android.appwidget.provider"
-        android:resource="@xml/device_matrix_widget_info" />
+        android:resource="@xml/widget_ram_compact_info" />
     </receiver>
+
+    <receiver
+      android:name="expo.modules.homewidget.StorageCompactWidgetProvider"
+      android:exported="false"
+      android:label="@string/widget_storage_compact">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/widget_storage_compact_info" />
+    </receiver>
+
+    <receiver
+      android:name="expo.modules.homewidget.BatteryWidgetProvider"
+      android:exported="false"
+      android:label="@string/widget_battery_compact">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/widget_battery_compact_info" />
+    </receiver>
+
+    <receiver
+      android:name="expo.modules.homewidget.RamStandardWidgetProvider"
+      android:exported="false"
+      android:label="@string/widget_ram_standard">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/widget_ram_standard_info" />
+    </receiver>
+
+    <receiver
+      android:name="expo.modules.homewidget.StorageStandardWidgetProvider"
+      android:exported="false"
+      android:label="@string/widget_storage_standard">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/widget_storage_standard_info" />
+    </receiver>
+
+    <receiver
+      android:name="expo.modules.homewidget.BatteryStandardWidgetProvider"
+      android:exported="false"
+      android:label="@string/widget_battery_standard">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/widget_battery_standard_info" />
+    </receiver>
+
+    <receiver
+      android:name="expo.modules.homewidget.RamDetailedWidgetProvider"
+      android:exported="false"
+      android:label="@string/widget_ram_detailed">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/widget_ram_detailed_info" />
+    </receiver>
+
+    <receiver
+      android:name="expo.modules.homewidget.StorageDetailedWidgetProvider"
+      android:exported="false"
+      android:label="@string/widget_storage_detailed">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/widget_storage_detailed_info" />
+    </receiver>
+
+    <receiver
+      android:name="expo.modules.homewidget.BatteryDetailedWidgetProvider"
+      android:exported="false"
+      android:label="@string/widget_battery_detailed">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/widget_battery_detailed_info" />
+    </receiver>
+
+    <receiver
+      android:name="expo.modules.homewidget.DeviceHealthWidgetProvider"
+      android:exported="false"
+      android:label="@string/widget_health_hero">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/widget_health_hero_info" />
+    </receiver>
+
+    <activity
+      android:name="expo.modules.homewidget.WidgetConfigActivity"
+      android:excludeFromRecents="true"
+      android:exported="true"
+      android:label="@string/widget_config_title"
+      android:screenOrientation="portrait"
+      android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />
   </application>
 </manifest>

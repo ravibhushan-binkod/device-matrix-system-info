@@ -16,15 +16,13 @@ export const HARDWARE_TEST_IDS = [
   'bluetooth',
   'volume',
   'microphone',
-  'fingerprint',
 ] as const;
 
 export type HardwareTestId = (typeof HARDWARE_TEST_IDS)[number];
 
 export type HardwareTestOutcome = 'pass' | 'fail';
 
-export type HardwareTestGroup =
-  'Display & touch' | 'Sound' | 'Sensors' | 'Power & radios' | 'Optional';
+export type HardwareTestGroup = 'Display & touch' | 'Sound' | 'Sensors' | 'Power & radios';
 
 /**
  * `ready`   the test runs and can be recorded

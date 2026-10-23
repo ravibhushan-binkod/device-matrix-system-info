@@ -9,6 +9,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { useFormatters } from '@/core/units/use-formatters';
 import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 
 import { Card, Chip } from '@/design-system/components';
@@ -154,6 +155,7 @@ export function LightTest({ onUnavailable }: Props) {
 
 export function AccelerometerTest({ onUnavailable }: Props) {
   const { colors } = useTheme();
+  const formatters = useFormatters();
   const { reading, error, loading } = useSensorTest('accelerometer');
   const { animate } = useMotionPreference();
   const reduced = !animate;
@@ -161,6 +163,8 @@ export function AccelerometerTest({ onUnavailable }: Props) {
   const y = useSharedValue(0);
   const values = reading?.values ?? [];
   const target = bubbleOffset(values, 78);
+  // The bubble keeps its m/s² scale; only the printed numbers follow the unit.
+  const accelerationUnit = formatters.units.acceleration;
 
   useEffect(() => {
     if (!loading && error) onUnavailable(error);
@@ -207,7 +211,11 @@ export function AccelerometerTest({ onUnavailable }: Props) {
           <View key={axis as string} style={[styles.axis, { backgroundColor: colors.surface2 }]}>
             <Text style={[styles.axisLabel, { color: colors.muted }]}>{axis}</Text>
             <Text style={[styles.axisValue, { color: colors.text }]}>
-              {typeof value === 'number' && Number.isFinite(value) ? value.toFixed(2) : '—'}
+              {typeof value === 'number' && Number.isFinite(value)
+                ? accelerationUnit === 'g'
+                  ? (value / 9.80665).toFixed(2)
+                  : value.toFixed(2)
+                : '—'}
             </Text>
           </View>
         ))}
@@ -215,7 +223,7 @@ export function AccelerometerTest({ onUnavailable }: Props) {
       <Text style={[styles.hint, { color: colors.muted }]}>
         {loading
           ? 'Starting the accelerometer…'
-          : 'Tilt slowly in each direction. Values are in m/s².'}
+          : `Tilt slowly in each direction. Values are in ${accelerationUnit}.`}
       </Text>
       {error ? <Text style={[styles.hint, { color: colors.warning }]}>{error}</Text> : null}
     </Card>

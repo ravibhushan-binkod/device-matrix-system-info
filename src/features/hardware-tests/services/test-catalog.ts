@@ -156,11 +156,11 @@ const DEFINITIONS: readonly HardwareTestDefinition[] = [
     title: 'Volume buttons',
     shortTitle: 'Volume buttons',
     icon: 'volume',
-    group: 'Optional',
-    instruction: 'Volume-key events need a custom activity hook that this build does not include.',
-    availability: 'unavailable',
-    unavailableReason:
-      'Normal Android apps do not receive volume-key events without a custom activity hook. This test is skipped instead of installing that risky change.',
+    group: 'Power & radios',
+    instruction:
+      'Press volume up, then volume down. The buttons keep their normal volume behaviour; this screen only watches them while it is open.',
+    availability: 'ready',
+    unavailableReason: null,
     automated: false,
   },
   {
@@ -168,23 +168,11 @@ const DEFINITIONS: readonly HardwareTestDefinition[] = [
     title: 'Microphone',
     shortTitle: 'Microphone',
     icon: 'microphone',
-    group: 'Optional',
-    instruction: 'This optional microphone check is off in this build.',
-    availability: 'off',
-    unavailableReason:
-      'Microphone testing is off in this build. No microphone permission is requested.',
-    automated: false,
-  },
-  {
-    id: 'fingerprint',
-    title: 'Fingerprint',
-    shortTitle: 'Fingerprint',
-    icon: 'fingerprint',
-    group: 'Optional',
-    instruction: 'This optional fingerprint check is off in this build.',
-    availability: 'off',
-    unavailableReason:
-      'Fingerprint testing is off in this build. It needs a biometrics library that is not installed, so it is skipped for now.',
+    group: 'Sound',
+    instruction:
+      'Allow the Microphone permission when asked, then speak or tap near the phone. The live meter should move. Nothing is recorded, saved or sent.',
+    availability: 'ready',
+    unavailableReason: null,
     automated: false,
   },
 ];
@@ -203,7 +191,6 @@ export const HARDWARE_TEST_GROUPS: readonly HardwareTestGroup[] = [
   'Sound',
   'Sensors',
   'Power & radios',
-  'Optional',
 ];
 
 export function isHardwareTestId(value: string): value is HardwareTestId {
@@ -218,7 +205,7 @@ export function testsInGroup(group: HardwareTestGroup): readonly HardwareTestDef
   return DEFINITIONS.filter((definition) => definition.group === group);
 }
 
-/** Index of a runnable test, or -1 when it is optional/skipped. */
+/** Index of a runnable test, or -1 when Android cannot run it. */
 export function runnableTestIndex(id: HardwareTestId): number {
   return RUNNABLE_HARDWARE_TESTS.findIndex((definition) => definition.id === id);
 }
@@ -246,7 +233,7 @@ export function firstPendingTest(results: HardwareTestResults): HardwareTestId {
   return untested?.id ?? RUNNABLE_HARDWARE_TESTS[0]!.id;
 }
 
-/** "3 of 12" — the guided-flow position, or null for optional tests. */
+/** "3 of 14" — the guided-flow position, or null when a test cannot run. */
 export function runnablePosition(id: HardwareTestId): { position: number; total: number } | null {
   const index = runnableTestIndex(id);
   if (index < 0) return null;

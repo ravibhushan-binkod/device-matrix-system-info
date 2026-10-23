@@ -13,9 +13,9 @@ Expo SDK 57 (development builds via prebuild/CNG — **never Expo Go**), React N
 ## Hard rules
 
 1. **Size**: Hermes, R8 minification + resource shrinking in release. APK testing on `arm64-v8a` + `armeabi-v7a` only; production is an AAB. Load only fonts/icons actually used. No Lottie, no large images, no unused Expo packages. Report the measured size at the end of every phase that adds a dependency.
-2. **No backend**: no Firebase, no database, no accounts, no cloud storage, no network calls except AdMob (and the optional speed test later). Only MMKV for small local settings.
+2. **No backend**: no Firebase, no database, no accounts, no cloud storage, no network calls except AdMob (and the speed test later if that feature is turned on). Only MMKV for small local settings.
 3. **Ads**: Google AdMob (`react-native-google-mobile-ads`) + UMP consent. Google test IDs in development. Never on splash, permission sheets, settings, full-screen tests or live graphs, and never next to buttons.
-4. **Permissions allow-list**: `ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE, INTERNET, AD_ID, SET_ALARM, VIBRATE, NFC`. Runtime/optional only when the feature needs it: location (Wi-Fi name), `NEARBY_WIFI_DEVICES`, `BLUETOOTH_CONNECT`, Usage Access (special, opened via Settings). **Forbidden: `QUERY_ALL_PACKAGES, READ_PHONE_STATE, CAMERA, RECORD_AUDIO, contacts, SMS, SYSTEM_ALERT_WINDOW`** — already blocked in `app.config.ts`.
+4. **Permissions allow-list**: `ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE, INTERNET, AD_ID, SET_ALARM, VIBRATE, NFC, MODIFY_AUDIO_SETTINGS`. Runtime permissions requested only when the feature needs them: location (Wi-Fi name), `NEARBY_WIFI_DEVICES`, `BLUETOOTH_CONNECT`, `RECORD_AUDIO` (microphone test only — live level meter in memory, never recorded or sent), and Usage Access (special, opened via Settings). **Forbidden: `QUERY_ALL_PACKAGES, READ_PHONE_STATE, CAMERA, contacts, SMS, SYSTEM_ALERT_WINDOW`** — already blocked in `app.config.ts`.
 5. **Honesty**: only APIs normal Android apps may use. If a value is unavailable (blocked by the OS or the brand), return an `unavailable` result and show **"Not available on this device"**. Never fake or estimate silently. No words like boost/clean/speed up/kill apps. Where Android does not let an app change a setting (e.g. switching Wi-Fi), open the correct system Settings screen.
 6. **Architecture**: screen → hook → service → native wrapper (route in `src/app` → `src/features/<feature>/hooks` → `src/features/<feature>/services` → `src/core/native` + `/modules`) — see `ARCHITECTURE.md`. UI never calls native code directly. One shared polling hook that pauses when the screen is not focused. Feature flags in `src/core/features.ts`.
 7. **Versions**: never guess versions. Install with `npx expo install`. Check the official Expo / React Native / Android docs and report what was chosen and why.
@@ -24,7 +24,7 @@ Expo SDK 57 (development builds via prebuild/CNG — **never Expo Go**), React N
 
 ## Layout
 
-- `src/app` — Expo Router routes only (thin): `(tabs)` shell, `settings`, dev-only `gallery`
+- `src/app` — Expo Router routes only (thin): `(tabs)` shell, `settings`, `widgets`, `about`, `privacy`
 - `src/features/<feature>` — `components/`, `hooks/`, `services/`, `types.ts` per feature
 - `src/design-system` — tokens, theme (`useAppTheme`), shared components, animations, icons
 - `src/core` — `Result<T>` model, feature flags, `native/`, `permissions/`, `system-settings/`, `storage/`, `ads/`, `utils/`; pure logic unit-tested

@@ -1,4 +1,6 @@
 import type { WifiNetwork } from '@/core/native';
+import { getActiveUnits } from '@/core/units/active';
+import type { ResolvedUnits } from '@/core/units/types';
 import {
   signalBarsFromDbm,
   wifiBand,
@@ -87,8 +89,19 @@ export function estimateDistanceMeters(frequencyMhz: number, rssiDbm: number): n
 }
 
 /** "≈ 5.2 m" / "≈ 43 m" / "> 1 km"; never a bare number. */
-export function formatDistance(meters: number | null): string | null {
+export function formatDistance(
+  meters: number | null,
+  units: ResolvedUnits = getActiveUnits(),
+): string | null {
   if (meters === null) return null;
+  if (units.distance === 'ft') {
+    const feet = meters * 3.28084;
+    if (feet < 3) return '≈ < 3 ft';
+    if (feet < 10) return `≈ ${feet.toFixed(1)} ft`;
+    if (feet < 100) return `≈ ${Math.round(feet)} ft`;
+    if (feet < 1000) return `≈ ${Math.round(feet / 5) * 5} ft`;
+    return '≈ > 1000 ft';
+  }
   if (meters < 1) return '≈ < 1 m';
   if (meters < 10) return `≈ ${meters.toFixed(1)} m`;
   if (meters < 100) return `≈ ${Math.round(meters)} m`;

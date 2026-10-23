@@ -25,15 +25,23 @@ function readAnimationMode(): MotionMode {
   return stored === 'full' || stored === 'reduced' || stored === 'off' ? stored : 'full';
 }
 
+/** Masking is permanent; there is intentionally no switch to turn it off. */
+function readHideSensitiveValues(): boolean {
+  return true;
+}
+
 type SettingsState = {
   themeMode: ThemeMode;
   accent: AccentChoice;
   animationMode: MotionMode;
+  /** Mask SSID, BSSID, IPs, gateway, DNS, fingerprint and nearby network names. */
+  hideSensitiveValues: boolean;
   /** Session-only: the low-end frame probe asked for Reduced. */
   autoReduced: boolean;
   setThemeMode: (mode: ThemeMode) => void;
   setAccent: (accent: AccentChoice) => void;
   setAnimationMode: (mode: MotionMode) => void;
+  setHideSensitiveValues: (value: boolean) => void;
   markAutoReduced: () => void;
 };
 
@@ -42,6 +50,7 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   themeMode: readThemeMode(),
   accent: readAccent(),
   animationMode: readAnimationMode(),
+  hideSensitiveValues: readHideSensitiveValues(),
   autoReduced: false,
   setThemeMode: (themeMode) => {
     setString(THEME_KEY, themeMode);
@@ -54,6 +63,9 @@ export const useSettingsStore = create<SettingsState>((set) => ({
   setAnimationMode: (animationMode) => {
     setString(ANIMATION_KEY, animationMode);
     set({ animationMode, autoReduced: false });
+  },
+  setHideSensitiveValues: () => {
+    set({ hideSensitiveValues: true });
   },
   markAutoReduced: () => set({ autoReduced: true }),
 }));

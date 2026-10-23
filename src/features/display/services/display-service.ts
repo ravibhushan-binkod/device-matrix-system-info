@@ -1,6 +1,9 @@
 import { getDisplayInfo } from '@/core/native';
 import type { DisplayCutout, DisplayInfo, DisplayMode } from '@/core/native';
 import type { Result } from '@/core/result';
+import { getActiveUnits } from '@/core/units/active';
+import { formatScreenSize } from '@/core/units/format';
+import type { ResolvedUnits } from '@/core/units/types';
 import type { DisplayModeRows } from '@/features/display/types';
 
 export function readDisplay(): Result<DisplayInfo> {
@@ -31,9 +34,13 @@ export function diagonalInches(
   return Number.isFinite(diagonal) && diagonal > 0 ? diagonal : null;
 }
 
-export function formatInches(inches: number | null): string | null {
+/** Panel diagonal in the chosen unit; `null` when the reading is unusable. */
+export function formatInches(
+  inches: number | null,
+  units: ResolvedUnits = getActiveUnits(),
+): string | null {
   if (inches == null || !Number.isFinite(inches) || inches <= 0) return null;
-  return `${inches.toFixed(1)} in`;
+  return formatScreenSize(inches, units.screenSize);
 }
 
 export function formatRefreshRate(hz: number | null): string | null {

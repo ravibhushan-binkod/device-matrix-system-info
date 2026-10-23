@@ -18,6 +18,9 @@ import {
   type WifiInfo,
 } from '@/core/native';
 import type { Result } from '@/core/result';
+import { getActiveUnits } from '@/core/units/active';
+import { formatNetworkSpeed } from '@/core/units/format';
+import type { ResolvedUnits } from '@/core/units/types';
 
 /** Reads the active connection through the native wrapper. */
 export function readConnectivity(): Result<ConnectivityInfo> {
@@ -128,11 +131,21 @@ export function proxyLabel(
 }
 
 /** "866 / 866 Mbps" (TX / RX); a missing side reads "—". */
-export function formatTxRxSpeeds(tx: number | null, rx: number | null): string | null {
+export function formatTxRxSpeeds(
+  tx: number | null,
+  rx: number | null,
+  units: ResolvedUnits = getActiveUnits(),
+): string | null {
   if (tx === null && rx === null) return null;
-  const left = tx === null ? '—' : String(tx);
-  const right = rx === null ? '—' : String(rx);
-  return `${left} / ${right} Mbps`;
+  const suffix = ` ${units.networkSpeed}`;
+  // The unit is printed once at the end, so strip it from each side.
+  const number = (mbps: number): string => {
+    const formatted = formatNetworkSpeed(mbps, units.networkSpeed);
+    return formatted.endsWith(suffix) ? formatted.slice(0, -suffix.length) : formatted;
+  };
+  const left = tx === null ? '—' : number(tx);
+  const right = rx === null ? '—' : number(rx);
+  return `${left} / ${right}${suffix}`;
 }
 
 /** `ScanResult.CHANNEL_WIDTH_*` code → label. */
@@ -167,9 +180,12 @@ export function formatDnsServers(servers: readonly string[]): string | null {
   return list.length > 0 ? list.join(' · ') : null;
 }
 
-export function formatLinkSpeed(mbps: number | null): string | null {
+export function formatLinkSpeed(
+  mbps: number | null,
+  units: ResolvedUnits = getActiveUnits(),
+): string | null {
   if (mbps === null || mbps <= 0) return null;
-  return `${mbps} Mbps`;
+  return formatNetworkSpeed(mbps, units.networkSpeed);
 }
 
 /** 2.4 / 5 / 6 GHz discriminant for a Wi-Fi centre frequency. */

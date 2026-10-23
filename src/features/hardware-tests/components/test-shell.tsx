@@ -41,7 +41,7 @@ function statusColors(status: HardwareTestStatus, colors: ReturnType<typeof useT
 
 /**
  * Shared frame for every guided check: instruction, live visual, saved status
- * and the large Pass / Fail actions. Optional or unavailable tests never show
+ * and the large Pass / Fail actions. A test Android cannot run never shows
  * active result buttons.
  */
 export function TestShell({
@@ -60,11 +60,14 @@ export function TestShell({
   const status = testStatus(results, definition.id);
   const statusStyle = statusColors(status, colors);
   const runnable = definition.availability === 'ready';
-  const statusLabel = runnable
-    ? testStatusLabel(status)
-    : definition.availability === 'off'
-      ? 'Off in this build'
-      : 'Skipped on this device';
+  const runtimeBlocked = runnable && runtimeUnavailable != null;
+  const statusLabel = runtimeBlocked
+    ? 'Not tested'
+    : runnable
+      ? testStatusLabel(status)
+      : definition.availability === 'off'
+        ? 'Off in this build'
+        : 'Not available on this device';
   const disabledReason =
     definition.availability !== 'ready' ? definition.unavailableReason : runtimeUnavailable;
   const canRecord = disabledReason == null;
@@ -107,7 +110,9 @@ export function TestShell({
           <Text style={[styles.statusText, { color: statusStyle.fg }]}>{statusLabel}</Text>
         </View>
         {runnable ? (
-          result ? (
+          runtimeBlocked ? (
+            <Text style={[styles.date, { color: colors.muted }]}>No result recorded</Text>
+          ) : result ? (
             <Text style={[styles.date, { color: colors.muted }]}>
               {formatTestDate(result.testedAt)}
             </Text>
@@ -127,7 +132,7 @@ export function TestShell({
           <View style={styles.noticeRow}>
             <Icon name="info" size={20} color={colors.warning} />
             <View style={styles.noticeCopy}>
-              <Text style={[styles.noticeTitle, { color: colors.text }]}>Test skipped</Text>
+              <Text style={[styles.noticeTitle, { color: colors.text }]}>Not tested</Text>
               <Text style={[styles.noticeText, { color: colors.muted }]}>{disabledReason}</Text>
             </View>
           </View>

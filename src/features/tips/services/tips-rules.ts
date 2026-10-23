@@ -1,5 +1,6 @@
+import { getActiveUnits } from '@/core/units/active';
+import { formatTemperature } from '@/core/units/format';
 import { formatTimeout, formatUptime } from '@/core/utils/format-duration';
-import { formatTemperature } from '@/core/utils/format-temperature';
 import { batteryHealthLabel } from '@/features/battery/services/battery-stats';
 import { brightnessPercent } from '@/features/display/services/display-service';
 import { tipsConfig } from '@/features/tips/tips-config';
@@ -136,7 +137,7 @@ function batteryTemperatureRule(input: TipsInput): Tip | null {
     id: 'battery-temperature',
     severity: 'warning',
     title: 'Battery is warm',
-    body: `The battery is at ${formatTemperature(temperature, 'C', 1)}. Charging and heavy use add heat — a short break helps it cool down.`,
+    body: `The battery is at ${formatTemperature(temperature, getActiveUnits().temperature, 1)}. Charging and heavy use add heat — a short break helps it cool down.`,
     fix: null,
   };
 }

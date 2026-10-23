@@ -1,7 +1,8 @@
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { PressableScale } from '@/design-system/animations/pressable-scale';
 import { Button, Card, Chip, Screen, SectionHeader } from '@/design-system/components';
+import { withAlpha } from '@/design-system/color';
 import { Icon } from '@/design-system/icon';
 import { useTheme } from '@/design-system/theme';
 import { radius, spacing, typography } from '@/design-system/tokens';
@@ -16,6 +17,8 @@ export function ReportScreen() {
     toggle,
     selectAll,
     clearAll,
+    includeIdentifying,
+    setIncludeIdentifying,
     preview,
     buildPreview,
     copy,
@@ -76,6 +79,30 @@ export function ReportScreen() {
             </PressableScale>
           );
         })}
+      </Card>
+
+      <SectionHeader title="Privacy" />
+      <Card contentStyle={styles.privacyCard}>
+        <View style={styles.privacyRow}>
+          <View style={styles.privacyCopy}>
+            <Text style={[styles.rowTitle, { color: colors.text }]}>
+              Include identifying details
+            </Text>
+            <Text style={[styles.rowDescription, { color: colors.muted }]}>
+              Off: Wi-Fi names, IP addresses, DNS and the build fingerprint are replaced with
+              “Hidden (identifying detail)” in the preview, the shared text and the PDF. Turn this
+              on only when the export truly needs them.
+            </Text>
+          </View>
+          <Switch
+            value={includeIdentifying}
+            onValueChange={setIncludeIdentifying}
+            disabled={pickingDisabled}
+            accessibilityLabel="Include identifying details"
+            trackColor={{ false: colors.surface2, true: withAlpha(colors.accent, 0.45) }}
+            thumbColor={includeIdentifying ? colors.accent : colors.muted}
+          />
+        </View>
       </Card>
 
       <SectionHeader
@@ -201,6 +228,18 @@ const styles = StyleSheet.create({
   },
   previewCard: {
     gap: spacing.md,
+  },
+  privacyCard: {
+    gap: spacing.sm,
+  },
+  privacyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  privacyCopy: {
+    flex: 1,
+    gap: 2,
   },
   emptyCard: {
     gap: spacing.md,

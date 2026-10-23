@@ -5,6 +5,8 @@ import {
   type BatteryReading,
 } from '@/core/native';
 import { ok, unavailable } from '@/core/result';
+import { resolveUnits } from '@/core/units/resolve';
+import { DEFAULT_UNIT_PREFERENCES, type ResolvedUnits } from '@/core/units/types';
 import {
   buildZoneRows,
   readThermalInfo,
@@ -17,6 +19,9 @@ jest.mock('@/core/native', () => ({
   getThermalStatus: jest.fn(),
   getThermalZones: jest.fn(),
 }));
+
+/** Metric resolution, so the assertions do not depend on the machine's locale. */
+const units: ResolvedUnits = resolveUnits(DEFAULT_UNIT_PREFERENCES, 'en-GB');
 
 const thermalMock = jest.mocked(getThermalStatus);
 const batteryMock = jest.mocked(getBatteryInfo);
@@ -75,10 +80,13 @@ describe('thermalStatusTone', () => {
 describe('buildZoneRows', () => {
   it('formats readable temperatures and keeps blocked ones empty', () => {
     expect(
-      buildZoneRows([
-        { name: 'battery', temperatureC: 38.44 },
-        { name: 'skin', temperatureC: null },
-      ]),
+      buildZoneRows(
+        [
+          { name: 'battery', temperatureC: 38.44 },
+          { name: 'skin', temperatureC: null },
+        ],
+        units,
+      ),
     ).toEqual([
       { key: 'battery-0', name: 'battery', temperature: '38 °C' },
       { key: 'skin-1', name: 'skin', temperature: null },
@@ -86,16 +94,19 @@ describe('buildZoneRows', () => {
   });
 
   it('keeps duplicate zone names apart with their index', () => {
-    const rows = buildZoneRows([
-      { name: 'cpu', temperatureC: 40 },
-      { name: 'cpu', temperatureC: 42 },
-    ]);
+    const rows = buildZoneRows(
+      [
+        { name: 'cpu', temperatureC: 40 },
+        { name: 'cpu', temperatureC: 42 },
+      ],
+      units,
+    );
     expect(rows.map((row) => row.key)).toEqual(['cpu-0', 'cpu-1']);
   });
 
   it('treats a nonsensical temperature as unavailable', () => {
     expect(
-      buildZoneRows([{ name: 'battery', temperatureC: Number.NaN }])[0]?.temperature,
+      buildZoneRows([{ name: 'battery', temperatureC: Number.NaN }], units)[0]?.temperature,
     ).toBeNull();
   });
 });
@@ -131,7 +142,7 @@ describe('readThermalInfo', () => {
     );
     batteryMock.mockReturnValue(ok(battery));
     zonesMock.mockReturnValue(ok([{ name: 'battery', temperatureC: 38.4 }]));
-    const result = readThermalInfo();
+    const result = readThermalInfo(units);
     expect(result.status).toBe('ok');
     if (result.status !== 'ok') return;
     expect(result.value.tone).toBe('warning');

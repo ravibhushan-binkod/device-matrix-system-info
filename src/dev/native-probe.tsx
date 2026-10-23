@@ -15,7 +15,8 @@ import {
 } from '@/core/native';
 import type { Result } from '@/core/result';
 import { formatBytes } from '@/core/utils/format-bytes';
-import { formatTemperature } from '@/core/utils/format-temperature';
+import { getActiveUnits } from '@/core/units/active';
+import { formatTemperature } from '@/core/units/format';
 
 type Line = { label: string; value: string };
 
@@ -124,7 +125,7 @@ function collect(): Line[] {
         `plugged: ${value.plugged}`,
         `health: ${value.health}`,
         value.temperatureC != null
-          ? formatTemperature(value.temperatureC, 'C', 1)
+          ? formatTemperature(value.temperatureC, getActiveUnits().temperature, 1)
           : 'temperature n/a',
         value.voltageMv != null ? `${value.voltageMv} mV` : 'voltage n/a',
         value.technology ?? 'technology n/a',

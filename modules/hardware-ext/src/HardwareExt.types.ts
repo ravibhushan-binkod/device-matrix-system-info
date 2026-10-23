@@ -1,5 +1,5 @@
 export type NativeCpuFrequency = {
-  /** CPU number as on the device (cpu0 … cpuN). */
+  /** CPU number as on the device (cpu0 â€¦ cpuN). */
   index: number;
   /** Current scaling frequency in kHz; `null` when the device blocks the read. */
   currentKhz: number | null;
@@ -146,4 +146,30 @@ export type NativeToneResult = {
   /** The output route Android reported after the tone started. */
   output: string | null;
   earpieceAvailable: boolean;
+};
+
+export type NativeSoundLevelResult = {
+  ok: boolean;
+  /** "blocked" | "unavailable" | "failed" | null */
+  reason: string | null;
+};
+
+/** Live, in-memory microphone level. No audio samples leave the recorder. */
+export type NativeSoundLevelEvent = {
+  /** 0 at -60 dBFS, 1 at 0 dBFS. */
+  level: number;
+  /** Clamped dBFS, -60..0. */
+  db: number;
+  /** Highest absolute sample since the previous update, 0..1. */
+  peak: number;
+};
+
+export type NativeVolumeKeyEvent = {
+  direction: 'up' | 'down';
+};
+
+export type NativeVolumeKeyResult = {
+  ok: boolean;
+  /** "no-activity" | "failed" | null */
+  reason: string | null;
 };

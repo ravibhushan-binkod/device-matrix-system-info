@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import { openAppSettings } from '@/core/permissions';
+import type { ResolvedUnits } from '@/core/units/types';
+import { useFormatters } from '@/core/units/use-formatters';
 import {
   Button,
   Card,
@@ -15,9 +17,11 @@ import {
   Screen,
   SectionHeader,
 } from '@/design-system/components';
+import { MASKED_VALUE } from '@/design-system/privacy/sensitive-value';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
 import { SignalBars } from '@/design-system/visuals';
+import { useSettingsStore } from '@/state/settings-store';
 import { ChannelGraph } from '@/features/network/components/channel-graph';
 import { useWifiAnalyzer } from '@/features/network/hooks/use-wifi-analyzer';
 import {
@@ -49,6 +53,7 @@ type PermissionFlow = 'scan' | 'names';
 /** Wi-Fi analyzer: nearby networks, the scan list and channel-overlap graphs. */
 export function WifiAnalyzerScreen() {
   const { colors } = useTheme();
+  const { units } = useFormatters();
   const {
     networks,
     lastScanAgeMs,
@@ -70,6 +75,7 @@ export function WifiAnalyzerScreen() {
   const [sheet, setSheet] = useState<PermissionFlow | null>(null);
   const [settingsDialog, setSettingsDialog] = useState<PermissionFlow | null>(null);
   const [infoVisible, setInfoVisible] = useState(false);
+  const hideSensitiveValues = useSettingsStore((state) => state.hideSensitiveValues);
 
   const visible = useMemo(
     () => sortNetworks(filterNetworks(networks, band), sort),
@@ -125,7 +131,7 @@ export function WifiAnalyzerScreen() {
   ].join(' · ');
   const networksCopy =
     visible.length > 0
-      ? visible.map((network) => formatNetworkLine(network)).join('\n')
+      ? visible.map((network) => formatNetworkLine(network, hideSensitiveValues, units)).join('\n')
       : undefined;
   const channelCopy = [
     `2.4 GHz: ${networks.filter((network) => network.band === '2.4').length} networks`,
@@ -358,19 +364,25 @@ function networkKey(network: AnalyzerNetwork, index: number): string {
   return `${network.bssid ?? network.ssid ?? 'hidden'}-${network.frequencyMhz}-${index}`;
 }
 
-function formatNetworkLine(network: AnalyzerNetwork): string {
+function formatNetworkLine(
+  network: AnalyzerNetwork,
+  hideSensitive: boolean,
+  units: ResolvedUnits,
+): string {
   const band = network.band === 'other' ? 'Unknown band' : `${network.band} GHz`;
   const channel = network.channel === null ? null : `channel ${network.channel}`;
+  const name =
+    hideSensitive && network.ssid != null ? MASKED_VALUE : (network.ssid ?? HIDDEN_SSID_LABEL);
+  const bssid = network.bssid ? (hideSensitive ? MASKED_VALUE : shortenBssid(network.bssid)) : null;
+  const distance = formatDistance(network.distanceMeters, units);
   return [
-    network.ssid ?? HIDDEN_SSID_LABEL,
+    name,
     `${network.rssiDbm} dBm`,
     [band, channel, network.channelWidth].filter(Boolean).join(' · '),
     network.security,
     network.standard ?? null,
-    network.bssid ? shortenBssid(network.bssid) : null,
-    formatDistance(network.distanceMeters)
-      ? `${formatDistance(network.distanceMeters)} estimated`
-      : null,
+    bssid,
+    distance ? `${distance} estimated` : null,
   ]
     .filter((part): part is string => part != null)
     .join(' · ');
@@ -378,7 +390,8 @@ function formatNetworkLine(network: AnalyzerNetwork): string {
 
 function NetworkRow({ network, divided }: { network: AnalyzerNetwork; divided: boolean }) {
   const { colors } = useTheme();
-  const distance = formatDistance(network.distanceMeters);
+  const { units } = useFormatters();
+  const distance = formatDistance(network.distanceMeters, units);
   const details = [shortenBssid(network.bssid), network.security, network.standard ?? '—'].join(
     ' · ',
   );
@@ -409,6 +422,7 @@ function NetworkRow({ network, divided }: { network: AnalyzerNetwork; divided: b
         <CopyableText
           value={network.ssid}
           copyLabel="Network name"
+          sensitive
           numberOfLines={1}
           style={[styles.rowTitle, { color: colors.text }]}
         >
@@ -417,6 +431,7 @@ function NetworkRow({ network, divided }: { network: AnalyzerNetwork; divided: b
         <CopyableText
           value={details}
           copyLabel="Network details"
+          sensitive={network.bssid != null}
           numberOfLines={1}
           style={[styles.caption, { color: colors.muted }]}
         >

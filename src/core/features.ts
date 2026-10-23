@@ -32,10 +32,8 @@ export const features = {
   nearbyWifi: 'v1',
   /** The guided hardware checkup — display, touch, sound, sensors, ports. */
   hardwareTests: 'v1',
-  /** Microphone test — off; no RECORD_AUDIO permission is requested. */
-  microphoneTest: 'off',
-  /** Fingerprint test — off; needs a biometrics dependency (not installed). */
-  fingerprintTest: 'off',
+  /** Microphone test — runtime RECORD_AUDIO only; audio is metered, never kept. */
+  microphoneTest: 'v1',
   nfcTools: 'v2',
   localHistory: 'v2',
   /** The report's "Share PDF" export (expo-print). */
@@ -48,8 +46,8 @@ export const features = {
   ads: 'v1',
   /** Full-screen interstitials — built, but kept off until reviewed. */
   interstitialAds: 'off',
-  /** Developer ad tools in Settings (reset consent, Ad Inspector, EEA test).
-   * Flip to 'off' to hide them from users. */
+  /** Ad debug actions (consent reset, Ad Inspector, EEA test) — shown only
+   * inside the debug-only developer tools overlay. */
   adDebugTools: 'v1',
 } as const satisfies Record<string, unknown>;
 

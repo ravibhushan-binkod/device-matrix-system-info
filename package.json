@@ -8,6 +8,7 @@
     "android": "expo run:android",
     "build:release": "node scripts/check-admob-env.mjs && expo run:android --variant release --no-bundler",
     "lint": "expo lint",
+    "licences": "node scripts/generate-licences.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
@@ -16,6 +17,9 @@
   },
   "jest": {
     "preset": "jest-expo",
+    "setupFiles": [
+      "<rootDir>/jest.setup.ts"
+    ],
     "moduleNameMapper": {
       "^@/assets/(.*)$": "<rootDir>/assets/$1",
       "^@/(.*)$": "<rootDir>/src/$1",

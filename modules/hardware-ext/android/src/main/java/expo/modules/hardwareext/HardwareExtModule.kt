@@ -1,5 +1,7 @@
 package expo.modules.hardwareext
 
+import android.Manifest
+import android.app.Activity
 import android.app.ActivityManager
 import android.content.Context
 import android.content.pm.PackageManager
@@ -11,6 +13,7 @@ import android.media.AudioAttributes
 import android.media.AudioDeviceInfo
 import android.media.AudioFormat
 import android.media.AudioManager
+import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaRecorder
 import android.opengl.EGL14
@@ -25,12 +28,16 @@ import android.provider.Settings
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.Display
+import android.view.KeyEvent
+import android.view.Window
 import android.view.WindowManager
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import java.io.File
 import kotlin.math.PI
+import kotlin.math.log10
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * Hardware readings that Build, Expo packages and react-native-device-info
@@ -40,6 +47,8 @@ import kotlin.math.sin
 class HardwareExtModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("HardwareExt")
+
+    Events("onSoundLevel", "onVolumeKey")
 
     Function("getCpuInfo") {
       cpuInfo()
@@ -82,9 +91,29 @@ class HardwareExtModule : Module() {
       true
     }
 
+    Function("startSoundLevel") {
+      startSoundLevel()
+    }
+
+    Function("stopSoundLevel") {
+      stopSoundLevelInternal()
+      true
+    }
+
+    Function("startVolumeKeyCapture") {
+      startVolumeKeyCapture()
+    }
+
+    Function("stopVolumeKeyCapture") {
+      stopVolumeKeyCapture()
+      true
+    }
+
     OnDestroy {
       unregisterTorchCallback()
       stopToneInternal()
+      stopSoundLevelInternal()
+      stopVolumeKeyCapture()
     }
   }
 
@@ -369,6 +398,212 @@ class HardwareExtModule : Module() {
     }
   }
 
+  /* ------------------------------------------------------ microphone level */
+
+  private var soundRecord: AudioRecord? = null
+  private var soundThread: Thread? = null
+
+  @Volatile
+  private var soundRunning = false
+
+  /**
+   * Starts a live level meter. Audio is read into a small in-memory buffer only
+   * to calculate RMS/peak values; no samples are written, kept or sent anywhere.
+   * Callers must hold RECORD_AUDIO before calling this.
+   */
+  private fun startSoundLevel(): Map<String, Any?> {
+    stopSoundLevelInternal()
+    val context = appContext.reactContext ?: return soundFailure("failed")
+    if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) !=
+      PackageManager.PERMISSION_GRANTED
+    ) {
+      return soundFailure("blocked")
+    }
+
+    val minBuffer = AudioRecord.getMinBufferSize(
+      MIC_SAMPLE_RATE,
+      AudioFormat.CHANNEL_IN_MONO,
+      AudioFormat.ENCODING_PCM_16BIT
+    )
+    if (minBuffer <= 0) return soundFailure("unavailable")
+    val bufferSize = maxOf(minBuffer, MIC_BUFFER_SAMPLES * 2)
+
+    val record = try {
+      AudioRecord(
+        MediaRecorder.AudioSource.MIC,
+        MIC_SAMPLE_RATE,
+        AudioFormat.CHANNEL_IN_MONO,
+        AudioFormat.ENCODING_PCM_16BIT,
+        bufferSize
+      )
+    } catch (error: Exception) {
+      Log.w("HardwareExt", "AudioRecord could not be created", error)
+      return soundFailure("failed")
+    }
+
+    if (record.state != AudioRecord.STATE_INITIALIZED) {
+      try {
+        record.release()
+      } catch (_: Exception) {
+        // Nothing to release.
+      }
+      return soundFailure("unavailable")
+    }
+
+    try {
+      record.startRecording()
+    } catch (error: Exception) {
+      Log.w("HardwareExt", "AudioRecord could not start", error)
+      try {
+        record.release()
+      } catch (_: Exception) {
+        // Already released.
+      }
+      return soundFailure(
+        if (error is SecurityException) "blocked" else "failed"
+      )
+    }
+
+    soundRecord = record
+    soundRunning = true
+    val thread = Thread {
+      val buffer = ShortArray(MIC_BUFFER_SAMPLES)
+      val main = Handler(Looper.getMainLooper())
+      var lastEmit = 0L
+      while (soundRunning) {
+        val read = try {
+          record.read(buffer, 0, buffer.size)
+        } catch (_: Exception) {
+          -1
+        }
+        if (read <= 0) break
+
+        var sum = 0.0
+        var peak = 0.0
+        for (index in 0 until read) {
+          val sample = buffer[index] / 32768.0
+          sum += sample * sample
+          val magnitude = kotlin.math.abs(sample)
+          if (magnitude > peak) peak = magnitude
+        }
+        val rms = sqrt(sum / read)
+        val db = if (rms > 0.0) 20.0 * log10(rms) else -60.0
+        val clampedDb = db.coerceIn(-60.0, 0.0)
+        val level = ((clampedDb + 60.0) / 60.0).coerceIn(0.0, 1.0)
+        val now = System.currentTimeMillis()
+        if (now - lastEmit >= MIC_EMIT_INTERVAL_MS) {
+          lastEmit = now
+          main.post {
+            if (soundRunning) {
+              sendEvent(
+                "onSoundLevel",
+                mapOf(
+                  "level" to level,
+                  "db" to clampedDb,
+                  "peak" to peak.coerceIn(0.0, 1.0)
+                )
+              )
+            }
+          }
+        }
+      }
+
+      soundRunning = false
+      try {
+        if (record.recordingState == AudioRecord.RECORDSTATE_RECORDING) record.stop()
+      } catch (_: Exception) {
+        // Already stopped.
+      }
+      try {
+        record.release()
+      } catch (_: Exception) {
+        // Already released.
+      }
+      if (soundRecord === record) soundRecord = null
+    }
+    soundThread = thread
+    thread.start()
+
+    return mapOf("ok" to true, "reason" to null)
+  }
+
+  private fun stopSoundLevelInternal() {
+    soundRunning = false
+    val record = soundRecord
+    soundRecord = null
+    if (record != null) {
+      try {
+        if (record.recordingState == AudioRecord.RECORDSTATE_RECORDING) record.stop()
+      } catch (_: Exception) {
+        // The read loop will exit and release it.
+      }
+    }
+    soundThread?.interrupt()
+    soundThread = null
+  }
+
+  private fun soundFailure(reason: String): Map<String, Any?> = mapOf(
+    "ok" to false,
+    "reason" to reason
+  )
+
+  /* --------------------------------------------------------- volume keys */
+
+  private var volumeCaptureActivity: Activity? = null
+  private var volumeOriginalCallback: Window.Callback? = null
+  private var volumeWrapper: Window.Callback? = null
+
+  /**
+   * Watches hardware volume keys while this test screen is active. The wrapper
+   * listens but always delegates the event to the original window callback, so
+   * the phone's normal volume behaviour is unchanged. It never consumes keys.
+   */
+  private fun startVolumeKeyCapture(): Map<String, Any?> {
+    if (volumeWrapper != null) return mapOf("ok" to true, "reason" to null)
+    val activity = appContext.currentActivity ?: return mapOf("ok" to false, "reason" to "no-activity")
+    val window = activity.window ?: return mapOf("ok" to false, "reason" to "failed")
+    val original = window.callback ?: return mapOf("ok" to false, "reason" to "failed")
+    val main = Handler(Looper.getMainLooper())
+
+    val wrapper = object : Window.Callback by original {
+      override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+          val direction = when (event.keyCode) {
+            KeyEvent.KEYCODE_VOLUME_UP -> "up"
+            KeyEvent.KEYCODE_VOLUME_DOWN -> "down"
+            else -> null
+          }
+          if (direction != null) {
+            main.post { sendEvent("onVolumeKey", mapOf("direction" to direction)) }
+          }
+        }
+        return original.dispatchKeyEvent(event)
+      }
+    }
+
+    volumeCaptureActivity = activity
+    volumeOriginalCallback = original
+    volumeWrapper = wrapper
+    window.callback = wrapper
+    return mapOf("ok" to true, "reason" to null)
+  }
+
+  private fun stopVolumeKeyCapture() {
+    val activity = volumeCaptureActivity
+    val wrapper = volumeWrapper
+    val original = volumeOriginalCallback
+    volumeCaptureActivity = null
+    volumeWrapper = null
+    volumeOriginalCallback = null
+    if (activity == null || wrapper == null || original == null) return
+    try {
+      val window = activity.window
+      if (window.callback === wrapper) window.callback = original
+    } catch (_: Exception) {
+      // The activity may already be gone; Android restores its own callback.
+    }
+  }
+
   private fun audioOutput(): Map<String, Any?>? {
     val context = appContext.reactContext ?: return null
     val audio = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return null
@@ -447,6 +682,9 @@ class HardwareExtModule : Module() {
 
   private companion object {
     const val TONE_SAMPLE_RATE = 44_100
+    const val MIC_SAMPLE_RATE = 16_000
+    const val MIC_BUFFER_SAMPLES = 1_024
+    const val MIC_EMIT_INTERVAL_MS = 80L
   }
 
   private fun cpuInfo(): Map<String, Any?> {

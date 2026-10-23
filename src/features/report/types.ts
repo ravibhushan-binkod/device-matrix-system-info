@@ -1,3 +1,4 @@
+import type { ResolvedUnits } from '@/core/units/types';
 import type { ReportSection } from '@/core/utils/report-text';
 
 export type ReportGroupId =
@@ -24,5 +25,5 @@ export type ReportGroup = {
   /** One-line explanation shown under the title in the picker. */
   description: string;
   /** Async only for the Apps summary, which asks the native module. */
-  build: () => ReportSection[] | Promise<ReportSection[]>;
+  build: (units: ResolvedUnits) => ReportSection[] | Promise<ReportSection[]>;
 };

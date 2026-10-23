@@ -1,16 +1,15 @@
+import { getActiveUnits } from '@/core/units/active';
+import { formatTemperature as formatTemperatureIn } from '@/core/units/format';
+
 export type TemperatureUnit = 'C' | 'F';
 
-export function celsiusToFahrenheit(celsius: number): number {
-  return (celsius * 9) / 5 + 32;
-}
+export { celsiusToFahrenheit } from '@/core/units/format';
 
-/** Formats a Celsius reading in °C or °F, e.g. `38.5` → "38 °C" / "101 °F". */
+/** Formats a Celsius reading in the active (or given) unit, e.g. "38 °C" / "101 °F". */
 export function formatTemperature(
   celsius: number,
-  unit: TemperatureUnit = 'C',
+  unit: TemperatureUnit = getActiveUnits().temperature,
   digits = 0,
 ): string {
-  if (!Number.isFinite(celsius)) return '—';
-  const value = unit === 'F' ? celsiusToFahrenheit(celsius) : celsius;
-  return `${value.toFixed(digits)} °${unit}`;
+  return formatTemperatureIn(celsius, unit, digits);
 }

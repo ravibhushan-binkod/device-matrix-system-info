@@ -4,6 +4,7 @@ import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import { isEnabled, features } from '@/core/features';
 import { openAppSettings, type UsePermission } from '@/core/permissions';
+import { useFormatters } from '@/core/units/use-formatters';
 import {
   AdSlot,
   Button,
@@ -22,9 +23,11 @@ import {
 import { withAlpha } from '@/design-system/color';
 import { copyValue } from '@/design-system/copy/copy-value';
 import { Icon, type IconName } from '@/design-system/icon';
+import { MASKED_VALUE } from '@/design-system/privacy/sensitive-value';
 import { useTheme } from '@/design-system/theme';
 import { radius, spacing, typography } from '@/design-system/tokens';
 import { SignalBars } from '@/design-system/visuals';
+import { useSettingsStore } from '@/state/settings-store';
 import { useNetwork } from '@/features/network/hooks/use-network';
 import {
   connectionTypeLabel,
@@ -131,6 +134,7 @@ type ExploreTarget = {
 /** Network: connection, Wi-Fi details, the radio shortcuts and the deep screens. */
 export function NetworkScreen() {
   const { colors } = useTheme();
+  const { units } = useFormatters();
   const router = useRouter();
   const {
     connectivity,
@@ -148,6 +152,7 @@ export function NetworkScreen() {
   const [sheet, setSheet] = useState<NetworkPermissionKind | null>(null);
   const [settingsDialog, setSettingsDialog] = useState<NetworkPermissionKind | null>(null);
   const [sectionSheet, setSectionSheet] = useState<SectionId | null>(null);
+  const hideSensitiveValues = useSettingsStore((state) => state.hideSensitiveValues);
 
   const permissionFor = (kind: NetworkPermissionKind): UsePermission =>
     kind === 'wifi-name' ? location : bluetoothPermission;
@@ -179,6 +184,17 @@ export function NetworkScreen() {
         ? (wifiValue.ssid ?? NOT_AVAILABLE)
         : 'Not connected';
 
+  /** Only a real reported name is a value worth masking. */
+  const ssidSensitive =
+    location.granted && wifiValue?.connected === true && (wifiValue?.ssid?.trim().length ?? 0) > 0;
+
+  /** Copy text uses the same masking as the rows while the setting is on. */
+  const maskRaw = (value: string | null | undefined): string => {
+    const raw = value?.trim();
+    if (raw == null || raw.length === 0) return NOT_AVAILABLE;
+    return hideSensitiveValues ? MASKED_VALUE : raw;
+  };
+
   const channelWidthValue = !location.granted
     ? 'Hidden until allowed'
     : (wifiChannelWidthLabel(wifiValue?.channelWidthCode ?? null) ?? NOT_AVAILABLE);
@@ -195,11 +211,11 @@ export function NetworkScreen() {
         `Mobile operator: ${conn.operatorName ?? NOT_AVAILABLE}`,
         conn.roaming === null ? null : `Roaming: ${roamingLabel(conn.roaming) ?? NOT_AVAILABLE}`,
         `Private DNS: ${privateDnsLabel(conn.privateDnsMode, conn.privateDnsHost) ?? NOT_AVAILABLE}`,
-        `IPv4: ${conn.ipv4 ?? NOT_AVAILABLE}`,
-        `IPv6: ${conn.ipv6 ?? NOT_AVAILABLE}`,
+        `IPv4: ${maskRaw(conn.ipv4)}`,
+        `IPv6: ${maskRaw(conn.ipv6)}`,
         `Subnet: ${formatSubnet(conn.subnetPrefix) ?? NOT_AVAILABLE}`,
-        `Gateway: ${conn.gateway ?? NOT_AVAILABLE}`,
-        `DNS: ${formatDnsServers(conn.dnsServers) ?? NOT_AVAILABLE}`,
+        `Gateway: ${maskRaw(conn.gateway)}`,
+        `DNS: ${maskRaw(formatDnsServers(conn.dnsServers))}`,
         `Proxy: ${proxyLabel(conn.proxyHost, conn.proxyPort, conn.proxyPacUrl) ?? 'None'}`,
       ]
         .filter((line): line is string => line != null)
@@ -209,10 +225,13 @@ export function NetworkScreen() {
   const wifiCopy = wifiValue
     ? [
         `Wi-Fi: ${wifiValue.enabled === null ? 'Unknown' : wifiValue.enabled ? 'On' : 'Off'}`,
-        `Network: ${wifiNameValue}`,
-        `Link speed: ${formatLinkSpeed(wifiValue.linkSpeedMbps) ?? NOT_AVAILABLE}`,
+        `Network: ${maskRaw(
+          location.granted && wifiValue.connected ? (wifiValue.ssid ?? null) : wifiNameValue,
+        )}`,
+        `Link speed: ${formatLinkSpeed(wifiValue.linkSpeedMbps, units) ?? NOT_AVAILABLE}`,
         `Link speed (TX / RX): ${
-          formatTxRxSpeeds(wifiValue.txLinkSpeedMbps, wifiValue.rxLinkSpeedMbps) ?? NOT_AVAILABLE
+          formatTxRxSpeeds(wifiValue.txLinkSpeedMbps, wifiValue.rxLinkSpeedMbps, units) ??
+          NOT_AVAILABLE
         }`,
         `Band & channel: ${wifiBandAndChannelLabel(wifiValue.frequencyMhz) ?? NOT_AVAILABLE}`,
         `Channel width: ${channelWidthValue}`,
@@ -305,14 +324,18 @@ export function NetworkScreen() {
                       privateDnsLabel(conn.privateDnsMode, conn.privateDnsHost) ?? NOT_AVAILABLE
                     }
                   />
-                  <StatRow label="IPv4" value={conn.ipv4 ?? NOT_AVAILABLE} />
-                  <StatRow label="IPv6" value={conn.ipv6 ?? NOT_AVAILABLE} />
+                  <StatRow label="IPv4" value={conn.ipv4 ?? NOT_AVAILABLE} sensitive />
+                  <StatRow label="IPv6" value={conn.ipv6 ?? NOT_AVAILABLE} sensitive />
                   <StatRow
                     label="Subnet"
                     value={formatSubnet(conn.subnetPrefix) ?? NOT_AVAILABLE}
                   />
-                  <StatRow label="Gateway" value={conn.gateway ?? NOT_AVAILABLE} />
-                  <StatRow label="DNS" value={formatDnsServers(conn.dnsServers) ?? NOT_AVAILABLE} />
+                  <StatRow label="Gateway" value={conn.gateway ?? NOT_AVAILABLE} sensitive />
+                  <StatRow
+                    label="DNS"
+                    value={formatDnsServers(conn.dnsServers) ?? NOT_AVAILABLE}
+                    sensitive
+                  />
                   <StatRow
                     label="Proxy"
                     value={proxyLabel(conn.proxyHost, conn.proxyPort, conn.proxyPacUrl) ?? 'None'}
@@ -357,10 +380,10 @@ export function NetworkScreen() {
                   onAction={() => askOrOpenSettings('wifi-name')}
                 />
               ) : null}
-              <StatRow label="Network" value={wifiNameValue} />
+              <StatRow label="Network" value={wifiNameValue} sensitive={ssidSensitive} />
               <StatRow
                 label="Link speed"
-                value={formatLinkSpeed(wifiValue?.linkSpeedMbps ?? null) ?? NOT_AVAILABLE}
+                value={formatLinkSpeed(wifiValue?.linkSpeedMbps ?? null, units) ?? NOT_AVAILABLE}
               />
               <StatRow
                 label="Link speed (TX / RX)"
@@ -368,6 +391,7 @@ export function NetworkScreen() {
                   formatTxRxSpeeds(
                     wifiValue?.txLinkSpeedMbps ?? null,
                     wifiValue?.rxLinkSpeedMbps ?? null,
+                    units,
                   ) ?? NOT_AVAILABLE
                 }
               />

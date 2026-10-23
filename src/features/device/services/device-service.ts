@@ -1,7 +1,9 @@
 import { getBuildInfo, getOsInfo, getUptime } from '@/core/native';
+import type { BuildInfo } from '@/core/native';
+import { detectPhoneBrand, detectPlatformBrand } from '@/core/brand/detect-brand';
 import { formatUptime } from '@/core/utils/format-duration';
-import { buildReportText } from '@/core/utils/report-text';
-import type { DeviceInfo, DeviceInfoSection } from '@/features/device/types';
+import { buildReportText, IDENTIFYING_HIDDEN } from '@/core/utils/report-text';
+import type { DeviceBranding, DeviceInfo, DeviceInfoSection } from '@/features/device/types';
 
 export type DeviceInfoInput = {
   brand: string | null;
@@ -211,14 +213,51 @@ export function buildDeviceSections(input: DeviceInfoInput): DeviceInfoSection[]
         { key: 'board', label: 'Board', value: input.board },
         { key: 'product', label: 'Product', value: input.product },
         { key: 'codename', label: 'Codename', value: input.codename },
-        { key: 'fingerprint', label: 'Fingerprint', value: input.fingerprint, multiline: true },
+        {
+          key: 'fingerprint',
+          label: 'Fingerprint',
+          value: input.fingerprint,
+          multiline: true,
+          sensitive: true,
+        },
       ],
     },
   ];
 }
 
+/** Marks for the Device/OS header from the values the build already reported. */
+export function buildDeviceBranding(build: BuildInfo | null): DeviceBranding {
+  const input = {
+    manufacturer: build?.manufacturer ?? null,
+    brand: build?.brand ?? null,
+    socManufacturer: null,
+    socModel: null,
+    hardware: null,
+    gpuRenderer: null,
+    gpuVendor: null,
+    androidVersion: build?.androidVersion ?? null,
+  };
+  return { phone: detectPhoneBrand(input), platform: detectPlatformBrand(input) };
+}
+
+/** Copy-all options: identifying entries are left out unless the user opts in. */
+export type DeviceReportOptions = {
+  includeIdentifying?: boolean;
+};
+
+/** Sections with the identifying entries replaced; used by the copy-all text. */
+function maskIdentifyingEntries(sections: DeviceInfoSection[]): DeviceInfoSection[] {
+  return sections.map((section) => ({
+    ...section,
+    entries: section.entries.map((entry) =>
+      entry.sensitive && entry.value != null ? { ...entry, value: IDENTIFYING_HIDDEN } : entry,
+    ),
+  }));
+}
+
 /** Device & OS screen data: the sections plus the "Copy all" report text. */
-export function readDeviceInfo(): DeviceInfo {
+export function readDeviceInfo(options: DeviceReportOptions = {}): DeviceInfo {
+  const { includeIdentifying = false } = options;
   const build = getBuildInfo();
   const os = getOsInfo();
   const uptime = getUptime();
@@ -255,5 +294,10 @@ export function readDeviceInfo(): DeviceInfo {
   };
 
   const sections = buildDeviceSections(input);
-  return { sections, report: buildReportText(sections, 'Device Matrix: System info') };
+  const reportSections = includeIdentifying ? sections : maskIdentifyingEntries(sections);
+  return {
+    sections,
+    report: buildReportText(reportSections, 'Device Matrix: System info'),
+    branding: buildDeviceBranding(build.status === 'ok' ? build.value : null),
+  };
 }

@@ -1,109 +1,191 @@
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import type { ReactNode } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 
-import { HeatShimmer } from '@/design-system/animations/heat-shimmer';
+import { useFormatters } from '@/core/units';
+import { getActiveUnits } from '@/core/units/active';
+import {
+  formatFrequencyKhz,
+  formatPower,
+  formatScreenSize,
+  formatTemperature,
+} from '@/core/units/format';
+import type { ResolvedUnits } from '@/core/units/types';
+import { celsiusToFahrenheit } from '@/core/utils/format-temperature';
 import { LivePulse } from '@/design-system/animations/live-pulse';
 import { useCountUp } from '@/design-system/animations/use-count-up';
 import { withAlpha } from '@/design-system/color';
+import { SensitiveValue } from '@/design-system/components';
 import { Icon } from '@/design-system/icon';
-import { radius, spacing, typography } from '@/design-system/tokens';
+import { spacing, typography } from '@/design-system/tokens';
 import { useTheme } from '@/design-system/theme';
-import { TileHeader, tileAccentColor } from '@/features/dashboard/components/tile-card';
-import type {
-  DashboardTileDefinition,
-  DashboardTileId,
-  DashboardTileSize,
-} from '@/features/dashboard/services/dashboard-tiles';
-import { useAccelerometerPreview } from '@/features/dashboard/hooks/use-accelerometer-preview';
-import type {
-  DashboardInventory,
-  DashboardSummary,
-  ConnectivityState,
-} from '@/features/dashboard/types';
-import { formatBytes } from '@/core/utils/format-bytes';
-import { formatFrequencyKhz } from '@/core/utils/format-frequency';
-import { formatTemperature } from '@/core/utils/format-temperature';
 import {
   BatteryGauge,
   LiveGraph,
-  MemoryDonut,
   SignalBars,
   StorageBar,
   ThermalGauge,
 } from '@/design-system/visuals';
+import { useAccelerometerPreview } from '@/features/dashboard/hooks/use-accelerometer-preview';
+import { TileHeader, tileAccentColor } from '@/features/dashboard/components/tile-card';
+import type {
+  DashboardTileDefinition,
+  DashboardTileId,
+} from '@/features/dashboard/services/dashboard-tiles';
+import type {
+  ConnectivityState,
+  DashboardInventory,
+  DashboardSummary,
+} from '@/features/dashboard/types';
 
 type Props = {
   id: DashboardTileId;
-  size: DashboardTileSize;
   definition: DashboardTileDefinition;
   summary: DashboardSummary;
   inventory: DashboardInventory | null;
   cpuHistory: number[];
   memoryHistory: number[];
+  /** True for the single leftover tile: same height, horizontal content. */
+  wide: boolean;
 };
 
 const NOT_AVAILABLE = 'Not available on this device';
+/** Large-font scaling is clamped so fixed-height tiles never clip. */
+const MAX_FONT_SCALE = 1.3;
 
 export function TileContent({
   id,
-  size,
   definition,
   summary,
   inventory,
   cpuHistory,
   memoryHistory,
+  wide,
 }: Props) {
   switch (id) {
     case 'cpu':
-      return <CpuTile size={size} definition={definition} summary={summary} history={cpuHistory} />;
+      return <CpuTile definition={definition} summary={summary} history={cpuHistory} wide={wide} />;
     case 'memory':
       return (
-        <MemoryTile size={size} definition={definition} summary={summary} history={memoryHistory} />
+        <MemoryTile definition={definition} summary={summary} history={memoryHistory} wide={wide} />
       );
     case 'storage':
-      return <StorageTile size={size} definition={definition} summary={summary} />;
+      return <StorageTile definition={definition} summary={summary} wide={wide} />;
     case 'battery':
-      return <BatteryTile size={size} definition={definition} summary={summary} />;
+      return <BatteryTile definition={definition} summary={summary} wide={wide} />;
     case 'thermal':
-      return <ThermalTile size={size} definition={definition} summary={summary} />;
+      return <ThermalTile definition={definition} summary={summary} wide={wide} />;
     case 'display':
-      return <DisplayTile size={size} definition={definition} summary={summary} />;
+      return <DisplayTile definition={definition} summary={summary} wide={wide} />;
     case 'network':
-      return <NetworkTile size={size} definition={definition} summary={summary} />;
+      return <NetworkTile definition={definition} summary={summary} wide={wide} />;
     case 'sensors':
-      return <SensorsTile definition={definition} summary={summary} inventory={inventory} />;
+      return <SensorsTile definition={definition} inventory={inventory} wide={wide} />;
     case 'camera':
-      return <CameraTile definition={definition} inventory={inventory} />;
+      return <CameraTile definition={definition} inventory={inventory} wide={wide} />;
     case 'connectivity':
-      return <ConnectivityTile definition={definition} summary={summary} inventory={inventory} />;
+      return (
+        <ConnectivityTile
+          definition={definition}
+          summary={summary}
+          inventory={inventory}
+          wide={wide}
+        />
+      );
     default:
       return null;
   }
 }
 
-function Fallback({ text = 'Not available on this device' }: { text?: string }) {
+type TileBodyProps = {
+  value: string;
+  unit?: string | null;
+  visual: ReactNode;
+  caption: string | ReactNode;
+  wide: boolean;
+};
+
+/**
+ * The one tile structure every dashboard tile shares: large value, one small
+ * visual and one caption under a fixed-height, fixed-width shell. The wide
+ * variant keeps the same height and lays the value and visual side by side.
+ */
+function TileBody({ value, unit, visual, caption, wide }: TileBodyProps) {
   const { colors } = useTheme();
+
   return (
-    <View style={styles.fallback}>
-      <Icon name="alert" size={20} color={colors.muted} />
-      <Text style={[styles.fallbackText, { color: colors.muted }]}>{text}</Text>
+    <View style={styles.body}>
+      <View style={[styles.main, wide && styles.mainWide]}>
+        <View style={styles.valueBlock}>
+          <Text
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            maxFontSizeMultiplier={MAX_FONT_SCALE}
+            style={[styles.metric, { color: colors.text }]}
+          >
+            {value}
+          </Text>
+          {unit ? (
+            <Text
+              numberOfLines={1}
+              ellipsizeMode="tail"
+              maxFontSizeMultiplier={MAX_FONT_SCALE}
+              style={[styles.metricUnit, { color: colors.muted }]}
+            >
+              {unit}
+            </Text>
+          ) : null}
+        </View>
+        <View style={[styles.visual, wide && styles.visualWide]}>{visual}</View>
+      </View>
+      <View style={styles.captionRow}>
+        {typeof caption === 'string' ? (
+          <Text
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            maxFontSizeMultiplier={MAX_FONT_SCALE}
+            style={[styles.caption, { color: colors.muted }]}
+          >
+            {caption}
+          </Text>
+        ) : (
+          caption
+        )}
+      </View>
     </View>
   );
 }
 
 type TileProps = {
-  size: DashboardTileSize;
   definition: DashboardTileDefinition;
   summary: DashboardSummary;
+  wide: boolean;
 };
 
-function CpuTile({ definition, summary, history }: TileProps & { history: number[] }) {
+function TileFallback({ message, wide }: { message?: string; wide: boolean }) {
   const { colors } = useTheme();
+  return (
+    <TileBody
+      value="—"
+      unit={null}
+      wide={wide}
+      visual={<Icon name="alert" size={24} color={colors.muted} />}
+      caption={message ?? 'Not available on this device'}
+    />
+  );
+}
+
+function CpuTile({ definition, summary, history, wide }: TileProps & { history: number[] }) {
+  const { colors } = useTheme();
+  const { units } = useFormatters();
   const cpu = summary.cpu;
-  const averageGhz =
-    cpu.status === 'ok' && cpu.value.averageMhz != null ? cpu.value.averageMhz / 1000 : null;
-  const display = useCountUp(averageGhz ?? 0, { decimals: 2 });
+  const averageMhz = cpu.status === 'ok' ? cpu.value.averageMhz : null;
+  const useGhz = units.frequency !== 'MHz';
+  const target = averageMhz == null ? 0 : useGhz ? averageMhz / 1000 : averageMhz;
+  const decimals = useGhz ? 2 : 0;
+  const display = useCountUp(target, { decimals });
   const tint = tileAccentColor(definition.accent, colors);
+  const value = averageMhz == null ? '—' : `${display.toFixed(decimals)} ${useGhz ? 'GHz' : 'MHz'}`;
 
   return (
     <>
@@ -113,53 +195,41 @@ function CpuTile({ definition, summary, history }: TileProps & { history: number
         icon={definition.icon}
         trailing={
           cpu.status === 'ok' ? (
-            <Text style={[styles.headerMeta, { color: colors.muted }]}>
+            <Text
+              numberOfLines={1}
+              maxFontSizeMultiplier={MAX_FONT_SCALE}
+              style={[styles.headerMeta, { color: colors.muted }]}
+            >
               {cpu.value.cores} cores
             </Text>
           ) : null
         }
       />
       {cpu.status !== 'ok' ? (
-        <Fallback />
+        <TileFallback wide={wide} />
       ) : (
-        <>
-          <View style={styles.metricRow}>
-            <View style={styles.metricLeft}>
-              <Text style={[styles.metric, { color: colors.text }]}>
-                {averageGhz != null ? display.toFixed(2) : '—'}
-              </Text>
-              <Text style={[styles.metricUnit, { color: colors.muted }]}>GHz average</Text>
-            </View>
-            <View style={styles.metricRight}>
-              <MetricPill
-                label={
-                  cpu.value.maxMhz != null
-                    ? `Max ${formatFrequencyKhz(cpu.value.maxMhz * 1000)}`
-                    : 'Max clock hidden'
-                }
-                tint={tint}
-              />
-            </View>
-          </View>
-          <Text numberOfLines={1} style={[styles.bodyLine, { color: colors.muted }]}>
-            {cpu.value.chipset ?? 'Chipset name not reported'}
-          </Text>
-          <View style={styles.graph}>
+        <TileBody
+          wide={wide}
+          value={value}
+          unit="average clock"
+          visual={
             <LiveGraph
               data={history}
               height={44}
               color={tint}
               accessibilityLabel="Average CPU clock history"
             />
-          </View>
-        </>
+          }
+          caption={cpu.value.chipset ?? 'Chipset name not reported'}
+        />
       )}
     </>
   );
 }
 
-function MemoryTile({ definition, summary, history }: TileProps & { history: number[] }) {
+function MemoryTile({ definition, summary, history, wide }: TileProps & { history: number[] }) {
   const { colors } = useTheme();
+  const formatters = useFormatters();
   const memory = summary.memory;
   const percent = memory.status === 'ok' ? memory.value.percent : null;
   const used = memory.status === 'ok' ? memory.value.usedBytes : null;
@@ -170,39 +240,34 @@ function MemoryTile({ definition, summary, history }: TileProps & { history: num
     <>
       <TileHeader accent={definition.accent} title={definition.title} icon={definition.icon} />
       {memory.status !== 'ok' || percent == null ? (
-        <Fallback />
+        <TileFallback wide={wide} />
       ) : (
-        <>
-          <View style={styles.memoryRow}>
-            <MemoryDonut value={percent} size={78} thickness={8} label="%" />
-            <View style={styles.memoryCopy}>
-              <Text numberOfLines={1} style={[styles.bodyStrong, { color: colors.text }]}>
-                {used != null ? formatBytes(used) : '—'}
-              </Text>
-              <Text numberOfLines={1} style={[styles.caption, { color: colors.muted }]}>
-                of {total != null ? formatBytes(total) : '—'}
-              </Text>
-              <Text numberOfLines={2} style={[styles.caption, { color: colors.muted }]}>
-                {free != null ? `${formatBytes(free)} free` : 'Free not reported'}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.graphSmall}>
+        <TileBody
+          wide={wide}
+          value={used != null ? formatters.bytes(used) : '—'}
+          unit={total != null ? `of ${formatters.bytes(total)} used` : 'of total —'}
+          visual={
             <LiveGraph
               data={history}
-              height={34}
+              height={44}
               color={colors.violet}
               accessibilityLabel="Memory use history"
             />
-          </View>
-        </>
+          }
+          caption={
+            free != null
+              ? `${Math.round(percent)}% used · ${formatters.bytes(free)} free`
+              : `${Math.round(percent)}% used`
+          }
+        />
       )}
     </>
   );
 }
 
-function StorageTile({ definition, summary }: TileProps) {
+function StorageTile({ definition, summary, wide }: TileProps) {
   const { colors } = useTheme();
+  const formatters = useFormatters();
   const storage = summary.storage;
   const percent = storage.status === 'ok' ? storage.value.percent : null;
   const used = storage.status === 'ok' ? storage.value.usedBytes : null;
@@ -214,17 +279,13 @@ function StorageTile({ definition, summary }: TileProps) {
     <>
       <TileHeader accent={definition.accent} title={definition.title} icon={definition.icon} />
       {storage.status !== 'ok' || percent == null ? (
-        <Fallback />
+        <TileFallback wide={wide} />
       ) : (
-        <>
-          <View style={styles.metricRow}>
-            <Text style={[styles.metric, { color: colors.text }]}>{Math.round(percent)}%</Text>
-            <Text style={[styles.metricUnit, { color: colors.muted }]}>used</Text>
-          </View>
-          <Text numberOfLines={1} style={[styles.caption, { color: colors.muted }]}>
-            {used != null ? formatBytes(used) : '—'} of {total != null ? formatBytes(total) : '—'}
-          </Text>
-          <View style={styles.storageBar}>
+        <TileBody
+          wide={wide}
+          value={`${Math.round(percent)}%`}
+          unit="used"
+          visual={
             <StorageBar
               segments={[
                 {
@@ -232,37 +293,35 @@ function StorageTile({ definition, summary }: TileProps) {
                   label: 'Used',
                   value: used ?? 0,
                   color: tint,
-                  valueLabel: used != null ? formatBytes(used) : undefined,
+                  valueLabel: used != null ? formatters.bytes(used) : undefined,
                 },
               ]}
               total={total ?? undefined}
-              height={14}
+              height={16}
               showLegend={false}
             />
-          </View>
-          <Text numberOfLines={1} style={[styles.caption, { color: colors.muted }]}>
-            {free != null ? `${formatBytes(free)} free` : 'Free space not reported'}
-          </Text>
-        </>
+          }
+          caption={
+            used != null && total != null
+              ? `${formatters.bytes(used)} of ${formatters.bytes(total)}${
+                  free != null ? ` · ${formatters.bytes(free)} free` : ''
+                }`
+              : 'Used space not reported'
+          }
+        />
       )}
     </>
   );
 }
 
-function gaugeWidth(size: DashboardTileSize, windowWidth: number): number {
-  if (size === 'l') return Math.max(120, windowWidth - spacing.lg * 2 - 34);
-  return Math.max(96, (windowWidth - spacing.lg * 2 - spacing.md) / 2 - 34);
-}
-
-function BatteryTile({ definition, summary }: TileProps) {
+function BatteryTile({ definition, summary, wide }: TileProps) {
   const { colors } = useTheme();
-  const { width } = useWindowDimensions();
+  const formatters = useFormatters();
   const battery = summary.battery;
   const percent = battery.status === 'ok' ? battery.value.percent : null;
   const charging = battery.status === 'ok' && battery.value.charging;
   const watts = battery.status === 'ok' ? battery.value.watts : null;
   const temperature = battery.status === 'ok' ? battery.value.temperatureC : null;
-  const gaugedWidth = Math.min(190, gaugeWidth('m', width));
 
   return (
     <>
@@ -272,42 +331,45 @@ function BatteryTile({ definition, summary }: TileProps) {
         icon={definition.icon}
         trailing={charging ? <LivePulse color={colors.good} size={7} /> : null}
       />
-      {battery.status !== 'ok' ? (
-        <Fallback />
+      {battery.status !== 'ok' || percent == null ? (
+        <TileFallback
+          wide={wide}
+          message={battery.status === 'ok' ? 'Level not reported' : undefined}
+        />
       ) : (
-        <>
-          {percent != null ? (
+        <TileBody
+          wide={wide}
+          value={`${percent}%`}
+          unit={charging ? 'charging' : 'on battery'}
+          visual={
             <BatteryGauge
               value={percent}
               charging={charging}
-              width={gaugedWidth}
-              height={78}
+              width={wide ? 150 : 124}
+              height={52}
               compact
               particles
             />
-          ) : (
-            <View style={styles.batteryMissing}>
-              <Text style={[styles.metric, { color: colors.text }]}>—</Text>
-              <Text style={[styles.caption, { color: colors.muted }]}>Level not reported</Text>
-            </View>
-          )}
-          <View style={styles.infoRow}>
-            <Text numberOfLines={1} style={[styles.caption, { color: colors.muted }]}>
-              {watts != null ? `${watts.toFixed(1)} W` : 'No power data'}
-            </Text>
-            <Text numberOfLines={1} style={[styles.caption, { color: colors.muted }]}>
-              {temperature != null ? formatTemperature(temperature) : 'No temp'}
-            </Text>
-          </View>
-        </>
+          }
+          caption={
+            watts != null || temperature != null
+              ? [
+                  watts != null ? formatters.power(watts, 2) : null,
+                  temperature != null ? formatters.temperature(temperature) : null,
+                ]
+                  .filter((part): part is string => part != null)
+                  .join(' · ')
+              : 'No power or temperature data'
+          }
+        />
       )}
     </>
   );
 }
 
-function ThermalTile({ definition, summary }: TileProps) {
+function ThermalTile({ definition, summary, wide }: TileProps) {
   const { colors } = useTheme();
-  const { width } = useWindowDimensions();
+  const formatters = useFormatters();
   const thermal = summary.thermal;
   const batteryTemperature =
     summary.battery.status === 'ok' ? summary.battery.value.temperatureC : null;
@@ -318,6 +380,10 @@ function ThermalTile({ definition, summary }: TileProps) {
   const statusLabel = thermal.status === 'ok' ? thermal.value.statusLabel : null;
   const loadPercent = thermal.status === 'ok' ? thermal.value.loadPercent : null;
   const tint = tileAccentColor(definition.accent, colors);
+  // The gauge draws its own numbers, so it needs the same unit as the value.
+  const fahrenheit = formatters.units.temperature === 'F';
+  const gaugeValue =
+    temperature == null || !fahrenheit ? temperature : celsiusToFahrenheit(temperature);
 
   return (
     <>
@@ -327,73 +393,90 @@ function ThermalTile({ definition, summary }: TileProps) {
         icon={definition.icon}
         trailing={
           statusLabel ? (
-            <Text style={[styles.headerMeta, { color: tint }]}>{statusLabel}</Text>
+            <Text
+              numberOfLines={1}
+              maxFontSizeMultiplier={MAX_FONT_SCALE}
+              style={[styles.headerMeta, { color: tint }]}
+            >
+              {statusLabel}
+            </Text>
           ) : null
         }
       />
-      {temperature == null ? (
-        <Fallback text="Temperature not reported" />
+      {temperature == null || gaugeValue == null ? (
+        <TileFallback wide={wide} message="Temperature not reported" />
       ) : (
-        <>
-          <View style={styles.heat}>
-            <HeatShimmer
-              width={gaugeWidth('s', width) - 4}
-              height={50}
-              color={colors.warning}
-              active={temperature >= 42 || (loadPercent ?? 0) >= 70}
+        <TileBody
+          wide={wide}
+          value={formatters.temperature(temperature)}
+          unit="device temperature"
+          visual={
+            <ThermalGauge
+              value={gaugeValue}
+              min={fahrenheit ? 86 : 30}
+              max={fahrenheit ? 194 : 90}
+              size={58}
+              thickness={7}
+              unit={fahrenheit ? '°F' : '°C'}
+              accessibilityLabel="Battery temperature"
             />
-          </View>
-          <ThermalGauge
-            value={temperature}
-            min={30}
-            max={90}
-            size={72}
-            thickness={8}
-            accessibilityLabel="Battery temperature"
-          />
-        </>
+          }
+          caption={
+            loadPercent != null
+              ? `Thermal load ${loadPercent}%`
+              : (statusLabel ?? 'Thermal load not reported')
+          }
+        />
       )}
     </>
   );
 }
 
-function DisplayTile({ definition, summary }: TileProps) {
+/** Small screen-shaped visual for the display tile. */
+function DisplayAspect({ color }: { color: string }) {
+  return (
+    <View style={[styles.aspect, { borderColor: withAlpha(color, 0.55) }]}>
+      <View style={[styles.aspectInner, { backgroundColor: withAlpha(color, 0.16) }]} />
+    </View>
+  );
+}
+
+function DisplayTile({ definition, summary, wide }: TileProps) {
   const { colors } = useTheme();
+  const formatters = useFormatters();
   const display = summary.display;
+  const refresh = display.status === 'ok' ? display.value.refreshRateHz : null;
+  const resolution = display.status === 'ok' ? display.value.resolution : null;
+  const diagonal = display.status === 'ok' ? display.value.diagonalInches : null;
 
   return (
     <>
       <TileHeader accent={definition.accent} title={definition.title} icon={definition.icon} />
       {display.status !== 'ok' ? (
-        <Fallback />
+        <TileFallback wide={wide} />
       ) : (
-        <View style={styles.displayBody}>
-          <Text numberOfLines={1} style={[styles.bodyStrong, { color: colors.text }]}>
-            {display.value.resolution ?? 'Resolution not reported'}
-          </Text>
-          <MetricPill
-            label={
-              display.value.refreshRateHz != null
-                ? `${Math.round(display.value.refreshRateHz)} Hz`
-                : 'Refresh not reported'
-            }
-            tint={colors.primary}
-          />
-          <Text numberOfLines={1} style={[styles.caption, { color: colors.muted }]}>
-            {display.value.diagonalInches != null
-              ? `${display.value.diagonalInches.toFixed(1)}″ panel`
-              : 'Panel size not reported'}
-          </Text>
-        </View>
+        <TileBody
+          wide={wide}
+          value={refresh != null ? `${Math.round(refresh)} Hz` : '—'}
+          unit="refresh rate"
+          visual={<DisplayAspect color={colors.primary} />}
+          caption={
+            diagonal != null
+              ? `${formatters.screenSize(diagonal)}${resolution != null ? ` · ${resolution}` : ''}`
+              : (resolution ?? 'Resolution not reported')
+          }
+        />
       )}
     </>
   );
 }
 
-function NetworkTile({ definition, summary }: TileProps) {
+function NetworkTile({ definition, summary, wide }: TileProps) {
   const { colors } = useTheme();
   const network = summary.network;
   const tint = tileAccentColor(definition.accent, colors);
+  const name = network.status === 'ok' ? network.value.name : null;
+  const connected = network.status === 'ok' && network.value.connected;
 
   return (
     <>
@@ -412,32 +495,30 @@ function NetworkTile({ definition, summary }: TileProps) {
         }
       />
       {network.status !== 'ok' ? (
-        <Fallback />
+        <TileFallback wide={wide} />
       ) : (
-        <>
-          <View style={styles.networkTop}>
-            <Text numberOfLines={1} style={[styles.bodyStrong, { color: colors.text }]}>
-              {network.value.typeLabel}
-            </Text>
-            <SignalBars level={network.value.signalBars} height={16} barWidth={4} color={tint} />
-          </View>
-          <Text numberOfLines={1} style={[styles.networkName, { color: colors.text }]}>
-            {network.value.name ?? (network.value.connected ? 'Name hidden' : 'No active network')}
-          </Text>
-          <Text numberOfLines={1} style={[styles.caption, { color: colors.muted }]}>
-            {network.value.detail ?? network.value.signalLabel ?? '—'}
-          </Text>
-          <View style={styles.networkBottom}>
-            <MetricPill
-              label={
-                network.value.linkSpeedMbps != null
-                  ? `${Math.round(network.value.linkSpeedMbps)} Mbps`
-                  : 'Speed not reported'
-              }
-              tint={tint}
-            />
-          </View>
-        </>
+        <TileBody
+          wide={wide}
+          value={network.value.typeLabel}
+          unit={network.value.signalLabel ?? (connected ? 'connected' : 'offline')}
+          visual={
+            <SignalBars level={network.value.signalBars} height={18} barWidth={5} color={tint} />
+          }
+          caption={
+            name != null ? (
+              <SensitiveValue
+                value={name}
+                copyLabel="Network name"
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                maxFontSizeMultiplier={MAX_FONT_SCALE}
+                style={[styles.caption, { color: colors.muted }]}
+              />
+            ) : (
+              (network.value.detail ?? (connected ? 'Name hidden by Android' : 'No active network'))
+            )
+          }
+        />
       )}
     </>
   );
@@ -453,7 +534,7 @@ type OrbProps = {
 function AccelerometerOrb({ x, y, active, color }: OrbProps) {
   const { colors } = useTheme();
   const dotStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: x.value * 16 }, { translateY: y.value * 16 }],
+    transform: [{ translateX: x.value * 14 }, { translateY: y.value * 14 }],
   }));
 
   return (
@@ -476,9 +557,11 @@ function AccelerometerOrb({ x, y, active, color }: OrbProps) {
 
 function SensorsTile({
   definition,
-  summary,
   inventory,
-}: Omit<TileProps, 'size'> & { inventory: DashboardInventory | null }) {
+  wide,
+}: Omit<TileProps, 'summary'> & {
+  inventory: DashboardInventory | null;
+}) {
   const { colors } = useTheme();
   const sensors = inventory?.sensors ?? null;
   const accelerometerType = sensors?.status === 'ok' ? sensors.value.accelerometerType : null;
@@ -494,60 +577,113 @@ function SensorsTile({
         trailing={accelerometer.streaming ? <LivePulse color={colors.good} size={7} /> : null}
       />
       {inventory == null ? (
-        <Text style={[styles.caption, { color: colors.muted }]}>Reading sensors…</Text>
+        <TileBody
+          wide={wide}
+          value="…"
+          unit="sensors"
+          visual={<Icon name="refresh" size={24} color={colors.muted} />}
+          caption="Reading sensors…"
+        />
       ) : sensors?.status !== 'ok' ? (
-        <Fallback text="Sensor list not available" />
+        <TileFallback wide={wide} message="Sensor list not available" />
       ) : (
-        <>
-          <View style={styles.sensorRow}>
-            <View style={styles.metricLeft}>
-              <Text style={[styles.metric, { color: colors.text }]}>{sensors.value.count}</Text>
-              <Text style={[styles.caption, { color: colors.muted }]}>sensors reported</Text>
-            </View>
+        <TileBody
+          wide={wide}
+          value={String(sensors.value.count)}
+          unit="sensors reported"
+          visual={
             <AccelerometerOrb
               x={accelerometer.x}
               y={accelerometer.y}
               active={accelerometer.streaming}
               color={tint}
             />
-          </View>
-          <Text numberOfLines={1} style={[styles.caption, { color: colors.muted }]}>
-            {accelerometer.streaming
+          }
+          caption={
+            accelerometer.streaming
               ? 'Live tilt preview'
               : accelerometer.available
                 ? 'Tilt preview paused'
-                : 'No accelerometer reported'}
-          </Text>
-        </>
+                : 'No accelerometer reported'
+          }
+        />
       )}
     </>
+  );
+}
+
+function CameraLenses({
+  back,
+  front,
+  tint,
+  muted,
+}: {
+  back: number;
+  front: number;
+  tint: string;
+  muted: string;
+}) {
+  const total = Math.max(1, back + front);
+  return (
+    <View style={styles.lenses}>
+      {Array.from({ length: total }, (_, index) => {
+        const isBack = index < back;
+        return (
+          <View
+            key={index}
+            style={[
+              styles.lens,
+              {
+                borderColor: withAlpha(isBack ? tint : muted, 0.6),
+                backgroundColor: isBack ? withAlpha(tint, 0.22) : 'transparent',
+              },
+            ]}
+          />
+        );
+      })}
+    </View>
   );
 }
 
 function CameraTile({
   definition,
   inventory,
-}: Omit<TileProps, 'size' | 'summary'> & { inventory: DashboardInventory | null }) {
+  wide,
+}: Omit<TileProps, 'summary'> & {
+  inventory: DashboardInventory | null;
+}) {
   const { colors } = useTheme();
   const cameras = inventory?.cameras ?? null;
+  const tint = tileAccentColor(definition.accent, colors);
 
   return (
     <>
       <TileHeader accent={definition.accent} title={definition.title} icon={definition.icon} />
       {inventory == null ? (
-        <Text style={[styles.caption, { color: colors.muted }]}>Reading cameras…</Text>
+        <TileBody
+          wide={wide}
+          value="…"
+          unit="lenses"
+          visual={<Icon name="refresh" size={24} color={colors.muted} />}
+          caption="Reading cameras…"
+        />
       ) : cameras?.status !== 'ok' ? (
-        <Fallback text="Camera list not available" />
+        <TileFallback wide={wide} message="Camera list not available" />
       ) : (
-        <>
-          <View style={styles.cameraMetric}>
-            <Text style={[styles.metric, { color: colors.text }]}>{cameras.value.lensCount}</Text>
-            <Text style={[styles.metricUnit, { color: colors.muted }]}>lenses</Text>
-          </View>
-          <Text numberOfLines={1} style={[styles.caption, { color: colors.muted }]}>
-            {cameras.value.back} back · {cameras.value.front} front
-          </Text>
-        </>
+        <TileBody
+          wide={wide}
+          value={String(cameras.value.lensCount)}
+          unit="lenses"
+          visual={
+            <CameraLenses
+              back={cameras.value.back}
+              front={cameras.value.front}
+              tint={tint}
+              muted={colors.muted}
+            />
+          }
+          caption={`${cameras.value.back} back · ${cameras.value.front} front`}
+        />
       )}
     </>
   );
@@ -569,35 +705,21 @@ type ConnectivityEntryProps = {
   tint: string;
 };
 
-function ConnectivityEntry({ icon, label, stateLabel, active, tint }: ConnectivityEntryProps) {
+function ConnectivityBadge({ icon, label, stateLabel, active, tint }: ConnectivityEntryProps) {
   const { colors } = useTheme();
   return (
-    <View style={styles.connectivityEntry}>
-      <View
-        style={[
-          styles.connectivityIcon,
-          {
-            backgroundColor: withAlpha(active ? tint : colors.muted, 0.1),
-            borderColor: withAlpha(active ? tint : colors.muted, 0.22),
-          },
-        ]}
-      >
-        <Icon name={icon} size={20} color={active ? tint : colors.muted} />
-      </View>
-      <Text numberOfLines={1} style={[styles.caption, { color: colors.text }]}>
-        {label}
-      </Text>
-      <View style={styles.connectivityState}>
-        <View
-          style={[
-            styles.stateDot,
-            { backgroundColor: active ? tint : withAlpha(colors.muted, 0.5) },
-          ]}
-        />
-        <Text numberOfLines={1} style={[styles.caption, { color: colors.muted }]}>
-          {stateLabel}
-        </Text>
-      </View>
+    <View
+      accessible
+      accessibilityLabel={`${label}: ${stateLabel}`}
+      style={[
+        styles.badge,
+        {
+          backgroundColor: withAlpha(active ? tint : colors.muted, 0.1),
+          borderColor: withAlpha(active ? tint : colors.muted, 0.22),
+        },
+      ]}
+    >
+      <Icon name={icon} size={16} color={active ? tint : colors.muted} />
     </View>
   );
 }
@@ -606,60 +728,61 @@ function ConnectivityTile({
   definition,
   summary,
   inventory,
-}: Omit<TileProps, 'size'> & { inventory: DashboardInventory | null }) {
+  wide,
+}: TileProps & {
+  inventory: DashboardInventory | null;
+}) {
   const { colors } = useTheme();
   const connectivity = summary.connectivity;
   const bluetooth = connectivity.status === 'ok' ? connectivity.value.bluetooth : 'unknown';
   const nfc = connectivity.status === 'ok' ? connectivity.value.nfc : 'unknown';
   const uwb = inventory?.uwb ?? (connectivity.status === 'ok' ? connectivity.value.uwb : 'unknown');
   const uwbActive = uwb === 'supported';
+  const activeCount =
+    [bluetooth, nfc].filter((state) => state === 'on').length + (uwbActive ? 1 : 0);
+  const tint = tileAccentColor(definition.accent, colors);
 
   return (
     <>
       <TileHeader accent={definition.accent} title={definition.title} icon={definition.icon} />
-      <View style={styles.connectivityRow}>
-        <ConnectivityEntry
-          icon="bluetooth"
-          label="Bluetooth"
-          stateLabel={CONNECTIVITY_LABELS[bluetooth]}
-          active={bluetooth === 'on'}
-          tint={tileAccentColor('accent', colors)}
-        />
-        <ConnectivityEntry
-          icon="nfc"
-          label="NFC"
-          stateLabel={CONNECTIVITY_LABELS[nfc]}
-          active={nfc === 'on'}
-          tint={colors.violet}
-        />
-        <ConnectivityEntry
-          icon="sensors"
-          label="UWB"
-          stateLabel={uwbActive ? 'Supported' : uwb === 'unavailable' ? 'Not on device' : 'Unknown'}
-          active={uwbActive}
-          tint={colors.primary}
-        />
-      </View>
-      <Text numberOfLines={1} style={[styles.caption, { color: colors.muted }]}>
-        UWB shows hardware support, not a switch.
-      </Text>
+      <TileBody
+        wide={wide}
+        value={String(activeCount)}
+        unit="of 3 radios on"
+        visual={
+          <View style={styles.badgeRow}>
+            <ConnectivityBadge
+              icon="bluetooth"
+              label="Bluetooth"
+              stateLabel={CONNECTIVITY_LABELS[bluetooth]}
+              active={bluetooth === 'on'}
+              tint={tint}
+            />
+            <ConnectivityBadge
+              icon="nfc"
+              label="NFC"
+              stateLabel={CONNECTIVITY_LABELS[nfc]}
+              active={nfc === 'on'}
+              tint={colors.violet}
+            />
+            <ConnectivityBadge
+              icon="sensors"
+              label="UWB"
+              stateLabel={
+                uwbActive ? 'Supported' : uwb === 'unavailable' ? 'Not on device' : 'Unknown'
+              }
+              active={uwbActive}
+              tint={colors.primary}
+            />
+          </View>
+        }
+        caption={[
+          `Bluetooth ${CONNECTIVITY_LABELS[bluetooth]}`,
+          `NFC ${CONNECTIVITY_LABELS[nfc]}`,
+          `UWB ${uwbActive ? 'Supported' : 'No'}`,
+        ].join(' · ')}
+      />
     </>
-  );
-}
-
-function MetricPill({ label, tint }: { label: string; tint: string }) {
-  const { colors } = useTheme();
-  return (
-    <View
-      style={[
-        styles.pill,
-        { backgroundColor: withAlpha(tint, 0.1), borderColor: withAlpha(tint, 0.22) },
-      ]}
-    >
-      <Text numberOfLines={1} style={[styles.pillText, { color: colors.text }]}>
-        {label}
-      </Text>
-    </View>
   );
 }
 
@@ -678,12 +801,22 @@ function connectivityLabel(state: ConnectivityState): string {
   }
 }
 
+export type TileCopyOptions = {
+  /** When false the network name is replaced with "Hidden". */
+  includeSensitive?: boolean;
+  /** The units to print in; defaults to the active (stored) choices. */
+  units?: ResolvedUnits;
+};
+
 /** Plain-text summary of a tile, used by the long-press copy action. */
 export function tileCopySummary(
   id: DashboardTileId,
   summary: DashboardSummary,
   inventory: DashboardInventory | null,
+  options: TileCopyOptions = {},
 ): string {
+  const { includeSensitive = true, units = getActiveUnits() } = options;
+
   switch (id) {
     case 'cpu': {
       const cpu = summary.cpu;
@@ -691,11 +824,13 @@ export function tileCopySummary(
       return [
         `Average clock: ${
           cpu.value.averageMhz != null
-            ? `${(cpu.value.averageMhz / 1000).toFixed(2)} GHz`
+            ? formatFrequencyKhz(cpu.value.averageMhz * 1000, units.frequency)
             : NOT_AVAILABLE
         }`,
         `Max clock: ${
-          cpu.value.maxMhz != null ? formatFrequencyKhz(cpu.value.maxMhz * 1000) : 'Hidden'
+          cpu.value.maxMhz != null
+            ? formatFrequencyKhz(cpu.value.maxMhz * 1000, units.frequency)
+            : 'Hidden'
         }`,
         `Cores: ${cpu.value.cores}`,
         `Chipset: ${cpu.value.chipset ?? NOT_AVAILABLE}`,
@@ -704,18 +839,12 @@ export function tileCopySummary(
     case 'memory': {
       const memory = summary.memory;
       if (memory.status !== 'ok') return `Memory: ${NOT_AVAILABLE}`;
-      const free = Math.max(0, memory.value.totalBytes - memory.value.usedBytes);
-      return `${Math.round(memory.value.percent)}% used · ${formatBytes(
-        memory.value.usedBytes,
-      )} of ${formatBytes(memory.value.totalBytes)} · ${formatBytes(free)} free`;
+      return `${Math.round(memory.value.percent)}% used`;
     }
     case 'storage': {
       const storage = summary.storage;
       if (storage.status !== 'ok') return `Storage: ${NOT_AVAILABLE}`;
-      const free = Math.max(0, storage.value.totalBytes - storage.value.usedBytes);
-      return `${Math.round(storage.value.percent)}% used · ${formatBytes(
-        storage.value.usedBytes,
-      )} of ${formatBytes(storage.value.totalBytes)} · ${formatBytes(free)} free`;
+      return `${Math.round(storage.value.percent)}% used`;
     }
     case 'battery': {
       const battery = summary.battery;
@@ -723,11 +852,15 @@ export function tileCopySummary(
       return [
         `Level: ${battery.value.percent == null ? NOT_AVAILABLE : `${battery.value.percent}%`}`,
         `State: ${battery.value.charging ? 'Charging' : 'On battery'}`,
-        `Power: ${battery.value.watts == null ? NOT_AVAILABLE : `${battery.value.watts.toFixed(1)} W`}`,
+        `Power: ${
+          battery.value.watts == null
+            ? NOT_AVAILABLE
+            : formatPower(battery.value.watts, units.power, 2)
+        }`,
         `Temperature: ${
           battery.value.temperatureC == null
             ? NOT_AVAILABLE
-            : formatTemperature(battery.value.temperatureC)
+            : formatTemperature(battery.value.temperatureC, units.temperature, 0)
         }`,
       ].join(' · ');
     }
@@ -738,7 +871,7 @@ export function tileCopySummary(
         `Temperature: ${
           thermal.value.temperatureC == null
             ? NOT_AVAILABLE
-            : formatTemperature(thermal.value.temperatureC)
+            : formatTemperature(thermal.value.temperatureC, units.temperature, 0)
         }`,
         `Status: ${thermal.value.statusLabel ?? NOT_AVAILABLE}`,
         `Load: ${thermal.value.loadPercent == null ? NOT_AVAILABLE : `${thermal.value.loadPercent}%`}`,
@@ -757,22 +890,25 @@ export function tileCopySummary(
         `Panel: ${
           display.value.diagonalInches == null
             ? NOT_AVAILABLE
-            : `${display.value.diagonalInches.toFixed(1)} inches`
+            : formatScreenSize(display.value.diagonalInches, units.screenSize)
         }`,
       ].join(' · ');
     }
     case 'network': {
       const network = summary.network;
       if (network.status !== 'ok') return `Network: ${NOT_AVAILABLE}`;
+      const name =
+        network.value.name == null
+          ? network.value.connected
+            ? 'Hidden'
+            : 'No active network'
+          : includeSensitive
+            ? network.value.name
+            : 'Hidden';
       return [
         network.value.typeLabel,
-        `Name: ${network.value.name ?? (network.value.connected ? 'Hidden' : 'No active network')}`,
+        `Name: ${name}`,
         `Detail: ${network.value.detail ?? network.value.signalLabel ?? NOT_AVAILABLE}`,
-        `Link speed: ${
-          network.value.linkSpeedMbps == null
-            ? NOT_AVAILABLE
-            : `${Math.round(network.value.linkSpeedMbps)} Mbps`
-        }`,
       ].join(' · ');
     }
     case 'sensors': {
@@ -802,183 +938,107 @@ export function tileCopySummary(
 }
 
 const styles = StyleSheet.create({
-  fallback: {
+  body: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.xs,
-  },
-  fallbackText: {
-    ...typography.caption,
-    textAlign: 'center',
-    paddingHorizontal: spacing.xs,
-  },
-  headerMeta: {
-    ...typography.caption,
-    fontFamily: 'Inter_600SemiBold',
-  },
-  metricRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
     gap: spacing.sm,
   },
-  metricLeft: {
-    flexShrink: 1,
+  main: {
+    gap: spacing.xs,
   },
-  metricRight: {
-    flexShrink: 0,
-    alignItems: 'flex-end',
+  mainWide: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  valueBlock: {
+    flexShrink: 1,
   },
   metric: {
     ...typography.display,
     fontVariant: ['tabular-nums'],
-    lineHeight: 36,
+    lineHeight: 38,
   },
   metricUnit: {
     ...typography.caption,
     marginTop: -2,
   },
-  bodyLine: {
-    ...typography.body,
+  visual: {
+    flex: 1,
+    minHeight: 40,
+    justifyContent: 'center',
   },
-  bodyStrong: {
-    ...typography.body,
-    fontFamily: 'Inter_600SemiBold',
+  visualWide: {
+    flex: 0,
+    width: 150,
+    alignItems: 'flex-end',
+  },
+  captionRow: {
+    marginTop: 'auto',
   },
   caption: {
     ...typography.caption,
   },
-  graph: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  graphSmall: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  pill: {
-    borderWidth: 1,
-    borderRadius: radius.chip,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    maxWidth: '100%',
-  },
-  pillText: {
+  headerMeta: {
     ...typography.caption,
     fontFamily: 'Inter_600SemiBold',
-    fontVariant: ['tabular-nums'],
   },
-  memoryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-  },
-  memoryCopy: {
-    flex: 1,
-    gap: 1,
-  },
-  storageBar: {
-    marginTop: spacing.xs,
-  },
-  batteryMissing: {
-    height: 60,
-    alignItems: 'center',
+  aspect: {
+    width: 92,
+    height: 44,
+    borderRadius: 8,
+    borderWidth: 2,
+    padding: 4,
     justifyContent: 'center',
   },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.xs,
-  },
-  heat: {
-    position: 'absolute',
-    top: 28,
-    left: 0,
-  },
-  displayBody: {
+  aspectInner: {
     flex: 1,
-    justifyContent: 'center',
-    gap: spacing.xs,
-  },
-  displayResolution: {
-    ...typography.title,
-    fontVariant: ['tabular-nums'],
-  },
-  networkTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.xs,
-  },
-  networkName: {
-    ...typography.title,
-  },
-  networkBottom: {
-    flex: 1,
-    justifyContent: 'flex-end',
+    borderRadius: 4,
   },
   orb: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   orbRing: {
     position: 'absolute',
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 34,
+    height: 34,
+    borderRadius: 17,
     borderWidth: 1,
   },
   orbDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
   },
-  sensorRow: {
+  lenses: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  cameraMetric: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: spacing.xs,
-    marginTop: spacing.xs,
-  },
-  connectivityRow: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  connectivityEntry: {
-    flex: 1,
+    flexWrap: 'wrap',
     alignItems: 'center',
     gap: spacing.xs,
+    maxWidth: 110,
   },
-  connectivityIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 16,
+  lens: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 2,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  badge: {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  connectivityState: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  stateDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
   },
 });

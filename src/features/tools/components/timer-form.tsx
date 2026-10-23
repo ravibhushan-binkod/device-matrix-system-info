@@ -100,7 +100,7 @@ export function TimerFormScreen() {
         <TextInput
           value={label}
           onChangeText={setLabel}
-          placeholder="Timer label (optional)"
+          placeholder="Timer label"
           placeholderTextColor={colors.muted}
           maxLength={60}
           style={[

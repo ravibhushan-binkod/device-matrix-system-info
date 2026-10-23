@@ -1,9 +1,9 @@
 export type CpuFrequencyBar = {
   /** "0" … "7" — the CPU number as on the device. */
   label: string;
-  /** Current frequency in MHz, for the bar ratio. */
+  /** Current frequency in the chart's display unit (`barsUnit`), for the ratio. */
   value: number;
-  /** Formatted frequency, e.g. "2.20 GHz". */
+  /** Formatted frequency in the user's unit, e.g. "2.20 GHz". */
   text: string;
 };
 
@@ -36,13 +36,17 @@ export type CpuScreenData = {
   chipset: string | null;
   socManufacturer: string | null;
   socModel: string | null;
+  /** `Build.HARDWARE`, used by brand detection. */
+  hardware: string | null;
   cores: number | null;
   abis: string | null;
   /** Distinct governors across the cores, e.g. "schedutil". */
   governor: string | null;
   bars: CpuFrequencyBar[];
-  /** Highest readable frequency in MHz, used to scale the bars. */
-  barsMaxMhz: number;
+  /** Highest readable frequency in `barsUnit`, used to scale the bars. */
+  barsMax: number;
+  /** The unit every bar shares: "GHz" or "MHz". */
+  barsUnit: 'GHz' | 'MHz';
   clusters: CpuCluster[];
   coreRows: CpuCoreRow[];
   gpuRenderer: string | null;

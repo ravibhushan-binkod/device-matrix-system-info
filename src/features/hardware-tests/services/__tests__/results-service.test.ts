@@ -84,11 +84,11 @@ describe('summary and status', () => {
       microphone: { outcome: 'pass', testedAt: 1 },
     });
     expect(summary).toEqual({
-      total: 12,
-      passed: 1,
+      total: 14,
+      passed: 2,
       failed: 1,
-      untested: 10,
-      percent: 17,
+      untested: 11,
+      percent: 21,
     });
     expect(testStatus({ display: { outcome: 'pass', testedAt: 1 } }, 'display')).toBe('pass');
     expect(testStatus({}, 'display')).toBe('untested');
@@ -103,7 +103,7 @@ describe('dates and text', () => {
     expect(formatTestDate(Number.NaN, NOW)).toBe('Unknown date');
   });
 
-  it('builds a shareable checklist with pass, fail and optional states', () => {
+  it('builds a shareable checklist with pass, fail and untested states', () => {
     const text = buildChecklistText(
       {
         display: { outcome: 'pass', testedAt: new Date(2026, 9, 20, 14, 3).getTime() },
@@ -115,8 +115,8 @@ describe('dates and text', () => {
     expect(text).toContain('[x] Display & pixels — Passed (Today, 14:03)');
     expect(text).toContain('[!] Loudspeaker — Failed (Yesterday, 09:12)');
     expect(text).toContain('[ ] Multi-touch — Untested');
-    expect(text).toContain('[ ] Microphone — Off in this build');
-    expect(text).toContain('[ ] Volume buttons — Skipped on this device');
+    expect(text).toContain('[ ] Microphone — Untested');
+    expect(text).toContain('[ ] Volume buttons — Untested');
   });
 
   it('gives the report an honest line for each state', () => {
@@ -125,7 +125,7 @@ describe('dates and text', () => {
     };
     expect(reportLine(results, 'display', NOW)).toBe('Passed · Today, 14:03');
     expect(reportLine(results, 'light', NOW)).toBe('Untested');
-    expect(reportLine(results, 'microphone', NOW)).toBe('Off in this build');
-    expect(reportLine(results, 'volume', NOW)).toBe('Skipped on this device');
+    expect(reportLine(results, 'microphone', NOW)).toBe('Untested');
+    expect(reportLine(results, 'volume', NOW)).toBe('Untested');
   });
 });

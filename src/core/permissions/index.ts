@@ -15,3 +15,6 @@ export const NEARBY_WIFI_DEVICES_PERMISSION = PermissionsAndroid.PERMISSIONS.NEA
 
 /** The Android 12+ "Nearby devices" permission required to read the Bluetooth state. */
 export const BLUETOOTH_STATE_PERMISSION = PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT;
+
+/** Runtime permission for the microphone check. Audio is only metered, never kept. */
+export const MICROPHONE_PERMISSION = PermissionsAndroid.PERMISSIONS.RECORD_AUDIO;

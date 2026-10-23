@@ -1,8 +1,9 @@
 import { getBatteryInfo } from '@/core/native';
 import type { Result } from '@/core/result';
+import { getActiveUnits } from '@/core/units/active';
+import { formatTemperature } from '@/core/units/format';
 import { formatByteSize } from '@/core/utils/format-bytes';
 import { formatTimeout } from '@/core/utils/format-duration';
-import { formatTemperature } from '@/core/utils/format-temperature';
 import { readStorageStats, readUsageAccess } from '@/features/apps/services/apps-service';
 import {
   batteryHealthLabel,
@@ -74,7 +75,7 @@ function deviceSection(): MatrixSection {
 
 function cpuSection(): MatrixSection {
   const { cpu, gpu } = readCpuInfo();
-  const data = buildCpuScreenData(cpu, gpu);
+  const data = buildCpuScreenData(cpu, gpu, getActiveUnits());
   const entries: MatrixEntry[] = [];
 
   if (cpu.status !== 'ok')
@@ -118,7 +119,8 @@ function cpuSection(): MatrixSection {
 }
 
 function thermalSection(): MatrixSection {
-  const result = readThermalInfo();
+  const units = getActiveUnits();
+  const result = readThermalInfo(units);
   if (result.status !== 'ok') {
     return failureSection('thermal', 'Thermal', resultNote(result));
   }
@@ -134,7 +136,9 @@ function thermalSection(): MatrixSection {
     entry(
       'thermal-battery-temp',
       'Thermal · Battery temperature',
-      info.batteryTemperatureC == null ? null : formatTemperature(info.batteryTemperatureC, 'C', 1),
+      info.batteryTemperatureC == null
+        ? null
+        : formatTemperature(info.batteryTemperatureC, units.temperature, 1),
     ),
   ];
 
@@ -165,7 +169,9 @@ function batterySection(): MatrixSection {
   }
 
   const reading = result.value;
-  const stats = new Map(buildBatteryStats(reading).map((stat) => [stat.key, stat.value]));
+  const stats = new Map(
+    buildBatteryStats(reading, getActiveUnits()).map((stat) => [stat.key, stat.value]),
+  );
 
   const entries: MatrixEntry[] = [
     entry(

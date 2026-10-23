@@ -26,6 +26,7 @@ export function useReport() {
   const [preview, setPreview] = useState<ReportDocument | null>(null);
   const [busy, setBusy] = useState<ReportBusy>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [includeIdentifying, setIncludeIdentifyingState] = useState(false);
   const requestId = useRef(0);
 
   const resetPreview = useCallback(() => {
@@ -34,6 +35,15 @@ export function useReport() {
     setBusy(null);
     setNotice(null);
   }, []);
+
+  /** OFF by default; switching it invalidates the preview like any selection. */
+  const setIncludeIdentifying = useCallback(
+    (value: boolean) => {
+      resetPreview();
+      setIncludeIdentifyingState(value);
+    },
+    [resetPreview],
+  );
 
   const toggle = useCallback(
     (id: ReportGroupId) => {
@@ -70,7 +80,7 @@ export function useReport() {
     setBusy('preview');
     setNotice(null);
     try {
-      const document = await buildReport([...selected]);
+      const document = await buildReport([...selected], new Date(), { includeIdentifying });
       if (requestId.current !== id) return;
       setPreview(document);
     } catch {
@@ -78,7 +88,7 @@ export function useReport() {
     } finally {
       if (requestId.current === id) setBusy(null);
     }
-  }, [selected]);
+  }, [includeIdentifying, selected]);
 
   const copy = useCallback(async () => {
     if (!preview) return;
@@ -129,6 +139,8 @@ export function useReport() {
     toggle,
     selectAll,
     clearAll,
+    includeIdentifying,
+    setIncludeIdentifying,
     preview,
     buildPreview,
     copy,
