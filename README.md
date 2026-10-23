@@ -5,7 +5,7 @@ Android-only device information app ("Device Matrix" on the launcher). Shows dev
 - App id / package: `com.binkod.devicematrix`
 - Expo slug: `device-matrix` · URL scheme: `devicematrix`
 - Stack: Expo SDK 57 (RN 0.86), Expo Router, Reanimated, Gesture Handler, Skia, react-native-svg, Zustand, MMKV, lucide-react-native, custom Kotlin Expo Modules under `/modules`
-- No backend, no accounts, no analytics. Network is used only for ads (AdMob, planned); settings are stored locally with MMKV.
+- No backend, no accounts, no analytics. Network is used only for ads (Google AdMob); settings are stored locally with MMKV.
 
 ## Requirements
 
@@ -56,7 +56,7 @@ modules/            local Kotlin Expo Modules (added with the native phases)
 assets/images       app icon, adaptive icon and splash assets
 ```
 
-Routes: five bottom tabs (Home, Hardware, Network, Apps, Tools), `settings` behind the gear icon in the header, and a dev-only `/dev/gallery` route (redirects home in production builds).
+Routes: five bottom tabs (Home, Hardware, Network, Apps, Tools) with one shared top bar and a left navigation drawer, `settings` behind the gear icon, plus `widgets`, `about`, `privacy`, `report` (Export info) and hardware-test detail screens. Developer tools are a debug-only modal opened by five long-presses on the drawer version; release builds have no route or entry point.
 
 ## Status
 

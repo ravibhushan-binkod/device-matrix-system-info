@@ -3,7 +3,7 @@ import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import {
   AdSlot,
-  BrandLogo,
+  DeviceBrandLogo,
   Button,
   Card,
   CopyableText,
@@ -116,7 +116,7 @@ function BrandHeader({ branding }: { branding: DeviceBranding }) {
       <View style={styles.brandRow}>
         {branding.phone ? (
           <View style={styles.brandItem}>
-            <BrandLogo mark={branding.phone} size={30} color={colors.accent} />
+            <DeviceBrandLogo mark={branding.phone} size={30} color={colors.accent} />
             <Text
               numberOfLines={1}
               maxFontSizeMultiplier={1.3}
@@ -128,7 +128,7 @@ function BrandHeader({ branding }: { branding: DeviceBranding }) {
         ) : null}
         {branding.platform ? (
           <View style={styles.brandItem}>
-            <BrandLogo mark={branding.platform} size={22} color={colors.accent} />
+            <DeviceBrandLogo mark={branding.platform} size={22} color={colors.accent} />
             <Text
               numberOfLines={1}
               maxFontSizeMultiplier={1.3}

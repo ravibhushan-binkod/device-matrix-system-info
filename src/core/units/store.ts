@@ -28,9 +28,10 @@ function readPreferences(): UnitPreferences {
 }
 
 /**
- * Mirrors the two choices the widget will need later (temperature and
- * storage) into Android SharedPreferences. The widget is not required: if the
- * module is missing (web, a stripped build) this is a no-op.
+ * Mirrors the unit choices the widgets can use (storage for the RAM widget's
+ * sizes; the temperature key is retained for stored-preference compatibility)
+ * into Android SharedPreferences. The widgets are not required: if the module
+ * is missing (web, a stripped build) this is a no-op.
  */
 export function mirrorUnitsToWidget(units: ResolvedUnits): void {
   try {
@@ -53,6 +54,7 @@ function initialState(): Pick<UnitsState, 'preferences' | 'units'> {
   const preferences = readPreferences();
   const units = resolveUnits(preferences);
   setActiveUnits(units);
+  mirrorUnitsToWidget(units);
   return { preferences, units };
 }
 

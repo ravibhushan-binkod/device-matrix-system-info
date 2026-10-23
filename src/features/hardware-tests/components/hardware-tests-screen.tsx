@@ -256,8 +256,8 @@ export function HardwareTestsScreen() {
           <Text style={[styles.shareError, { color: colors.warning }]}>{shareError}</Text>
         ) : null}
         <Text style={[styles.progressNote, { color: colors.muted }]}>
-          {RUNNABLE_HARDWARE_TESTS.length} guided checks. Optional checks that are off or skipped
-          are shown with the reason, but do not count towards progress.
+          {RUNNABLE_HARDWARE_TESTS.length} guided checks. If Android cannot run one on this phone,
+          the reason appears and the check is not counted towards progress.
         </Text>
       </Card>
 

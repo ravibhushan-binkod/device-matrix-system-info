@@ -18,7 +18,8 @@ import {
 } from '@/features/hardware-tests/components/connection-tests';
 import { TestShell } from '@/features/hardware-tests/components/test-shell';
 import { TorchTest, VibrationTest } from '@/features/hardware-tests/components/physical-tests';
-import { UnavailableTest } from '@/features/hardware-tests/components/unavailable-test';
+import { MicrophoneTest } from '@/features/hardware-tests/components/microphone-test';
+import { VolumeButtonTest } from '@/features/hardware-tests/components/volume-test';
 import {
   RUNNABLE_HARDWARE_TESTS,
   getHardwareTest,
@@ -155,9 +156,9 @@ export function HardwareTestDetailScreen() {
       case 'bluetooth':
         return <BluetoothTest onUnavailable={handleUnavailable} />;
       case 'volume':
+        return <VolumeButtonTest onUnavailable={handleUnavailable} />;
       case 'microphone':
-      case 'fingerprint':
-        return <UnavailableTest definition={definition} />;
+        return <MicrophoneTest onUnavailable={handleUnavailable} />;
       default:
         return null;
     }

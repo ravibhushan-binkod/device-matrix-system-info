@@ -27,26 +27,29 @@ DEVICE INFO AND SYSTEM INFO AT A GLANCE
 • Display: resolution, density, refresh rate, HDR capabilities
 • Camera and sensors: the hardware list the OS exposes, with live sensor graphs
 • Network: Wi-Fi link details, cellular state, Bluetooth and NFC status
+• Home-screen widgets: RAM, storage, battery and device-health sizes with a live preview in the app
 
 A DEVICE INFO APP WITHOUT THE HYPE
 No boosters, no "free up memory" buttons, no fake numbers. Where Android does not let an app change a setting — like switching Wi-Fi — Device Matrix opens the right system Settings screen instead.
 
 HARDWARE TEST TOOLS
-• Screen test: step through full-screen colours to check for stuck pixels
-• Touch test: drag across the grid to verify every screen zone responds
-• Ring, vibration and alarm/time handoff to your clock app
+• Display and multi-touch checks with full-screen colours and a drag grid
+• Sound: loudspeaker, earpiece, microphone level meter and volume buttons
+• Sensors: proximity, light and accelerometer with live readings
+• Power and radios: charging, headset/USB audio, vibration, flashlight and Bluetooth
+• A shareable used-phone checklist with pass/fail results stored on the phone
 
 PHONE SPECS AND APP DETAILS
 • Searchable, sortable list of installed apps
 • App details: version, target SDK, install and update dates, one-tap App info
-• Optional Usage Access unlocks per-app sizes (largest apps) and screen-time ranking
+• Usage Access (special access) unlocks per-app sizes (largest apps) and screen-time ranking
 
 PRIVATE BY DESIGN
 • No account, no sign-in, no cloud storage, no analytics
 • Your readings stay on your phone
 • Unavailable values are labelled honestly, never invented
 
-Device Matrix is free to use and supported by ads shown away from live graphs, tests and settings screens.
+Device Matrix is free to use and supported by ads shown away from live graphs, tests, live widget previews and settings screens.
 ```
 
 Character count is well under Play's 4 000 limit. The natural search words —
@@ -94,72 +97,20 @@ flow is required).
 
 ## Privacy policy (text to host)
 
-Publish this at a stable URL (for example
+Publish `docs/legal/privacy-policy.html` unchanged at a stable URL (for example
 `https://<your-domain>/device-matrix/privacy`), link it from the Play Console
-listing, and replace `<contact>` before publishing.
+listing, and set `EXPO_PUBLIC_SUPPORT_EMAIL` before the release build so the
+address in the policy and the app is real. The HTML is the canonical text; the
+in-app Privacy screen uses the same sections from
+`src/features/legal/content.ts`.
 
-> **Device Matrix: System Info — Privacy Policy**
->
-> Last updated: 21 October 2026
->
-> Device Matrix reads information about your device — model, OS, CPU, memory,
-> storage, battery, thermal, display, camera and sensor capabilities, network
-> and installed apps — and shows it on your phone. That information never
-> leaves your device: the app has no account, no backend, no cloud storage and
-> no analytics or crash-reporting service.
->
-> **Advertising.** The app shows ads served by Google AdMob. To serve ads,
-> Google's Mobile Ads SDK may access your device's advertising ID and basic
-> device and app information, and may collect diagnostics and approximate
-> location as described in Google's own policies. Where required by law (for
-> example in the EEA and the UK), the app asks for your consent through
-> Google's consent form before any ad is requested; you can change or withdraw
-> that choice at any time from Settings → Privacy → Ad privacy options. How
-> Google uses data:
-> https://policies.google.com/technologies/partner-sites and
-> https://policies.google.com/privacy. You can reset or delete your Android
-> advertising ID in Settings → Privacy → Ads.
->
-> **Permissions.** Internet and network state are used for ads; vibration is
-> used for haptic feedback. Set-alarm is used only when you create an alarm or
-> timer, NFC is read-only and used only when you open that information, and
-> modify-audio-settings is used only by the earpiece test.
->
-> Location is requested only when you open Wi-Fi details or the Wi-Fi analyzer,
-> because Android treats Wi-Fi network names and nearby-network scans as
-> location data. Nearby Wi-Fi Devices is used only for the Android 13+
-> nearby-network list, and Bluetooth Connect is requested only to read whether
-> Bluetooth is on. Usage Access is optional and is opened from Android's
-> special-access settings; it is used only for the Apps tab's sizes, screen
-> time and permission analysis. The app never asks for contacts, SMS, camera,
-> microphone or overlay permissions, and never scans for or connects to
-> Bluetooth devices.
->
-> **Data you create.** Theme, accent and unit choices, dashboard choices, saved
-> hardware-test results and your ads consent state are stored only on your
-> phone. Clearing the app's data or uninstalling the app removes them. A report
-> you create is built on the phone; text leaves only when you tap Copy or Share,
-> and a PDF leaves only through Android's share sheet.
->
-> **Sensitive values.** Wi-Fi network names, BSSID, IP addresses, DNS servers
-> and the build fingerprint are masked by default; you can reveal one value for
-> ten seconds by tapping it. Reports leave identifying details out unless you
-> turn on "Include identifying details" for a single export. The app's own code
-> never reads the IMEI, serial number, Android ID, advertising ID, phone number,
-> MAC address or precise location.
->
-> **Home-screen widget (optional).** If you add the Device Matrix widget, it
-> reads the battery, memory and storage values on your phone and shows them in
-> your launcher. Nothing leaves the device.
->
-> **Audience.** The app is aimed at users aged 13 and over; it is not directed
-> at children under 13.
->
-> Questions: <contact>.
+The policy also describes the Google UMP “Manage ad choices” behaviour:
+the in-app button appears only when Google reports that the privacy-options form
+is required. The button does not exist on any other screen.
 
 ## Assets checklist
 
 - Feature graphic 1024 × 500
-- Phone screenshots (min 2, up to 8): Home, CPU, Battery, Storage, Apps, Screen test
+- Phone screenshots (min 2, up to 8): Home, CPU, Battery, Storage, Apps, Hardware tests, Widgets preview and About
 - App icon: already at `assets/images/icon.png` (1024 × 1024), adaptive icon included
 - Privacy policy URL (required by Play even without an account)

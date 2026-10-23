@@ -16,12 +16,17 @@ import {
 } from '@/core/units';
 import { UnitPickerSheet } from '@/features/settings/components/unit-picker-sheet';
 
+type UnitsSettingsProps = {
+  /** Hide the explanatory card when embedded in Settings. */
+  embedded?: boolean;
+};
+
 /**
- * Settings · Units and formats. Every row starts at "System default" and
- * shows the value resolved from the phone's locale/region in grey; the exact
- * choice can be overridden row by row.
+ * Every unit category, starting at "System default" with the value this phone
+ * resolves shown in grey. Reused by Settings and the standalone Units route so
+ * there is only one implementation of the choices.
  */
-export function UnitsScreen() {
+export function UnitsSettings({ embedded = false }: UnitsSettingsProps) {
   const { colors } = useTheme();
   const preferences = useUnitsStore((state) => state.preferences);
   const setPreference = useUnitsStore((state) => state.setPreference);
@@ -34,15 +39,16 @@ export function UnitsScreen() {
     editing == null ? null : (UNIT_SETTINGS.find((s) => s.key === editing) ?? null);
 
   return (
-    <Screen scroll contentStyle={styles.content}>
-      <SectionHeader title="Units and formats" />
-      <Card contentStyle={styles.stack}>
-        <Text style={[typography.body, { color: colors.muted }]}>
-          Every reading follows these choices. Rows left at “System default” follow this phone’s
-          region and language; the resolved value is shown next to them and updates when you change
-          a row.
-        </Text>
-      </Card>
+    <>
+      {embedded ? null : (
+        <Card contentStyle={styles.stack}>
+          <Text style={[typography.body, { color: colors.muted }]}>
+            Every reading follows these choices. Rows left at “System default” follow this phone’s
+            region and language; the resolved value is shown next to them and updates when you
+            change a row.
+          </Text>
+        </Card>
+      )}
 
       {UNIT_SETTINGS.map((setting) => {
         const selectedValue = preferences[setting.key];
@@ -84,12 +90,14 @@ export function UnitsScreen() {
 
       <Button title="Reset units to default" variant="ghost" icon="refresh" onPress={resetUnits} />
 
-      <Card contentStyle={styles.stack}>
-        <Text style={[typography.caption, { color: colors.muted }]}>
-          Choices are saved only on this phone (temperature and storage are also written to the Home
-          widget’s local preferences). No unit choice leaves the device.
-        </Text>
-      </Card>
+      {embedded ? null : (
+        <Card contentStyle={styles.stack}>
+          <Text style={[typography.caption, { color: colors.muted }]}>
+            Choices are saved only on this phone. Your storage choice is also used by the RAM
+            home-screen widget to format sizes. No unit choice leaves the device.
+          </Text>
+        </Card>
+      )}
 
       {activeSetting ? (
         <UnitPickerSheet
@@ -102,6 +110,16 @@ export function UnitsScreen() {
           onClose={() => setEditing(null)}
         />
       ) : null}
+    </>
+  );
+}
+
+/** Standalone route retained for deep links; Settings embeds the same rows. */
+export function UnitsScreen() {
+  return (
+    <Screen scroll contentStyle={styles.content}>
+      <SectionHeader title="Units and formats" />
+      <UnitsSettings />
     </Screen>
   );
 }

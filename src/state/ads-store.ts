@@ -14,7 +14,7 @@ export type AdsStatus = 'idle' | 'running' | 'ready' | 'blocked' | 'error' | 'di
 
 type AdsState = {
   status: AdsStatus;
-  /** The last startup failure message, for the Settings developer section. */
+  /** The last startup failure message, for the debug-only developer tools. */
   lastError: string | null;
   setStatus: (status: AdsStatus, error?: string | null) => void;
 };

@@ -8,7 +8,6 @@ import { accents } from '@/design-system/tokens';
 const THEME_KEY = 'settings.themeMode';
 const ACCENT_KEY = 'settings.accent';
 const ANIMATION_KEY = 'settings.animationMode';
-const HIDE_SENSITIVE_KEY = 'settings.hideSensitiveValues';
 
 function readThemeMode(): ThemeMode {
   const stored = getString(THEME_KEY);
@@ -26,9 +25,9 @@ function readAnimationMode(): MotionMode {
   return stored === 'full' || stored === 'reduced' || stored === 'off' ? stored : 'full';
 }
 
-/** Masking is the safe default: only an explicit "false" turns it off. */
+/** Masking is permanent; there is intentionally no switch to turn it off. */
 function readHideSensitiveValues(): boolean {
-  return getString(HIDE_SENSITIVE_KEY) !== 'false';
+  return true;
 }
 
 type SettingsState = {
@@ -65,9 +64,8 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     setString(ANIMATION_KEY, animationMode);
     set({ animationMode, autoReduced: false });
   },
-  setHideSensitiveValues: (hideSensitiveValues) => {
-    setString(HIDE_SENSITIVE_KEY, hideSensitiveValues ? 'true' : 'false');
-    set({ hideSensitiveValues });
+  setHideSensitiveValues: () => {
+    set({ hideSensitiveValues: true });
   },
   markAutoReduced: () => set({ autoReduced: true }),
 }));

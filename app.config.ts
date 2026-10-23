@@ -34,10 +34,14 @@ const config: ExpoConfig = {
       // Normal permission for the earpiece check: Android needs it to switch
       // audio to communication mode and back. It is auto-granted at install.
       'android.permission.MODIFY_AUDIO_SETTINGS',
-      // Runtime/optional — only requested when the matching feature is used.
+      // Runtime permissions — requested only when the matching feature is used.
       'android.permission.ACCESS_FINE_LOCATION', // Wi-Fi name (SSID) + nearby-network scan
       'android.permission.NEARBY_WIFI_DEVICES', // Wi-Fi scan list on Android 13+
       'android.permission.BLUETOOTH_CONNECT', // Bluetooth state on Android 12+
+      // Runtime-only microphone check. The app never records, stores or sends
+      // audio: the native meter reads levels while the test is open, then
+      // releases the recorder immediately when the screen leaves or pauses.
+      'android.permission.RECORD_AUDIO',
       // Special access, granted by the user under Settings > Special access >
       // Usage access — only the Apps tab's usage insights read it, and the tab
       // shows a banner with the exact screen when it is missing.
@@ -47,7 +51,6 @@ const config: ExpoConfig = {
       'android.permission.QUERY_ALL_PACKAGES',
       'android.permission.READ_PHONE_STATE',
       'android.permission.CAMERA',
-      'android.permission.RECORD_AUDIO',
       'android.permission.SYSTEM_ALERT_WINDOW',
       'android.permission.READ_CONTACTS',
       'android.permission.WRITE_CONTACTS',
@@ -119,6 +122,9 @@ const config: ExpoConfig = {
     reactCompiler: true,
   },
   extra: {
+    // Public support address shown in the privacy policy. Replace the
+    // placeholder before publishing the store listing.
+    supportEmail: process.env.EXPO_PUBLIC_SUPPORT_EMAIL ?? null,
     // AdMob IDs as seen at build time. The runtime reads the same
     // EXPO_PUBLIC_ADMOB_* variables directly (Metro inlines them into the
     // bundle) — see src/core/ads/config.ts. No live ID is ever committed.

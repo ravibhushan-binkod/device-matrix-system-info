@@ -120,7 +120,7 @@ export function AlarmFormScreen() {
         <TextInput
           value={label}
           onChangeText={setLabel}
-          placeholder="Alarm label (optional)"
+          placeholder="Alarm label"
           placeholderTextColor={colors.muted}
           maxLength={60}
           style={[

@@ -102,7 +102,7 @@ export function testStatus(results: HardwareTestResults, id: HardwareTestId): Ha
 }
 
 export type HardwareTestSummary = {
-  /** Runnable tests only; optional/skipped tests are not part of progress. */
+  /** Runnable tests only; a test Android cannot run is not part of progress. */
   total: number;
   passed: number;
   failed: number;

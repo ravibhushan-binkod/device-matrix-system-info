@@ -7,7 +7,7 @@ import { useParallaxStyle } from '@/design-system/animations/collapsing-header';
 import { PressableScale } from '@/design-system/animations/pressable-scale';
 import { withAlpha } from '@/design-system/color';
 import { Icon } from '@/design-system/icon';
-import { BrandLogo, CopyableText, InfoSheet } from '@/design-system/components';
+import { CopyableText, DeviceBrandLogo, InfoSheet } from '@/design-system/components';
 import { copyValue } from '@/design-system/copy/copy-value';
 import { useTheme } from '@/design-system/theme';
 import { radius, spacing, typography } from '@/design-system/tokens';
@@ -128,7 +128,7 @@ export function HeroCard({ summary, scrollY }: Props) {
         <View style={styles.top}>
           <View style={styles.copy}>
             <View style={styles.overlineRow}>
-              <BrandLogo mark={marks.phone} size={18} color={colors.accent} />
+              <DeviceBrandLogo mark={marks.phone} size={18} color={colors.accent} />
               <Text style={[styles.overline, { color: colors.accent }]}>DEVICE MATRIX</Text>
             </View>
             <CopyableText
@@ -140,7 +140,7 @@ export function HeroCard({ summary, scrollY }: Props) {
               {deviceName}
             </CopyableText>
             <View style={styles.chips}>
-              <BrandLogo mark={marks.platform} size={18} color={colors.accent} />
+              <DeviceBrandLogo mark={marks.platform} size={18} color={colors.accent} />
               <StatChip label={android} tone={colors.accent} />
               <StatChip
                 label={patch != null ? `Patch ${patch}` : 'Patch not reported'}

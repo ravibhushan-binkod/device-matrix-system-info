@@ -1,16 +1,23 @@
+import type { ReactNode } from 'react';
 import { Linking, StyleSheet, Text, View } from 'react-native';
 
 import { PressableScale } from '@/design-system/animations/pressable-scale';
 import { Card, Screen, SectionHeader } from '@/design-system/components';
 import { useTheme } from '@/design-system/theme';
 import { spacing, typography } from '@/design-system/tokens';
-import { LEGAL_REVIEW_NOTICE, type LegalDocument } from '@/features/legal/content';
+import { type LegalDocument } from '@/features/legal/content';
 
 /**
- * Renders one legal document (About, Privacy, Terms, Disclaimer) from the
- * shared content file. The same words are published in `docs/legal/`.
+ * Renders one legal document from the shared content file. The same Privacy
+ * Policy words are published in `docs/legal/privacy-policy.html`.
  */
-export function LegalDocumentScreen({ document }: { document: LegalDocument }) {
+export function LegalDocumentScreen({
+  document,
+  footer,
+}: {
+  document: LegalDocument;
+  footer?: ReactNode;
+}) {
   const { colors } = useTheme();
 
   return (
@@ -47,9 +54,7 @@ export function LegalDocumentScreen({ document }: { document: LegalDocument }) {
         </View>
       ))}
 
-      <Text style={[styles.caption, styles.notice, { color: colors.muted }]}>
-        {LEGAL_REVIEW_NOTICE}
-      </Text>
+      {footer}
     </Screen>
   );
 }

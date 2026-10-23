@@ -1,89 +1,19 @@
-import { type Href, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { PressableScale } from '@/design-system/animations/pressable-scale';
 import { SectionHeader } from '@/design-system/components';
 import { withAlpha } from '@/design-system/color';
-import { Icon, type IconName } from '@/design-system/icon';
+import { Icon } from '@/design-system/icon';
 import { useTheme } from '@/design-system/theme';
 import { radius, spacing, typography } from '@/design-system/tokens';
-
-type SectionShortcut = {
-  label: string;
-  icon: IconName;
-  route: Href;
-};
-
-type SectionGroup = {
-  key: string;
-  title: string;
-  shortcuts: readonly SectionShortcut[];
-};
-
-/**
- * Every destination in the app, grouped so Home can show them as horizontal
- * carousels. "See all" expands one group into the familiar grid; "Collapse"
- * returns to the row. Every group below contains each shortcut exactly once.
- */
-const GROUPS: readonly SectionGroup[] = [
-  {
-    key: 'system',
-    title: 'System info',
-    shortcuts: [
-      { label: 'Device', icon: 'display', route: '/device' },
-      { label: 'Processor', icon: 'cpu', route: '/cpu' },
-      { label: 'Memory', icon: 'memory', route: '/memory' },
-      { label: 'Storage', icon: 'storage', route: '/storage' },
-      { label: 'Battery', icon: 'battery', route: '/battery' },
-      { label: 'Thermal', icon: 'thermometer', route: '/thermal' },
-      { label: 'Display', icon: 'display', route: '/display' },
-      { label: 'Camera', icon: 'camera', route: '/camera' },
-      { label: 'Sensors', icon: 'sensors', route: '/sensors' },
-      { label: 'Connectivity', icon: 'bluetooth', route: '/connectivity' },
-    ],
-  },
-  {
-    key: 'network',
-    title: 'Network',
-    shortcuts: [
-      { label: 'Network', icon: 'wifi', route: '/network' },
-      { label: 'Wi-Fi analyzer', icon: 'signal', route: '/wifi-analyzer' },
-      { label: 'Data usage', icon: 'gauge', route: '/data-usage' },
-    ],
-  },
-  {
-    key: 'apps',
-    title: 'Apps and usage',
-    shortcuts: [
-      { label: 'Apps', icon: 'apps', route: '/apps' },
-      { label: 'App analyzer', icon: 'search', route: '/app-analyzer' },
-      { label: 'Permissions', icon: 'fingerprint', route: '/permission-analyzer' },
-      { label: 'Screen time', icon: 'clock', route: '/screen-time' },
-    ],
-  },
-  {
-    key: 'tests',
-    title: 'Tests and tools',
-    shortcuts: [
-      { label: 'Hardware tests', icon: 'wrench', route: '/hardware-tests' },
-      { label: 'Touch test', icon: 'pointer', route: '/touch-test' },
-      { label: 'Screen test', icon: 'sun', route: '/screen-test' },
-      { label: 'Alarm', icon: 'alarm', route: '/alarm' },
-      { label: 'Timer', icon: 'timer', route: '/timer' },
-      { label: 'Tools', icon: 'tools', route: '/tools' },
-    ],
-  },
-  {
-    key: 'more',
-    title: 'More',
-    shortcuts: [
-      { label: 'Tips', icon: 'tips', route: '/tips' },
-      { label: 'Report', icon: 'report', route: '/report' },
-      { label: 'Settings', icon: 'settings', route: '/settings' },
-    ],
-  },
-];
+import {
+  visibleDashboardSections,
+  type SectionGroupDefinition,
+  type SectionShortcut,
+} from '@/features/dashboard/services/dashboard-sections';
+import { useDashboardLayoutStore } from '@/state/dashboard-store';
 
 const TINTS = ['accent', 'violet', 'primary', 'good'] as const;
 
@@ -129,7 +59,7 @@ function ShortcutTile({ shortcut, index, fixed }: ShortcutTileProps) {
 }
 
 type GroupCarouselProps = {
-  group: SectionGroup;
+  group: SectionGroupDefinition;
 };
 
 function GroupCarousel({ group }: GroupCarouselProps) {
@@ -179,12 +109,16 @@ function GroupCarousel({ group }: GroupCarouselProps) {
   );
 }
 
-/** The grouped homepage carousels that replaced the single "All sections" grid. */
+/** The grouped homepage sliders, following the order and visibility in Settings. */
 export function SectionCarousels() {
+  const preferences = useDashboardLayoutStore((state) => state.sections);
+  const groups = visibleDashboardSections(preferences);
+  if (groups.length === 0) return null;
+
   return (
     <View style={styles.root}>
-      {GROUPS.map((group) => (
-        <GroupCarousel key={group.key} group={group} />
+      {groups.map((group) => (
+        <GroupCarousel key={group.id} group={group} />
       ))}
     </View>
   );

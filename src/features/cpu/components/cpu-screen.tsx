@@ -3,7 +3,7 @@ import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import {
   AdSlot,
-  BrandLogo,
+  DeviceBrandLogo,
   Card,
   Chip,
   CopyableText,
@@ -130,7 +130,7 @@ export function CpuScreen() {
             <Card>
               <View style={styles.cardBody}>
                 <View style={styles.brandTitleRow}>
-                  <BrandLogo mark={socMark} size={26} color={colors.accent} />
+                  <DeviceBrandLogo mark={socMark} size={26} color={colors.accent} />
                   <CopyableText
                     value={data.chipset}
                     copyLabel="Chipset"
@@ -199,7 +199,7 @@ export function CpuScreen() {
                   <>
                     {gpuMark ? (
                       <View style={styles.brandTitleRow}>
-                        <BrandLogo mark={gpuMark} size={22} color={colors.violet} />
+                        <DeviceBrandLogo mark={gpuMark} size={22} color={colors.violet} />
                         <Text style={[styles.caption, { color: colors.muted, flexShrink: 1 }]}>
                           {gpuMark.name}
                         </Text>

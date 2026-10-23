@@ -91,6 +91,7 @@ $env:EXPO_PUBLIC_ADMOB_ANDROID_APP_ID="ca-app-pub-<publisher>~<app>"
 $env:EXPO_PUBLIC_ADMOB_BANNER_UNIT_ID="ca-app-pub-<publisher>/<banner>"
 $env:EXPO_PUBLIC_ADMOB_INTERSTITIAL_UNIT_ID="ca-app-pub-<publisher>/<interstitial>"
 $env:EXPO_PUBLIC_ADMOB_NATIVE_UNIT_ID="ca-app-pub-<publisher>/<native>"
+$env:EXPO_PUBLIC_SUPPORT_EMAIL="support@<your-domain>"
 npm run build:release
 ```
 
@@ -124,22 +125,25 @@ Put the ID in `EXPO_PUBLIC_ADMOB_TEST_DEVICE_IDS` (comma-separated for several)
 and rebuild. Registered test devices always receive demo creatives ("Test Ad")
 and never count as invalid traffic.
 
-**Settings → Developer** (gated by `features.adDebugTools`): _Reset consent_,
-_Ad Inspector_ (Google's in-app inspector; test devices only) and _Force EEA
-consent test_ (sets the UMP debug geography to EEA, resets consent state and
-runs the flow again). While the form is unanswered no ad request is made; after
+**Settings → Developer** is gone. In debug builds only, long-press the version
+row at the bottom of the drawer five times to open the developer tools modal:
+_Reset consent_, _Ad Inspector_ (Google's in-app inspector; test devices only)
+and _Force EEA consent test_ (sets the UMP debug geography to EEA, resets
+consent state and runs the flow again). Release builds have no entry point and
+no developer route. While the form is unanswered no ad request is made; after
 _Do not consent_, UMP still reports that non-personalized ads may be served, so
 the SDK keeps loading banners without personalization. The forced geography is
 stored in MMKV (`ads.debugGeography`) until _Reset consent_ turns it off.
 
 **Placement rules.** Banners sit between information sections only: max 2 per
 screen, at least a screen-height apart, 16 dp clear space from buttons, and
-never on splash, permission sheets, Settings, full-screen tests or live graphs.
-Current placements: Home (1), Hardware hub mid-grid (1), Network (2), Apps
-(header + after item 9), Sensors (after items 9 and 18), and one each on Device,
-CPU, Memory, Storage, Battery, Thermal, Display and Camera. App detail, Report,
-the Tips check-up, Tools, Settings and sensor live graphs carry none.
-Interstitials are built but gated behind `features.interstitialAds = 'off'`.
+never on splash, permission sheets, Settings, the Widgets live preview,
+full-screen tests or live graphs. Current placements: Home (1), Hardware hub
+mid-grid (1), Network (2), Apps (header + after item 9), Sensors (after items 9
+and 18), and one each on Device, CPU, Memory, Storage, Battery, Thermal, Display
+and Camera. App detail, Report, Widgets, the Tips check-up, Tools, Settings and
+sensor live graphs carry none. Interstitials are built but gated behind
+`features.interstitialAds = 'off'`.
 
 ## app-ads.txt
 
@@ -173,10 +177,15 @@ Verified against the current release APK (`aapt2 dump permissions
 app-release.apk`) and the merged manifest:
 
 `ACCESS_FINE_LOCATION, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE,
-BLUETOOTH_CONNECT, INTERNET, NFC, PACKAGE_USAGE_STATS, SET_ALARM, VIBRATE`
+BLUETOOTH_CONNECT, INTERNET, MODIFY_AUDIO_SETTINGS, NEARBY_WIFI_DEVICES, NFC,
+PACKAGE_USAGE_STATS, RECORD_AUDIO, SET_ALARM, VIBRATE`
 
-`ACCESS_FINE_LOCATION` and `BLUETOOTH_CONNECT` are runtime/optional and only
-requested when the matching feature is used.
+`ACCESS_FINE_LOCATION`, `NEARBY_WIFI_DEVICES`, `BLUETOOTH_CONNECT` and
+`RECORD_AUDIO` are runtime permissions requested only when the matching feature
+is used. `PACKAGE_USAGE_STATS` is special access opened from system Settings.
+`RECORD_AUDIO` exists only for the microphone test: the native meter reads live
+levels in memory, never records or sends audio, and releases the recorder on
+blur, background and unmount.
 
 The AdMob integration adds exactly four permissions, all framework level and
 with no user prompt:
@@ -202,8 +211,9 @@ Native's own signature permission) and
 `com.google.android.finsky.permission.BIND_GET_INSTALL_REFERRER_SERVICE`
 (Play Install Referrer, signature level).
 
-`QUERY_ALL_PACKAGES`, `READ_PHONE_STATE`, `CAMERA`, `RECORD_AUDIO`, contacts,
-SMS and `SYSTEM_ALERT_WINDOW` are blocked in `app.config.ts`. The legacy
+`QUERY_ALL_PACKAGES`, `READ_PHONE_STATE`, `CAMERA`, contacts, SMS and
+`SYSTEM_ALERT_WINDOW` are blocked in `app.config.ts` (the previous
+`RECORD_AUDIO` block was removed when the microphone test shipped). The legacy
 `READ_EXTERNAL_STORAGE` / `WRITE_EXTERNAL_STORAGE` pair that the
 expo-file-system plugin adds for Android 12 and below is blocked there too. If a
 dependency ever injects a new permission it appears in this dump — block it or

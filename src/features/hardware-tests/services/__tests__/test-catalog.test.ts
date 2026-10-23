@@ -17,26 +17,28 @@ describe('hardware test catalog', () => {
     expect(new Set(HARDWARE_TESTS.map((test) => test.id)).size).toBe(HARDWARE_TESTS.length);
     expect(isHardwareTestId('display')).toBe(true);
     expect(isHardwareTestId('not-a-test')).toBe(false);
+    expect(isHardwareTestId('fingerprint')).toBe(false);
     expect(getHardwareTest('earpiece').title).toBe('Earpiece');
   });
 
-  it('keeps optional tests out of the runnable flow', () => {
+  it('includes volume buttons and the microphone in the runnable flow', () => {
     const ids = RUNNABLE_HARDWARE_TESTS.map((test) => test.id);
-    expect(ids).not.toContain('volume');
-    expect(ids).not.toContain('microphone');
+    expect(ids).toContain('volume');
+    expect(ids).toContain('microphone');
     expect(ids).not.toContain('fingerprint');
-    expect(ids).toHaveLength(12);
-    expect(getHardwareTest('microphone').availability).toBe('off');
-    expect(getHardwareTest('fingerprint').availability).toBe('off');
-    expect(getHardwareTest('volume').availability).toBe('unavailable');
+    expect(ids).toHaveLength(14);
+    expect(getHardwareTest('microphone').availability).toBe('ready');
+    expect(getHardwareTest('volume').availability).toBe('ready');
   });
 
   it('can navigate the runnable flow and wrap at the end', () => {
     expect(runnableTestIndex('display')).toBe(0);
-    expect(runnableTestIndex('microphone')).toBe(-1);
-    expect(runnablePosition('display')).toEqual({ position: 1, total: 12 });
+    expect(runnableTestIndex('microphone')).toBe(13);
+    expect(runnablePosition('display')).toEqual({ position: 1, total: 14 });
     expect(nextRunnableTest('display')).toBe('multitouch');
-    expect(nextRunnableTest('bluetooth')).toBe('display');
+    expect(nextRunnableTest('bluetooth')).toBe('volume');
+    expect(nextRunnableTest('volume')).toBe('microphone');
+    expect(nextRunnableTest('microphone')).toBe('display');
   });
 
   it('starts a checkup at a failure, then an untested test', () => {
@@ -56,7 +58,6 @@ describe('hardware test catalog', () => {
       ...testsInGroup('Sound'),
       ...testsInGroup('Sensors'),
       ...testsInGroup('Power & radios'),
-      ...testsInGroup('Optional'),
     ];
     expect(grouped).toHaveLength(HARDWARE_TESTS.length);
   });

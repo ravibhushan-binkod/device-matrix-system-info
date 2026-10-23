@@ -538,7 +538,7 @@ async function appsSummarySections(): Promise<ReportSection[]> {
   return [{ title: 'Apps summary', entries }];
 }
 
-/** Guided checkup results saved on this phone, including optional tests. */
+/** Guided checkup results saved on this phone, including hardware tests. */
 function testResultSections(): ReportSection[] {
   const now = new Date();
   const results = readTestResults();

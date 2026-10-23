@@ -59,8 +59,7 @@ function Navigator() {
         <Stack.Screen name="units" options={{ title: 'Units and formats' }} />
         <Stack.Screen name="about" options={{ title: 'About' }} />
         <Stack.Screen name="privacy" options={{ title: 'Privacy policy' }} />
-        <Stack.Screen name="terms" options={{ title: 'Terms of use' }} />
-        <Stack.Screen name="disclaimer" options={{ title: 'Disclaimer' }} />
+        <Stack.Screen name="widgets" options={{ title: 'Widgets' }} />
         <Stack.Screen name="licences" options={{ title: 'Open-source licences' }} />
         <Stack.Screen name="battery" options={{ title: 'Battery' }} />
         <Stack.Screen name="device" options={{ title: 'Device & OS' }} />
@@ -80,15 +79,13 @@ function Navigator() {
         <Stack.Screen name="permission-analyzer" options={{ title: 'Permission analyzer' }} />
         <Stack.Screen name="screen-time" options={{ title: 'Screen time' }} />
         <Stack.Screen name="tips" options={{ title: 'Tips' }} />
-        <Stack.Screen name="report" options={{ title: 'Report' }} />
+        <Stack.Screen name="report" options={{ title: 'Export info' }} />
         <Stack.Screen name="alarm" options={{ title: 'Set alarm' }} />
         <Stack.Screen name="timer" options={{ title: 'Timer' }} />
         <Stack.Screen name="touch-test" options={{ title: 'Touch test', headerShown: false }} />
         <Stack.Screen name="screen-test" options={{ title: 'Screen test', headerShown: false }} />
         <Stack.Screen name="hardware-tests/index" options={{ title: 'Hardware tests' }} />
         <Stack.Screen name="hardware-tests/[test]" options={{ title: 'Hardware test' }} />
-        <Stack.Screen name="dev/gallery" options={{ title: 'Dev Gallery' }} />
-        <Stack.Screen name="dev/support-matrix" options={{ title: 'Support matrix' }} />
       </Stack>
     </NavigationThemeProvider>
   );

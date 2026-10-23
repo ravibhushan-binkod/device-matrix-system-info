@@ -1,6 +1,7 @@
 export { AdSlot } from './ad-slot';
 export { AppBar } from './app-bar';
-export { BrandLogo } from './brand-logo';
+export { AppLogo } from './brand-logo';
+export { DeviceBrandLogo } from './device-brand-logo';
 export { Button } from './button';
 export { Card } from './card';
 export { Chip } from './chip';
@@ -20,3 +21,4 @@ export { SensitiveValue } from './sensitive-value';
 export { Skeleton } from './skeleton';
 export { StatRow } from './stat-row';
 export { TipCard } from './tip-card';
+export { TopAppBar } from './top-app-bar';

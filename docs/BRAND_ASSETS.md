@@ -74,7 +74,7 @@ approximated, and no website is scraped.
 All brand names and marks are trademarks or registered trademarks of their
 respective owners. Device Matrix uses them only to identify the hardware and
 software that reported the reading, with no endorsement or affiliation implied.
-The same sentence appears on the Disclaimer screen.
+The same sentence appears on the About screen.
 
 If a device reports a maker or family that is not in the tables above, the app
 shows a neutral initials badge derived from the reported string, or nothing

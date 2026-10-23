@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+  <ImageView
+      android:id="@+id/widget_bg"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:contentDescription="@null"
+      android:importantForAccessibility="no"
+      android:scaleType="fitXY"
+      android:src="@drawable/widget_card_light" />
+
+  <ViewFlipper
+      android:id="@+id/widget_motion"
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:animateFirstView="false"
+      android:autoStart="false"
+      android:clickable="false"
+      android:focusable="false"
+      android:importantForAccessibility="no"
+      android:inAnimation="@anim/widget_sheen_in"
+      android:outAnimation="@anim/widget_sheen_out">
+
+    <ImageView
+        android:id="@+id/widget_sheen_a"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_sheen_light" />
+
+    <ImageView
+        android:id="@+id/widget_sheen_b"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no"
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_sheen_light_bright" />
+  </ViewFlipper>
+
+  <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="match_parent"
+      android:gravity="center_vertical"
+      android:orientation="horizontal"
+      android:paddingStart="14dp"
+      android:paddingTop="8dp"
+      android:paddingEnd="10dp"
+      android:paddingBottom="8dp">
+
+    <ImageView
+        android:id="@+id/widget_icon"
+        android:layout_width="26dp"
+        android:layout_height="26dp"
+        android:contentDescription="@string/widget_logo"
+        android:scaleType="fitCenter"
+        android:src="@drawable/widget_app_icon" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="10dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+      <TextView
+          android:id="@+id/widget_title"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:ellipsize="end"
+          android:fontFamily="sans-serif-medium"
+          android:includeFontPadding="false"
+          android:maxLines="1"
+          android:paddingEnd="28dp"
+          android:text="@string/widget_storage"
+          android:textColor="#111827"
+          android:textSize="14sp" />
+
+      <TextView
+          android:id="@+id/widget_percent"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_marginTop="1dp"
+          android:fontFamily="sans-serif-medium"
+          android:includeFontPadding="false"
+          android:maxLines="1"
+          android:text="@string/widget_preview_storage_percent"
+          android:textColor="#0E7490"
+          android:textSize="20sp" />
+
+      <TextView
+          android:id="@+id/widget_value"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:ellipsize="end"
+          android:fontFamily="sans-serif-medium"
+          android:includeFontPadding="false"
+          android:maxLines="2"
+          android:text="@string/widget_preview_storage_pair"
+          android:textColor="#111827"
+          android:textSize="13sp" />
+
+      <ImageView
+          android:id="@+id/widget_bar"
+          android:layout_width="match_parent"
+          android:layout_height="4dp"
+          android:layout_marginTop="5dp"
+          android:contentDescription="@null"
+          android:scaleType="fitXY"
+          android:src="@drawable/widget_bar_preview_storage" />
+
+      <TextView
+          android:id="@+id/widget_caption"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:ellipsize="end"
+          android:includeFontPadding="false"
+          android:maxLines="2"
+          android:text="@string/widget_caption_used_total"
+          android:textColor="#475569"
+          android:textSize="10sp"
+          android:visibility="gone" />
+    </LinearLayout>
+  </LinearLayout>
+
+  <ImageView
+      android:id="@+id/widget_refresh"
+      android:layout_width="26dp"
+      android:layout_height="26dp"
+      android:layout_gravity="top|end"
+      android:layout_marginTop="8dp"
+      android:layout_marginEnd="8dp"
+      android:contentDescription="@string/widget_refresh_all"
+      android:padding="5dp"
+      android:src="@drawable/ic_widget_refresh_light" />
+</FrameLayout>

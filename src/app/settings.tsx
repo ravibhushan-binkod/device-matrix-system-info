@@ -1,28 +1,21 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { Link } from 'expo-router';
-import { useState } from 'react';
+import * as Application from 'expo-application';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 
-import {
-  forceEeaConsentTest,
-  openAdInspector,
-  resetConsent,
-  showPrivacyOptions,
-} from '@/core/ads/consent';
-import { features, isEnabled } from '@/core/features';
-import { getSystemAccentPalette, systemAccentSupported } from '@/core/native';
+import { systemAccentSupported } from '@/core/native';
 import { useMotionPreference } from '@/design-system/animations/use-motion-preference';
 import { PressableScale } from '@/design-system/animations/pressable-scale';
 import type { MotionMode } from '@/design-system/animations/motion';
 import { withAlpha } from '@/design-system/color';
 import { Button, Card, Chip, Screen, SectionHeader } from '@/design-system/components';
-import { Icon } from '@/design-system/icon';
-import { LiveGraph } from '@/design-system/visuals/live-graph';
-import { Ring } from '@/design-system/visuals/ring';
+import { Icon, type IconName } from '@/design-system/icon';
 import { useTheme, type ThemeMode } from '@/design-system/theme';
 import { ACCENT_NAMES, accents, spacing, typography } from '@/design-system/tokens';
+import {
+  getDashboardSectionDefinition,
+  type DashboardSectionPreference,
+} from '@/features/dashboard/services/dashboard-sections';
 import { getDashboardTileDefinition } from '@/features/dashboard/services/dashboard-tiles';
-import { useAdsStore, type AdsStatus } from '@/state/ads-store';
+import { UnitsSettings } from '@/features/settings/components/units-screen';
 import { useDashboardLayoutStore } from '@/state/dashboard-store';
 import { useSettingsStore } from '@/state/settings-store';
 
@@ -38,14 +31,76 @@ const animationModes: { value: MotionMode; label: string }[] = [
   { value: 'off', label: 'Off' },
 ];
 
-const adsStatusLabels: Record<AdsStatus, string> = {
-  idle: 'idle',
-  running: 'startingâ€¦',
-  ready: 'ready â€” banners can load',
-  blocked: 'no consent â€” banners stay hidden',
-  error: 'unavailable â€” banners stay hidden',
-  disabled: 'disabled',
+type LayoutRowProps = {
+  icon: IconName;
+  title: string;
+  subtitle: string;
+  visible: boolean;
+  first: boolean;
+  last: boolean;
+  onToggle: () => void;
+  onUp: () => void;
+  onDown: () => void;
 };
+
+function LayoutRow({
+  icon,
+  title,
+  subtitle,
+  visible,
+  first,
+  last,
+  onToggle,
+  onUp,
+  onDown,
+}: LayoutRowProps) {
+  const { colors } = useTheme();
+
+  return (
+    <View style={[styles.layoutRow, { borderTopColor: colors.border }]}>
+      <View style={[styles.layoutIcon, { backgroundColor: withAlpha(colors.accent, 0.1) }]}>
+        <Icon name={icon} size={16} color={colors.accent} />
+      </View>
+      <View style={styles.layoutCopy}>
+        <Text numberOfLines={1} style={[typography.body, { color: colors.text }]}>
+          {title}
+        </Text>
+        <Text numberOfLines={1} style={[typography.caption, { color: colors.muted }]}>
+          {subtitle}
+        </Text>
+      </View>
+      <PressableScale
+        onPress={onUp}
+        disabled={first}
+        haptic={false}
+        accessibilityRole="button"
+        accessibilityLabel={`Move ${title} up`}
+        hitSlop={6}
+        style={[styles.reorder, first && styles.reorderDisabled]}
+      >
+        <Icon name="chevron-up" size={20} color={colors.muted} />
+      </PressableScale>
+      <PressableScale
+        onPress={onDown}
+        disabled={last}
+        haptic={false}
+        accessibilityRole="button"
+        accessibilityLabel={`Move ${title} down`}
+        hitSlop={6}
+        style={[styles.reorder, last && styles.reorderDisabled]}
+      >
+        <Icon name="chevron-down" size={20} color={colors.muted} />
+      </PressableScale>
+      <Switch
+        value={visible}
+        onValueChange={onToggle}
+        accessibilityLabel={`Show ${title} on Home`}
+        trackColor={{ false: colors.surface2, true: withAlpha(colors.accent, 0.45) }}
+        thumbColor={visible ? colors.accent : colors.muted}
+      />
+    </View>
+  );
+}
 
 export default function SettingsScreen() {
   const { colors, scheme } = useTheme();
@@ -55,38 +110,22 @@ export default function SettingsScreen() {
   const setAccent = useSettingsStore((state) => state.setAccent);
   const animationMode = useSettingsStore((state) => state.animationMode);
   const setAnimationMode = useSettingsStore((state) => state.setAnimationMode);
-  const hideSensitiveValues = useSettingsStore((state) => state.hideSensitiveValues);
-  const setHideSensitiveValues = useSettingsStore((state) => state.setHideSensitiveValues);
   const motion = useMotionPreference();
   const systemAccents = systemAccentSupported();
-  const systemPalette = systemAccents ? getSystemAccentPalette() : null;
+  const version = Application.nativeApplicationVersion?.trim() || '1.0.0';
 
   const tiles = useDashboardLayoutStore((state) => state.tiles);
+  const sections = useDashboardLayoutStore((state) => state.sections);
   const toggleTile = useDashboardLayoutStore((state) => state.toggleTile);
   const moveTile = useDashboardLayoutStore((state) => state.moveTile);
-  const resetTiles = useDashboardLayoutStore((state) => state.resetTiles);
-
-  const adsStatus = useAdsStore((state) => state.status);
-  const [adsNotice, setAdsNotice] = useState<string | null>(null);
-  const [adsBusy, setAdsBusy] = useState(false);
-
-  const runAdsAction = async (action: () => Promise<void>, done: string) => {
-    setAdsBusy(true);
-    setAdsNotice(null);
-    try {
-      await action();
-      setAdsNotice(done);
-    } catch (error) {
-      setAdsNotice(error instanceof Error ? error.message : String(error));
-    } finally {
-      setAdsBusy(false);
-    }
-  };
+  const toggleSection = useDashboardLayoutStore((state) => state.toggleSection);
+  const moveSection = useDashboardLayoutStore((state) => state.moveSection);
+  const resetLayout = useDashboardLayoutStore((state) => state.resetLayout);
 
   return (
-    <Screen scroll contentStyle={{ paddingBottom: spacing.xxl }}>
+    <Screen scroll contentStyle={styles.content}>
       <SectionHeader title="Appearance" />
-      <Card>
+      <Card contentStyle={styles.stack}>
         <Text style={[styles.label, { color: colors.muted }]}>Theme</Text>
         <View style={styles.row}>
           {themeModes.map((mode) => (
@@ -98,7 +137,7 @@ export default function SettingsScreen() {
             />
           ))}
         </View>
-        <Text style={[styles.label, styles.spaced, { color: colors.muted }]}>Accent</Text>
+        <Text style={[styles.label, styles.spaced, { color: colors.muted }]}>Accent colour</Text>
         <View style={styles.row}>
           {ACCENT_NAMES.map((name) => (
             <Chip
@@ -111,92 +150,69 @@ export default function SettingsScreen() {
           ))}
           {systemAccents ? (
             <Chip
-              label="System colours"
-              dotColor={
-                systemPalette
-                  ? scheme === 'dark'
-                    ? systemPalette.accentDark
-                    : systemPalette.accentLight
-                  : undefined
-              }
+              label="Follow system colours"
+              icon="palette"
               selected={accent === 'system'}
               onPress={() => setAccent('system')}
             />
           ) : null}
         </View>
         <Text style={[styles.note, { color: colors.muted }]}>
-          {accent === 'system' && !systemAccents
-            ? 'System colours need Android 12 or newer. Cyan is used instead.'
-            : systemAccents
-              ? 'System colours follow the accent Android is using on this phone.'
-              : 'Eight palettes. System colours become available on Android 12 and newer.'}
+          {systemAccents
+            ? 'Follow system colours uses the accent Android is using on this phone. Every swatch still works in light and dark mode.'
+            : 'Eight palettes that work in light and dark mode. Following the system accent needs Android 12 or newer.'}
         </Text>
       </Card>
 
-      <SectionHeader title="Preview" />
-      <AccentPreview />
+      <SectionHeader title="Units of measurement" />
+      <UnitsSettings embedded />
 
-      <SectionHeader title="Dashboard" />
-      <Card contentStyle={styles.tileList}>
+      <SectionHeader title="Dashboard layout" />
+      <Card contentStyle={styles.stack}>
         <Text style={[typography.body, { color: colors.muted }]}>
-          Choose which tiles Home shows and the order they appear in. Hidden tiles keep their
-          position.
+          Choose what Home shows and the order it appears in. Hidden items keep their position.
         </Text>
+
+        <Text style={[styles.label, styles.spaced, { color: colors.muted }]}>Tiles</Text>
         {tiles.map((tile, index) => {
           const definition = getDashboardTileDefinition(tile.id);
           return (
-            <View
+            <LayoutRow
               key={tile.id}
-              style={[
-                styles.tileRow,
-                index > 0 && {
-                  borderTopColor: colors.border,
-                  borderTopWidth: StyleSheet.hairlineWidth,
-                },
-              ]}
-            >
-              <View style={[styles.tileIcon, { backgroundColor: withAlpha(colors.accent, 0.1) }]}>
-                <Icon name={definition.icon} size={16} color={colors.accent} />
-              </View>
-              <View style={styles.tileCopy}>
-                <Text numberOfLines={1} style={[typography.body, { color: colors.text }]}>
-                  {definition.shortTitle}
-                </Text>
-                <Text style={[typography.caption, { color: colors.muted }]}>Equal-size tile</Text>
-              </View>
-              <PressableScale
-                onPress={() => moveTile(tile.id, 'up')}
-                disabled={index === 0}
-                haptic={false}
-                accessibilityRole="button"
-                accessibilityLabel={`Move ${definition.shortTitle} up`}
-                hitSlop={6}
-                style={[styles.reorder, index === 0 && styles.reorderDisabled]}
-              >
-                <Text style={[styles.reorderText, { color: colors.muted }]}>â†‘</Text>
-              </PressableScale>
-              <PressableScale
-                onPress={() => moveTile(tile.id, 'down')}
-                disabled={index === tiles.length - 1}
-                haptic={false}
-                accessibilityRole="button"
-                accessibilityLabel={`Move ${definition.shortTitle} down`}
-                hitSlop={6}
-                style={[styles.reorder, index === tiles.length - 1 && styles.reorderDisabled]}
-              >
-                <Text style={[styles.reorderText, { color: colors.muted }]}>â†“</Text>
-              </PressableScale>
-              <Switch
-                value={tile.visible}
-                onValueChange={() => toggleTile(tile.id)}
-                accessibilityLabel={`Show ${definition.shortTitle} on Home`}
-                trackColor={{ false: colors.surface2, true: withAlpha(colors.accent, 0.45) }}
-                thumbColor={tile.visible ? colors.accent : colors.muted}
-              />
-            </View>
+              icon={definition.icon}
+              title={definition.shortTitle}
+              subtitle="Live overview tile"
+              visible={tile.visible}
+              first={index === 0}
+              last={index === tiles.length - 1}
+              onToggle={() => toggleTile(tile.id)}
+              onUp={() => moveTile(tile.id, 'up')}
+              onDown={() => moveTile(tile.id, 'down')}
+            />
           );
         })}
-        <Button title="Reset layout" variant="ghost" icon="refresh" onPress={resetTiles} />
+
+        <Text style={[styles.label, styles.spaced, { color: colors.muted }]}>Home sliders</Text>
+        {sections.map((section: DashboardSectionPreference, index) => {
+          const definition = getDashboardSectionDefinition(section.id);
+          if (!definition) return null;
+          return (
+            <LayoutRow
+              key={section.id}
+              icon="apps"
+              title={definition.title}
+              subtitle={`${definition.shortcuts.length} shortcuts`}
+              visible={section.visible}
+              first={index === 0}
+              last={index === sections.length - 1}
+              onToggle={() => toggleSection(section.id)}
+              onUp={() => moveSection(section.id, 'up')}
+              onDown={() => moveSection(section.id, 'down')}
+            />
+          );
+        })}
+
+        <Button title="Reset layout" variant="ghost" icon="refresh" onPress={resetLayout} />
       </Card>
 
       <SectionHeader title="Animations" />
@@ -213,184 +229,32 @@ export default function SettingsScreen() {
         </View>
         <Text style={[typography.body, { color: colors.muted }]}>
           {motion.source === 'system'
-            ? 'Androidâ€™s Reduce motion setting is on, so Full plays as Reduced. Your choice is saved.'
+            ? 'Android’s Reduce motion setting is on, so Full plays as Reduced. Your choice is saved.'
             : motion.source === 'performance'
               ? 'Reduced was switched on for this session because the phone dropped frames. Your saved choice is still Full.'
               : animationMode === 'full'
                 ? 'Movement, live loops, parallax and chart drawing are on.'
                 : animationMode === 'reduced'
-                  ? 'Short opacity fades only â€” live loops, particles and parallax are paused.'
+                  ? 'Short opacity fades only — live loops, particles and parallax are paused.'
                   : 'Everything renders immediately, with no animation at all.'}
         </Text>
       </Card>
 
-      <SectionHeader title="Readings" />
-      <Card contentStyle={styles.stack}>
-        <Link href={'/units'} style={[styles.linkRow, { color: colors.accent }]}>
-          Units and formats
-        </Link>
-        <Text style={[typography.caption, { color: colors.muted }]}>
-          Temperature, storage, frequency, network speed, screen size, distance, acceleration,
-          pressure, time format and power. Each row starts at â€œSystem defaultâ€ and every screen
-          follows your choice.
-        </Text>
-      </Card>
-
-      <SectionHeader title="Privacy" />
-      <Card contentStyle={styles.stack}>
-        <View style={styles.switchRow}>
-          <View style={styles.switchCopy}>
-            <Text style={[typography.body, { color: colors.text }]}>Hide sensitive values</Text>
-            <Text style={[typography.caption, { color: colors.muted }]}>
-              Masks Wi-Fi names, BSSID, IP addresses, DNS, the build fingerprint and nearby network
-              names. Tap a value to reveal it for ten seconds.
-            </Text>
-          </View>
-          <Switch
-            value={hideSensitiveValues}
-            onValueChange={setHideSensitiveValues}
-            accessibilityLabel="Hide sensitive values"
-            trackColor={{ false: colors.surface2, true: withAlpha(colors.accent, 0.45) }}
-            thumbColor={hideSensitiveValues ? colors.accent : colors.muted}
-          />
-        </View>
-        <Text style={[typography.caption, { color: colors.muted }]}>
-          Readings stay on this phone. Reports leave identifying details out unless you turn on
-          â€œInclude identifying detailsâ€ for a single export. Ads are served by Google AdMob and
-          never appear on report, settings, permission or full-screen test screens.
-        </Text>
-        {isEnabled(features.ads) ? (
-          <Button
-            title="Ad privacy options"
-            icon="info"
-            variant="secondary"
-            disabled={adsBusy}
-            onPress={() => void runAdsAction(showPrivacyOptions, 'Privacy options closed.')}
-          />
-        ) : null}
-        {adsNotice ? (
-          <Text style={[styles.notice, { color: colors.muted }]}>{adsNotice}</Text>
-        ) : null}
-      </Card>
-
-      <SectionHeader title="About" />
-      <Card contentStyle={styles.stack}>
-        <Link href={'/about'} style={[styles.linkRow, { color: colors.accent }]}>
-          About Device Matrix
-        </Link>
-        <Link href={'/privacy'} style={[styles.linkRow, { color: colors.accent }]}>
-          Privacy policy
-        </Link>
-        <Link href={'/terms'} style={[styles.linkRow, { color: colors.accent }]}>
-          Terms of use
-        </Link>
-        <Link href={'/disclaimer'} style={[styles.linkRow, { color: colors.accent }]}>
-          Disclaimer
-        </Link>
-        <Link href={'/licences'} style={[styles.linkRow, { color: colors.accent }]}>
-          Open-source licences
-        </Link>
-      </Card>
-
-      {__DEV__ && isEnabled(features.adDebugTools) ? (
-        <>
-          <SectionHeader title="Developer" />
-          <Card>
-            <Text style={[typography.body, { color: colors.muted }]}>
-              Ads: {adsStatusLabels[adsStatus]}. Test ads only â€” never tap live ads during
-              development.
-            </Text>
-            <View style={styles.actions}>
-              <Button
-                title="Reset consent"
-                icon="settings"
-                variant="secondary"
-                disabled={adsBusy}
-                onPress={() =>
-                  void runAdsAction(
-                    resetConsent,
-                    'Consent reset. The next ad request asks for consent again.',
-                  )
-                }
-              />
-              <Button
-                title="Ad Inspector"
-                icon="search"
-                variant="secondary"
-                disabled={adsBusy}
-                onPress={() => void runAdsAction(openAdInspector, 'Ad Inspector opened.')}
-              />
-              <Button
-                title="Force EEA consent test"
-                icon="info"
-                variant="secondary"
-                disabled={adsBusy}
-                onPress={() =>
-                  void runAdsAction(
-                    forceEeaConsentTest,
-                    'EEA test geography enabled â€” the consent form appears for test devices.',
-                  )
-                }
-              />
-            </View>
-            {adsNotice ? (
-              <Text style={[styles.notice, { color: colors.muted }]}>{adsNotice}</Text>
-            ) : null}
-          </Card>
-        </>
-      ) : null}
-
-      {__DEV__ ? (
-        <View style={styles.devLinks}>
-          <Link href="/dev/gallery" style={[styles.devLink, { color: colors.accent }]}>
-            Open design gallery
-          </Link>
-          <Link href="/dev/support-matrix" style={[styles.devLink, { color: colors.accent }]}>
-            Open support matrix
-          </Link>
-        </View>
-      ) : null}
+      <Text style={[styles.version, { color: colors.muted }]}>Version {version}</Text>
     </Screen>
   );
 }
 
-function AccentPreview() {
-  const { colors } = useTheme();
-
-  return (
-    <Card contentStyle={styles.preview}>
-      <View style={styles.previewRow}>
-        <Ring value={72} size={92} thickness={8} color={colors.accent} displayValue="72" />
-        <View style={styles.previewRight}>
-          <LinearGradient
-            colors={[withAlpha(colors.accent, 0.34), withAlpha(colors.violet, 0.08)]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.previewGradient}
-          >
-            <View style={styles.previewIcons}>
-              <Icon name="cpu" size={20} color={colors.accent} />
-              <Icon name="battery" size={20} color={colors.violet} />
-              <Icon name="wifi" size={20} color={colors.accent} />
-            </View>
-          </LinearGradient>
-          <LiveGraph data={[3, 5, 4, 7, 6, 8]} height={46} color={colors.accent} />
-        </View>
-      </View>
-      <Text style={[styles.previewNote, { color: colors.muted }]}>
-        Rings, gradients, charts and icons pick up this accent immediately.
-      </Text>
-    </Card>
-  );
-}
-
 const styles = StyleSheet.create({
+  content: {
+    gap: spacing.lg,
+    paddingBottom: spacing.xxl,
+  },
   label: {
     ...typography.caption,
     fontFamily: 'Inter_600SemiBold',
     letterSpacing: 0.6,
     textTransform: 'uppercase',
-    marginBottom: spacing.sm,
   },
   spaced: {
     marginTop: spacing.lg,
@@ -400,97 +264,44 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  actions: {
-    gap: spacing.sm,
-    marginTop: spacing.lg,
-  },
-  notice: {
+  note: {
     ...typography.caption,
     marginTop: spacing.sm,
   },
-  devLinks: {
+  stack: {
     gap: spacing.sm,
-    marginTop: spacing.xl,
   },
-  devLink: {
-    ...typography.body,
-    textDecorationLine: 'underline',
-  },
-  linkRow: {
-    ...typography.body,
-    textDecorationLine: 'underline',
-  },
-  switchRow: {
+  layoutRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-  },
-  switchCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  tileList: {
-    gap: spacing.sm,
-  },
-  tileRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
     paddingVertical: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  tileIcon: {
+  layoutIcon: {
     width: 30,
     height: 30,
     borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tileCopy: {
+  layoutCopy: {
     flex: 1,
+    minWidth: 0,
+    marginLeft: spacing.xs,
   },
   reorder: {
     width: 28,
-    height: 28,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
   reorderDisabled: {
     opacity: 0.3,
   },
-  reorderText: {
-    ...typography.title,
-  },
-  stack: {
-    gap: spacing.sm,
-  },
-  preview: {
-    gap: spacing.md,
-  },
-  previewRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.lg,
-  },
-  previewRight: {
-    flex: 1,
-    gap: spacing.sm,
-  },
-  previewGradient: {
-    height: 52,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  previewIcons: {
-    flexDirection: 'row',
-    gap: spacing.lg,
-  },
-  previewNote: {
+  version: {
     ...typography.caption,
-  },
-  note: {
-    ...typography.caption,
+    textAlign: 'center',
     marginTop: spacing.sm,
   },
 });

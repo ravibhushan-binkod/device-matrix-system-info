@@ -1,6 +1,7 @@
 import mobileAds, {
   AdsConsent,
   AdsConsentDebugGeography,
+  AdsConsentPrivacyOptionsRequirementStatus,
   MaxAdContentRating,
   type AdsConsentInfo,
 } from 'react-native-google-mobile-ads';
@@ -125,6 +126,22 @@ export async function forceEeaConsentTest(): Promise<void> {
 /** Opens Google's privacy options form when the region requires one. */
 export async function showPrivacyOptions(): Promise<void> {
   await AdsConsent.showPrivacyOptionsForm();
+}
+
+/**
+ * True only when Google's consent information says the privacy-options form
+ * is required in this region. The Privacy screen uses this to decide whether
+ * to show its "Manage ad choices" button.
+ */
+export async function privacyOptionsRequired(): Promise<boolean> {
+  try {
+    const info = await AdsConsent.getConsentInfo();
+    return (
+      info.privacyOptionsRequirementStatus === AdsConsentPrivacyOptionsRequirementStatus.REQUIRED
+    );
+  } catch {
+    return false;
+  }
 }
 
 /** Opens Google's in-app Ad Inspector (test devices only). */

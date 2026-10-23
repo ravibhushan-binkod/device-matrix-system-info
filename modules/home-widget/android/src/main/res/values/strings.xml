@@ -1,19 +1,117 @@
 <resources>
-  <string name="widget_title">Device Matrix</string>
-  <string name="widget_description">Memory, storage and battery at a glance.</string>
-  <string name="widget_updated">Updated %1$s</string>
-  <string name="widget_updated_placeholder">Updated --:--</string>
-  <string name="widget_memory">Memory</string>
+  <string name="widget_ram">RAM</string>
   <string name="widget_storage">Storage</string>
   <string name="widget_battery">Battery</string>
-  <string name="widget_placeholder">--</string>
-  <string name="widget_not_available">Not available</string>
-  <string name="widget_on_this_device">on this device</string>
+  <string name="widget_health_title">Device Health Check</string>
+
+  <string name="widget_ram_compact">RAM Compact</string>
+  <string name="widget_storage_compact">Storage Compact</string>
+  <string name="widget_battery_compact">Battery Compact</string>
+  <string name="widget_ram_standard">RAM Standard</string>
+  <string name="widget_storage_standard">Storage Standard</string>
+  <string name="widget_battery_standard">Battery Standard</string>
+  <string name="widget_ram_detailed">RAM Detailed</string>
+  <string name="widget_storage_detailed">Storage Detailed</string>
+  <string name="widget_battery_detailed">Battery Detailed</string>
+  <string name="widget_health_hero">Device Health Check</string>
+
+  <string name="widget_ram_compact_description">Used and total RAM with usage percentage.</string>
+  <string name="widget_storage_compact_description">Used and total internal storage with usage percentage.</string>
+  <string name="widget_battery_compact_description">Battery percentage and charging status.</string>
+  <string name="widget_ram_standard_description">RAM usage ring with used and total memory.</string>
+  <string name="widget_storage_standard_description">Storage usage ring with used and total capacity.</string>
+  <string name="widget_battery_standard_description">Battery charge ring and charging status.</string>
+  <string name="widget_ram_detailed_description">Used, total and available RAM with a progress bar.</string>
+  <string name="widget_storage_detailed_description">Used, total and available storage with a progress bar.</string>
+  <string name="widget_battery_detailed_description">Battery percentage, charging status and charge bar.</string>
+  <string name="widget_health_hero_description">Health score, local time, device name and compact RAM, storage and battery summaries.</string>
+
+  <string name="widget_preview_value">&#8212;</string>
+  <string name="widget_preview_ram_percent">54%</string>
+  <string name="widget_preview_storage_percent">38%</string>
+  <string name="widget_preview_battery_percent">100%</string>
+  <string name="widget_preview_ram_pair">1.7 / 3.1 GB</string>
+  <string name="widget_preview_storage_pair">2.4 / 6.2 GB</string>
+  <string name="widget_preview_ram_value">1.7 GB</string>
+  <string name="widget_preview_storage_value">2.4 GB</string>
+  <string name="widget_preview_ram_detail_caption">of 3.1 GB &#183; 1.4 GB free</string>
+  <string name="widget_preview_storage_detail_caption">of 6.2 GB &#183; 3.8 GB free</string>
+  <string name="widget_preview_charge_status">Not charging</string>
+  <string name="widget_preview_health_score">80</string>
+  <string name="widget_preview_health_caption">5/5 checks read</string>
+  <string name="widget_preview_health_ram_caption">1.7 / 3.1 GB</string>
+  <string name="widget_preview_health_storage_caption">2.4 / 6.2 GB</string>
+  <string name="widget_preview_health_battery_caption">Not charging</string>
+  <string name="widget_calculated_locally">Calculated locally</string>
+  <string name="widget_device_fallback">This device</string>
+
+  <string name="widget_caption_used_total">Used of total</string>
+  <string name="widget_caption_charge_status">Charge status</string>
+  <string name="widget_detailed_usage">of %1$s &#183; %2$s free</string>
+  <string name="widget_checks_read">%1$d/%2$d checks read</string>
+
+  <string name="widget_ring_used">used</string>
+  <string name="widget_ring_battery">battery</string>
+  <string name="widget_ring_health">health</string>
+
+  <string name="widget_not_available_on_device">Not available on this device</string>
+
   <string name="widget_charging">Charging</string>
   <string name="widget_on_battery">On battery</string>
   <string name="widget_full">Full</string>
   <string name="widget_not_charging">Not charging</string>
   <string name="widget_status_unknown">Status unknown</string>
-  <string name="widget_refresh">Refresh widget</string>
-  <string name="widget_open_app">Open Device Matrix</string>
+
+  <string name="widget_bar_ram">%1$d%% of system RAM used</string>
+  <string name="widget_bar_storage">%1$d%% of internal storage used</string>
+  <string name="widget_bar_battery">Battery %1$d%%</string>
+
+  <string name="widget_a11y_ram">System RAM %1$s of %2$s used, %3$d%%.</string>
+  <string name="widget_a11y_ram_detailed">System RAM %1$s of %2$s used, %3$s available, %4$d%%.</string>
+  <string name="widget_a11y_ram_unavailable">RAM usage is not available on this device.</string>
+  <string name="widget_a11y_storage">Internal storage %1$s of %2$s used, %3$d%%.</string>
+  <string name="widget_a11y_storage_detailed">Internal storage %1$s of %2$s used, %3$s available, %4$d%%.</string>
+  <string name="widget_a11y_storage_unavailable">Storage usage is not available on this device.</string>
+  <string name="widget_a11y_battery">Battery %1$d%%, %2$s.</string>
+  <string name="widget_a11y_battery_unavailable">Battery level is not available on this device.</string>
+  <string name="widget_a11y_health">Health score %1$d out of 100, %2$d of %3$d checks read.</string>
+  <string name="widget_a11y_health_unavailable">Health score is not available on this device.</string>
+  <string name="widget_a11y_health_device">%1$s Device: %2$s.</string>
+
+  <string name="widget_refresh_all">Refresh all Device Matrix widgets</string>
+  <string name="widget_logo">Device Matrix logo</string>
+
+  <string name="widget_config_title">Widget appearance</string>
+  <string name="widget_config_kind">%1$s widget</string>
+  <string name="widget_config_subtitle">Changes apply only to this widget.</string>
+  <string name="widget_config_theme">Theme</string>
+  <string name="widget_config_theme_system">Follow system</string>
+  <string name="widget_config_theme_light">Light</string>
+  <string name="widget_config_theme_dark">Dark</string>
+  <string name="widget_config_accent">Accent color</string>
+  <string name="widget_config_accent_option">%1$s accent</string>
+  <string name="widget_config_accent_selected">%1$s accent, selected</string>
+  <string name="widget_config_background">Background</string>
+  <string name="widget_config_transparency">Opacity</string>
+  <string name="widget_transparency_solid">Solid</string>
+  <string name="widget_transparency_soft">Soft</string>
+  <string name="widget_transparency_clear">Clear</string>
+  <string name="widget_config_transparency_note">Clear is capped for legibility over wallpapers.</string>
+  <string name="widget_config_motion">Subtle sheen animation</string>
+  <string name="widget_config_motion_note">A one-shot crossfade when the widget refreshes. It never loops or runs in the background.</string>
+  <string name="widget_config_preview">Preview</string>
+  <string name="widget_config_preview_failed">Preview unavailable</string>
+  <string name="widget_config_note">Readings stay on this phone and are never uploaded. A refresh action updates every Device Matrix widget without resetting their saved appearances. Android limits automatic updates, so readings and system theme changes can lag; tap refresh for a best-effort update.</string>
+  <string name="widget_config_save">Save</string>
+  <string name="widget_config_cancel">Cancel</string>
+  <string name="widget_config_no_widget">Open this screen from a home-screen widget.</string>
+
+  <string name="widget_accent_cyan">Cyan</string>
+  <string name="widget_accent_blue">Blue</string>
+  <string name="widget_accent_violet">Violet</string>
+  <string name="widget_accent_green">Green</string>
+  <string name="widget_accent_amber">Amber</string>
+  <string name="widget_accent_rose">Rose</string>
+  <string name="widget_accent_teal">Teal</string>
+  <string name="widget_accent_indigo">Indigo</string>
 </resources>

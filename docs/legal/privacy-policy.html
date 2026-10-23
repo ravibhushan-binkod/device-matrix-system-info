@@ -20,13 +20,6 @@
         font-size: 1.1rem;
         margin-top: 2rem;
       }
-      .draft {
-        background: #fff3cd;
-        border: 1px solid #e0b400;
-        padding: 0.75rem 1rem;
-        border-radius: 0.5rem;
-        font-weight: 600;
-      }
       .muted {
         color: #555;
         font-size: 0.9rem;
@@ -37,142 +30,170 @@
     </style>
   </head>
   <body>
-    <p class="draft">
-      DRAFT - needs legal review. Not legal advice and not a compliance claim. Publish only after a
-      qualified review.
-    </p>
     <h1>Device Matrix: System Info — Privacy Policy</h1>
     <p class="muted">
-      Last updated: 21 October 2026. This page mirrors the Privacy policy section inside the app
-      (Settings → Privacy).
+      Last updated October 2026 · Device Matrix: System Info · all readings stay on this phone.
+    </p>
+
+    <h2>The short version</h2>
+    <p>
+      Device Matrix reads information about your phone on the phone itself. There is no account, no
+      backend, no cloud storage and no analytics service. Your readings are not sent to us.
+    </p>
+    <p>
+      The only network traffic is advertising served by Google AdMob. Google may use data for
+      advertising as described below. You can manage ad choices where the law requires a choice.
+    </p>
+    <p>
+      The app does not sell your personal data. It does not read your IMEI, hardware serial number,
+      phone number, contacts, SMS or precise location.
     </p>
 
     <h2>What the app reads</h2>
     <p>
-      Device Matrix reads information about your phone — model and build, Android version, CPU and
-      GPU, memory, storage, battery, thermal state, display, camera and sensor capabilities, network
-      and Wi-Fi details, and the launcher apps Android reports.
+      Device Matrix reads what Android reports about the device and its software: model and build,
+      Android version, CPU and GPU, memory, storage, battery and thermal state, display, camera and
+      sensor capabilities, network and Wi-Fi details, installed-app sizes where Usage Access is
+      granted, and the results of hardware checks you run.
     </p>
     <p>
-      Everything is read through public Android APIs on this phone. When Android or the manufacturer
-      does not expose a value, the app shows “Not available on this device” instead of guessing.
-    </p>
-
-    <h2>What the app never reads</h2>
-    <p>
-      The app never reads your IMEI, hardware serial number, Android ID, phone number, MAC address
-      or precise location. Those identifiers are not required for any reading it shows.
+      Readings use public Android interfaces available to normal apps. When Android or the
+      manufacturer does not expose a value, the app shows “Not available on this device” instead of
+      guessing or filling the gap with a silent estimate.
     </p>
     <p>
-      The app’s own code never reads the advertising ID. The Google Mobile Ads SDK may access it for
-      advertising, as described below.
-    </p>
-    <p>
-      Wi-Fi network names (SSID) and MAC-style BSSID values that Android reports for the connected
-      or nearby networks are shown only when you open those sections, and are hidden by default.
+      Some values are clearly labelled estimates, for example device age and the battery-health
+      percentage. The Home health score is calculated on this phone from the checks that could be
+      read.
     </p>
 
     <h2>What stays on your phone</h2>
     <p>
-      No account is required. The app has no backend, no cloud storage, no analytics and no
-      crash-reporting service. Readings and app lists are not uploaded.
-    </p>
-    <p>
-      Theme, accent, unit choices, dashboard choices, saved hardware-test results and your ads
-      consent state are stored only in the app’s private storage. Clearing the app’s data or
+      Theme, accent, unit choices, dashboard layout, saved hardware-test results and widget
+      appearance are stored in the app’s private storage on this phone. Clearing the app’s data or
       uninstalling the app removes them.
     </p>
     <p>
-      A report you create is built on this phone. Text leaves only when you tap Copy or Share, and a
-      PDF leaves only through Android’s share sheet.
+      A report or checklist is built on this phone. Text leaves only when you tap Copy or Share, and
+      a PDF leaves only through Android’s share sheet. You choose the destination.
+    </p>
+    <p>
+      We do not operate a server that receives your readings. There is no crash-reporting or
+      analytics SDK in this build.
     </p>
 
-    <h2>Sensitive values</h2>
+    <h2>Sensitive values and exports</h2>
     <p>
-      Settings → Privacy → “Hide sensitive values” is on by default. While it is on, the app masks
+      Values that can identify a network or a build are always masked in the app. These include
       Wi-Fi names (SSID), BSSID values, IP addresses, the gateway, DNS servers, the Android build
-      fingerprint and nearby Wi-Fi names.
+      fingerprint and nearby Wi-Fi names. Masking cannot be switched off; a masked value can be
+      revealed for a short time by tapping it, and copying is only possible while it is revealed.
     </p>
     <p>
-      A masked value can be revealed for ten seconds by tapping it. Copying is only possible while
-      the value is revealed.
+      Exported text and PDF reports leave identifying details out by default. A single “Include
+      identifying details” switch, off by default, can include them for one export after a warning.
     </p>
     <p>
-      Text and PDF reports leave identifying details out by default. A separate “Include identifying
-      details” switch is off by default and shows a warning when you turn it on for a single export.
-    </p>
-
-    <h2>Home-screen widget</h2>
-    <p>
-      The optional home-screen widget reads the battery, memory and storage values on this phone and
-      shows them in the launcher. Nothing leaves the device.
-    </p>
-    <p>
-      Your temperature and storage-unit choices are written to the app’s private storage on the
-      phone so the widget can format those numbers the same way the app does.
+      The microphone test reads live sound levels only to move a meter. Audio is never recorded to a
+      file, stored or sent anywhere. The recorder is released when you leave the test or the app
+      goes to the background.
     </p>
 
-    <h2>Advertising</h2>
+    <h2>Permissions and why they are needed</h2>
     <p>
-      The app shows ads served by Google AdMob. To serve ads, Google’s Mobile Ads SDK may access
-      your device’s advertising ID and basic device and app information, and may collect diagnostics
-      and approximate location as described in Google’s own policies.
+      Internet, network state and Wi-Fi state are used for advertising and for network readings. The
+      ads SDK may use the advertising ID through the Google-provided AD_ID permission.
     </p>
     <p>
-      Where required by law (for example in the EEA and the UK), the app asks for your consent
-      through Google’s consent form before any ad is requested. You can change or withdraw that
-      choice any time in Settings → Privacy → Ad privacy options.
+      Vibration is used for haptics and the vibration test. Set-alarm is used only when you create
+      an alarm or timer. NFC is read-only and used only when you open the NFC information.
+      Modify-audio-settings is used only by the earpiece test.
+    </p>
+    <p>
+      Location is requested only when you open Wi-Fi details or the Wi-Fi analyzer, because Android
+      treats Wi-Fi names and nearby-network scans as location data. Nearby Wi-Fi Devices is used
+      only for the Android 13+ nearby-network list. Bluetooth Connect is requested only to read
+      whether Bluetooth is on; the app does not scan for or connect to Bluetooth devices.
+    </p>
+    <p>
+      Microphone is requested only after you start the microphone test and confirm the explanation.
+      You can deny it; the test then shows “Not tested” and a shortcut to system Settings.
+    </p>
+    <p>
+      Usage Access is a special Android access that you choose to grant in Settings. It is used only
+      for the Apps tab’s sizes, screen time and permission analysis. The app does not ask for
+      contacts, SMS, phone state, camera, overlay or access to all installed packages.
+    </p>
+
+    <h2>Advertising and your choices</h2>
+    <p>
+      The app is free and supported by ads served by Google AdMob. To serve ads, Google’s Mobile Ads
+      SDK may collect or receive your device’s advertising ID, basic device and app information,
+      approximate location and diagnostics, as described in Google’s own privacy policy.
+    </p>
+    <p>
+      Where required by law, for example in the EEA and the UK, the app asks for your consent
+      through Google’s consent form before requesting an ad. You can change or withdraw that choice
+      later. When Google reports that a privacy-options form is required, a “Manage ad choices”
+      button appears at the end of this policy and opens Google’s form.
+    </p>
+    <p>
+      You can reset or delete your Android advertising ID at any time in Android Settings → Privacy
+      → Ads.
     </p>
     <p>
       How Google uses data:
       <a href="https://policies.google.com/technologies/partner-sites"
         >policies.google.com/technologies/partner-sites</a
       >
-      and <a href="https://policies.google.com/privacy">policies.google.com/privacy</a>. You can
-      reset or delete your Android advertising ID in Android Settings → Privacy → Ads.
+      and <a href="https://policies.google.com/privacy">policies.google.com/privacy</a>.
     </p>
 
-    <h2>Permissions</h2>
+    <h2>Home-screen widgets</h2>
     <p>
-      Internet and network state are used for ads. Vibration is used by haptic feedback. Set-alarm
-      is used only when you create an alarm or timer. NFC is read-only and used only when you open
-      that information. Modify-audio-settings is used only by the earpiece test.
+      Device Matrix can place home-screen widgets for RAM, storage, battery and a health summary.
+      They read the same local values as the app and show them in your launcher. Nothing from a
+      widget is uploaded.
     </p>
     <p>
-      Location is requested only when you open Wi-Fi details or the Wi-Fi analyzer, because Android
-      treats Wi-Fi network names and nearby-network scans as location data. Nearby Wi-Fi Devices is
-      used only for the Android 13+ nearby-network list. Bluetooth Connect is requested only to read
-      whether Bluetooth is on.
+      The storage unit and widget appearance choices are kept in the app’s private storage so
+      widgets format sizes and colours consistently. Android and your launcher decide when a widget
+      refreshes; the app requests an update about every 30 minutes. A widget may therefore show the
+      values from its last update until the launcher refreshes it.
     </p>
     <p>
-      Usage Access is optional and is opened from Android’s special-access settings. It is used only
-      for the Apps tab’s sizes, screen time and permission analysis. The app never asks for
-      contacts, SMS, camera, microphone or overlay permissions, and it never scans for or connects
-      to Bluetooth devices.
+      Widgets cannot be added from inside the app. You add them from your launcher’s widget picker.
     </p>
 
     <h2>Children</h2>
     <p>
-      The app is intended for a general audience aged 13 and older. It is not directed at children
-      under 13, and it does not knowingly collect personal information from anyone.
+      Device Matrix is intended for a general audience aged 13 and older. It is not directed at
+      children under 13, and it does not knowingly collect personal information from anyone.
     </p>
 
-    <h2>Your choices</h2>
+    <h2>Keeping and deleting data</h2>
     <p>
-      You can deny or revoke location, Nearby Wi-Fi Devices, Bluetooth Connect and Usage Access at
-      any time in Android Settings. The app keeps working and shows “Not available on this device”
-      for readings that need the permission.
+      Because there is no backend, there is no server-side copy of your readings to delete. Local
+      settings, saved test results and widget preferences remain in the app’s private storage until
+      you clear the app’s data or uninstall it. Reports you copied or shared are controlled by the
+      app or service you sent them to.
     </p>
     <p>
-      You can turn sensitive-value masking off in Settings → Privacy, but the app recommends leaving
-      it on. You can reset or withdraw your ads consent in Settings → Privacy → Ad privacy options
-      where Google requires a consent choice, and you can reset your advertising ID in Android
-      Settings.
+      Android protects app-private storage, but no software can promise perfect security. Keep your
+      phone and its screen lock up to date.
+    </p>
+
+    <h2>Changes to this policy</h2>
+    <p>
+      This policy is reviewed when the app changes. The month and year above show its latest
+      revision; the app does not print a policy version or a day. If a change is material, the
+      updated policy is published at this page and in the app before the change takes effect.
     </p>
 
     <h2>Contact</h2>
     <p>
-      Questions about this policy: use the developer contact shown on the Device Matrix: System Info
+      Questions about this policy or the app: support@example.com. This is the support address
+      configured for the build; the same developer contact appears on the Device Matrix: System Info
       Google Play listing.
     </p>
   </body>

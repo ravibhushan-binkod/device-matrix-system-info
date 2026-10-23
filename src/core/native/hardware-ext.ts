@@ -422,6 +422,103 @@ export function stopTone(): void {
   }
 }
 
+export type SoundLevelReading = {
+  /** 0 (silence at -60 dBFS) … 1 (0 dBFS). */
+  level: number;
+  db: number;
+  peak: number;
+};
+
+/**
+ * Starts the native microphone level meter. The permission must be granted
+ * first; no audio is recorded, kept or sent. Stop it when the screen pauses.
+ */
+export function startSoundLevel(): Result<true> {
+  const module = getModule();
+  if (!module) return unavailable('The HardwareExt native module is not in this build.');
+  try {
+    const raw = module.startSoundLevel();
+    if (raw?.ok) return ok(true);
+    if (raw?.reason === 'blocked') {
+      return unavailable('Microphone access was denied. Allow it in system Settings.');
+    }
+    if (raw?.reason === 'unavailable') {
+      return unavailable('This device does not provide a usable microphone input.');
+    }
+    return unavailable('The microphone level meter could not start.');
+  } catch {
+    return unavailable('The microphone level meter could not start.');
+  }
+}
+
+/** Stops and releases the microphone immediately. Safe to call repeatedly. */
+export function stopSoundLevel(): void {
+  const module = getModule();
+  if (!module) return;
+  try {
+    module.stopSoundLevel();
+  } catch {
+    // Already stopped or the module is going away.
+  }
+}
+
+export function addSoundLevelListener(listener: (reading: SoundLevelReading) => void): () => void {
+  const module = getModule();
+  if (!module) return () => undefined;
+  try {
+    const subscription = module.addListener('onSoundLevel', (event) => {
+      listener({
+        level: Number.isFinite(event.level) ? event.level : 0,
+        db: Number.isFinite(event.db) ? event.db : -60,
+        peak: Number.isFinite(event.peak) ? event.peak : 0,
+      });
+    });
+    return () => subscription.remove();
+  } catch {
+    return () => undefined;
+  }
+}
+
+export type VolumeKeyDirection = 'up' | 'down';
+
+/** Watches volume keys while the checkup screen is active; never consumes them. */
+export function startVolumeKeyCapture(): Result<true> {
+  const module = getModule();
+  if (!module) return unavailable('The HardwareExt native module is not in this build.');
+  try {
+    const raw = module.startVolumeKeyCapture();
+    if (raw?.ok) return ok(true);
+    return unavailable('Volume buttons cannot be watched on this screen.');
+  } catch {
+    return unavailable('Volume buttons cannot be watched on this screen.');
+  }
+}
+
+export function stopVolumeKeyCapture(): void {
+  const module = getModule();
+  if (!module) return;
+  try {
+    module.stopVolumeKeyCapture();
+  } catch {
+    // Already stopped or the module is going away.
+  }
+}
+
+export function addVolumeKeyListener(
+  listener: (direction: VolumeKeyDirection) => void,
+): () => void {
+  const module = getModule();
+  if (!module) return () => undefined;
+  try {
+    const subscription = module.addListener('onVolumeKey', (event) => {
+      if (event.direction === 'up' || event.direction === 'down') listener(event.direction);
+    });
+    return () => subscription.remove();
+  } catch {
+    return () => undefined;
+  }
+}
+
 export function getVibrationInfo(): Result<VibrationInfo> {
   const module = getModule();
   if (!module) return unavailable('The HardwareExt native module is not in this build.');

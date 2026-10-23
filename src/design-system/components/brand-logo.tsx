@@ -1,73 +1,42 @@
-import { StyleSheet, Text, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
-
-import { withAlpha } from '@/design-system/color';
-import { useTheme } from '@/design-system/theme';
-import { BRAND_LOGO_PATHS } from '@/core/brand/brand-logos';
-import type { BrandMark } from '@/core/brand/detect-brand';
-
-type Props = {
-  mark: BrandMark | null;
-  /** Square size in points. */
-  size?: number;
-  /** Tint; defaults to the theme text colour for a neutral mark. */
-  color?: string;
-};
+import { Image, StyleSheet, View } from 'react-native';
 
 /**
- * Draws one brand mark in a single colour: a licensed vector path when the
- * brand has one, otherwise a neutral initials badge. Renders nothing when
- * detection found no brand — the UI never invents a mark.
+ * The one Device Matrix mark. It is the existing transparent adaptive-icon
+ * foreground, cropped to its visible DM artwork — never redrawn or replaced.
  */
-export function BrandLogo({ mark, size = 20, color }: Props) {
-  const { colors } = useTheme();
-  const tint = color ?? colors.text;
+const APP_LOGO = require('../../../assets/images/android-icon-foreground.png');
 
-  if (mark == null) return null;
+type Props = {
+  /** Square size in points. */
+  size?: number;
+  /** Hide the spoken label when a parent already names the app. */
+  decorative?: boolean;
+};
 
-  if (mark.kind === 'logo') {
-    return (
-      <View accessible accessibilityRole="image" accessibilityLabel={`${mark.name} logo`}>
-        <Svg width={size} height={size} viewBox="0 0 24 24">
-          <Path d={BRAND_LOGO_PATHS[mark.slug]} fill={tint} />
-        </Svg>
-      </View>
-    );
-  }
+export function AppLogo({ size = 32, decorative = false }: Props) {
+  const art = Math.round(size * 1.55);
+  const offset = Math.round((size - art) / 2);
 
   return (
     <View
-      accessible
-      accessibilityLabel={`${mark.name} badge`}
-      style={[
-        styles.badge,
-        {
-          width: size,
-          height: size,
-          borderRadius: Math.round(size / 3),
-          borderColor: withAlpha(tint, 0.35),
-          backgroundColor: withAlpha(tint, 0.1),
-        },
-      ]}
+      accessible={!decorative}
+      accessibilityRole={decorative ? undefined : 'image'}
+      accessibilityLabel={decorative ? undefined : 'Device Matrix logo'}
+      importantForAccessibility={decorative ? 'no' : 'yes'}
+      style={[styles.frame, { width: size, height: size }]}
     >
-      <Text
-        allowFontScaling={false}
-        style={[styles.initials, { color: tint, fontSize: Math.round(size * 0.36) }]}
-      >
-        {mark.initials}
-      </Text>
+      <Image
+        source={APP_LOGO}
+        accessible={false}
+        resizeMode="contain"
+        style={{ position: 'absolute', width: art, height: art, left: offset, top: offset }}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  badge: {
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  initials: {
-    fontFamily: 'Inter_600SemiBold',
-    letterSpacing: 0.2,
+  frame: {
+    overflow: 'hidden',
   },
 });
